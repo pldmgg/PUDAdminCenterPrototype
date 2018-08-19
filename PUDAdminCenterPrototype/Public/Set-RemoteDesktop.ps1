@@ -1,30 +1,73 @@
-[System.Collections.ArrayList]$script:FunctionsForSBUse = @(
-    ${Function:AddWinRMTrustedHost}.Ast.Extent.Text
-    ${Function:AddWinRMTrustLocalHost}.Ast.Extent.Text
-    ${Function:EnableWinRMViaRPC}.Ast.Extent.Text
-    ${Function:GetComputerObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetDomainController}.Ast.Extent.Text
-    ${Function:GetElevation}.Ast.Extent.Text
-    ${Function:GetGroupObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetModuleDependencies}.Ast.Extent.Text
-    ${Function:GetNativePath}.Ast.Extent.Text
-    ${Function:GetUserObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetWorkingCredentials}.Ast.Extent.Text
-    ${Function:InvokeModuleDependencies}.Ast.Extent.Text
-    ${Function:InvokePSCompatibility}.Ast.Extent.Text
-    ${Function:NewUniqueString}.Ast.Extent.Text
-    ${Function:ResolveHost}.Ast.Extent.Text
-    ${Function:TestIsValidIPAddress}.Ast.Extent.Text
-    ${Function:TestLDAP}.Ast.Extent.Text
-    ${Function:TestPort}.Ast.Extent.Text
-    ${Function:UnzipFile}.Ast.Extent.Text
-)
+<#
+    
+    .SYNOPSIS
+        Sets a computer's remote desktop settings.
+    
+    .DESCRIPTION
+        Sets a computer's remote desktop settings.
+
+    .NOTES
+        This function is pulled directly from the real Microsoft Windows Admin Center
+
+        PowerShell scripts use rights (according to Microsoft):
+        We grant you a non-exclusive, royalty-free right to use, modify, reproduce, and distribute the scripts provided herein.
+
+        ANY SCRIPTS PROVIDED BY MICROSOFT ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
+        INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS OR A PARTICULAR PURPOSE.
+    
+    .ROLE
+        Administrators
+    
+#>
+function Set-RemoteDesktop {
+    param(
+        [Parameter(Mandatory = $False)]
+        [boolean]
+        $AllowRemoteDesktop,
+        
+        [Parameter(Mandatory = $False)]
+        [boolean]
+        $AllowRemoteDesktopWithNLA,
+        
+        [Parameter(Mandatory=$False)]
+        [boolean]
+        $EnableRemoteApp)
+    
+    Import-Module NetSecurity
+    Import-Module Microsoft.PowerShell.Management
+        
+    $regKey1 = 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server'
+    $regKey2 = 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp'
+    
+    $keyProperty1 = "fDenyTSConnections"
+    $keyProperty2 = "UserAuthentication"
+    $keyProperty3 = "EnableRemoteApp"
+    
+    $keyPropertyValue1 = $(if ($AllowRemoteDesktop -eq $True) { 0 } else { 1 })
+    $keyPropertyValue2 = $(if ($AllowRemoteDesktopWithNLA -eq $True) { 1 } else { 0 })
+    $keyPropertyValue3 = $(if ($EnableRemoteApp -eq $True) { 1 } else { 0 })
+    
+    if (!(Test-Path $regKey1)) {
+        New-Item -Path $regKey1 -Force | Out-Null
+    }
+    
+    New-ItemProperty -Path $regKey1 -Name $keyProperty1 -Value $keyPropertyValue1 -PropertyType DWORD -Force | Out-Null
+    New-ItemProperty -Path $regKey1 -Name $keyProperty3 -Value $keyPropertyValue3 -PropertyType DWORD -Force | Out-Null
+    
+    if (!(Test-Path $regKey2)) {
+        New-Item -Path $regKey2 -Force | Out-Null
+    }
+    
+    New-ItemProperty -Path $regKey2 -Name $keyProperty2 -Value $keyPropertyValue2 -PropertyType DWORD -Force | Out-Null
+    
+    Enable-NetFirewallRule -DisplayGroup 'Remote Desktop'
+}
 
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUxsZFF3nv2gH4uvwHepHU1xvx
-# mEOgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUcaSm3CUDCC66RZ88v/GGha1R
+# Obigggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -81,11 +124,11 @@
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFLJpBrTAYDTp7UTg
-# eISTiTfo/qFqMA0GCSqGSIb3DQEBAQUABIIBAIYS/eh3QjAA18s5V0cbURGxRXDE
-# +ZURhCUVXmWwGvgwE3uE7Ed3+EjvedYa22eYKmAxHgHPoNLZrBxBdTpEI5nWYHcA
-# SOIdwlb0nMYb0tT2BYPIuoCjLTplG5R5jm04IWpyHoHNh8dXt8xcB5OkYJ+gD+bg
-# B8UVbjVrVRKMY6xrLrDx7t2WMFJRWQ3aLqBwGql8zzinFcZvV8Airv7RjuXqezLX
-# zGnAjSC0kTxsIWL+9mMDcLR2M6X2vte6r/8CM/GqtpM2vjnPW6/U9h9LsTaCCOpG
-# A0apYMUNTsOEx9A2n89dmsDcgPMTZY8DCr2goZknk/qISXDjOrAvAvwOGX8=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFN2F/W/sorr53tja
+# WURoeQwqTT0RMA0GCSqGSIb3DQEBAQUABIIBAL5s+yZ3J6/a+zAfBhWPWILg91Qq
+# ykGTKmXeSvC2HBerhgtRJz43y4F/R4A+awOKVmOC7XUwnoDBv6rcJxRSxaOs9t33
+# Lp0rlfuMythFeYxP+U/KlAyav0yZlkwVUwSJdVF78Wk0KIMeRYwq3JcLemQHkJ2/
+# 2XD+KG3ROj+x5VHMqiJ67dN9Fk8oMbHttwlZPFQK9PR0nPQ4ppoDq04kPxhUeYkI
+# /rZWJARNUESPf2PYJ3V2NzVauhdmVI3z50GCyw0pbsELVm8nwE+AnAF9AfcCwEQ/
+# wBqMa7SswrF6Au4dooqO1huGaeffr6g/QpwYJ7vpTmlhonxehl9eI6fyPcU=
 # SIG # End signature block

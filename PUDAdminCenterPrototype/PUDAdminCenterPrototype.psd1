@@ -12,13 +12,13 @@
 RootModule = 'PUDWinAdminCenter.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.8.0'
+ModuleVersion = '0.1.0'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
 
 # ID used to uniquely identify this module
-GUID = '0b6db17f-2ba2-4398-ba42-e833a6afb949'
+GUID = '5a6f302e-aff9-42c8-86e5-349bc8b14735'
 
 # Author of this module
 Author = 'pldmgg'
@@ -69,7 +69,8 @@ PowerShellVersion = '5.1'
 # NestedModules = @()
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
-FunctionsToExport = '*'
+FunctionsToExport = 'New-Runspace','Get-PUDAdminCenter'
+
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
 CmdletsToExport = '*'
 

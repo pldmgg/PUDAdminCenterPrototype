@@ -1,30 +1,54 @@
-[System.Collections.ArrayList]$script:FunctionsForSBUse = @(
-    ${Function:AddWinRMTrustedHost}.Ast.Extent.Text
-    ${Function:AddWinRMTrustLocalHost}.Ast.Extent.Text
-    ${Function:EnableWinRMViaRPC}.Ast.Extent.Text
-    ${Function:GetComputerObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetDomainController}.Ast.Extent.Text
-    ${Function:GetElevation}.Ast.Extent.Text
-    ${Function:GetGroupObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetModuleDependencies}.Ast.Extent.Text
-    ${Function:GetNativePath}.Ast.Extent.Text
-    ${Function:GetUserObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetWorkingCredentials}.Ast.Extent.Text
-    ${Function:InvokeModuleDependencies}.Ast.Extent.Text
-    ${Function:InvokePSCompatibility}.Ast.Extent.Text
-    ${Function:NewUniqueString}.Ast.Extent.Text
-    ${Function:ResolveHost}.Ast.Extent.Text
-    ${Function:TestIsValidIPAddress}.Ast.Extent.Text
-    ${Function:TestLDAP}.Ast.Extent.Text
-    ${Function:TestPort}.Ast.Extent.Text
-    ${Function:UnzipFile}.Ast.Extent.Text
-)
+<#
+    
+    .SYNOPSIS
+        Creates a new environment variable specified by name, type and data.
+    
+    .DESCRIPTION
+        Creates a new environment variable specified by name, type and data.
+
+    .NOTES
+        This function is pulled directly from the real Microsoft Windows Admin Center
+
+        PowerShell scripts use rights (according to Microsoft):
+        We grant you a non-exclusive, royalty-free right to use, modify, reproduce, and distribute the scripts provided herein.
+
+        ANY SCRIPTS PROVIDED BY MICROSOFT ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
+        INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS OR A PARTICULAR PURPOSE.
+    
+    .ROLE
+        Administrators
+    
+#>
+function New-EnvironmentVariable {
+    param(
+        [Parameter(Mandatory = $True)]
+        [String]
+        $name,
+    
+        [Parameter(Mandatory = $True)]
+        [String]
+        $value,
+    
+        [Parameter(Mandatory = $True)]
+        [String]
+        $type
+    )
+    
+    Set-StrictMode -Version 5.0
+    
+    If ([Environment]::GetEnvironmentVariable($name, $type) -eq $null) {
+        return [Environment]::SetEnvironmentVariable($name, $value, $type)
+    }
+    Else {
+        Write-Error "An environment variable of this name and type already exists."
+    }
+}
 
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUxsZFF3nv2gH4uvwHepHU1xvx
-# mEOgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUVzTaENlIs6T4e211lfNsgDk3
+# kv6gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -81,11 +105,11 @@
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFLJpBrTAYDTp7UTg
-# eISTiTfo/qFqMA0GCSqGSIb3DQEBAQUABIIBAIYS/eh3QjAA18s5V0cbURGxRXDE
-# +ZURhCUVXmWwGvgwE3uE7Ed3+EjvedYa22eYKmAxHgHPoNLZrBxBdTpEI5nWYHcA
-# SOIdwlb0nMYb0tT2BYPIuoCjLTplG5R5jm04IWpyHoHNh8dXt8xcB5OkYJ+gD+bg
-# B8UVbjVrVRKMY6xrLrDx7t2WMFJRWQ3aLqBwGql8zzinFcZvV8Airv7RjuXqezLX
-# zGnAjSC0kTxsIWL+9mMDcLR2M6X2vte6r/8CM/GqtpM2vjnPW6/U9h9LsTaCCOpG
-# A0apYMUNTsOEx9A2n89dmsDcgPMTZY8DCr2goZknk/qISXDjOrAvAvwOGX8=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFCwMlcEBvVJwDgOr
+# TAuC690Gvat1MA0GCSqGSIb3DQEBAQUABIIBALgMls0gK0pUdkolne5vzUnOJilS
+# kAGE8M5ObXA4K8HEL2TZVYBHq2VXRDYwfAH3fxi/j28lohCOY3/hn4ZcOlE43iDr
+# QTgO1Bn+b2cOiNwEAUZMlscZzrgekodB4AK3Y63N3WiwsXl4cRBuDrdk1DWKkmKJ
+# JrgKWZezd95+afx3Xnhr0p914vrf0eJoRpr8HDlks79zps6n5yWu5XDv3vm6EbzD
+# xTl3HHsiJ/h3aPlUla0qzSRKNU8McVEY3nzibtWzS62yBOCs5kCuNU/Hp980PZSf
+# 67plMXMXEJu7A5ivw7cw77KykcScnnOSuXg3ukRHJFtsE0n7fNDlwMCFmXI=
 # SIG # End signature block

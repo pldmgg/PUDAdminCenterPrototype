@@ -1,30 +1,56 @@
-[System.Collections.ArrayList]$script:FunctionsForSBUse = @(
-    ${Function:AddWinRMTrustedHost}.Ast.Extent.Text
-    ${Function:AddWinRMTrustLocalHost}.Ast.Extent.Text
-    ${Function:EnableWinRMViaRPC}.Ast.Extent.Text
-    ${Function:GetComputerObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetDomainController}.Ast.Extent.Text
-    ${Function:GetElevation}.Ast.Extent.Text
-    ${Function:GetGroupObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetModuleDependencies}.Ast.Extent.Text
-    ${Function:GetNativePath}.Ast.Extent.Text
-    ${Function:GetUserObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetWorkingCredentials}.Ast.Extent.Text
-    ${Function:InvokeModuleDependencies}.Ast.Extent.Text
-    ${Function:InvokePSCompatibility}.Ast.Extent.Text
-    ${Function:NewUniqueString}.Ast.Extent.Text
-    ${Function:ResolveHost}.Ast.Extent.Text
-    ${Function:TestIsValidIPAddress}.Ast.Extent.Text
-    ${Function:TestLDAP}.Ast.Extent.Text
-    ${Function:TestPort}.Ast.Extent.Text
-    ${Function:UnzipFile}.Ast.Extent.Text
-)
+function GetUserObjectsInLDAP {
+    [CmdletBinding()]
+    Param()
+
+    # Below $LDAPInfo Output is PSCustomObject with properties: DirectoryEntryInfo, LDAPBaseUri,
+    # GlobalCatalogConfigured3268, GlobalCatalogConfiguredForSSL3269, Configured389, ConfiguredForSSL636,
+    # PortsThatWork
+    try {
+        $DomainControllerInfo = GetDomainController -ErrorAction Stop
+        $LDAPInfo = TestLDAP -ADServerHostNameOrIP $DomainControllerInfo.PrimaryDomainController -ErrorAction Stop
+        if (!$DomainControllerInfo) {throw "Problem with GetDomainController function! Halting!"}
+        if (!$LDAPInfo) {throw "Problem with TestLDAP function! Halting!"}
+    }
+    catch {
+        Write-Error $_
+        $global:FunctionResult = "1"
+        return
+    }
+
+    if (!$LDAPInfo.PortsThatWork) {
+        Write-Error "Unable to access LDAP on $($DomainControllerInfo.PrimaryDomainController)! Halting!"
+        $global:FunctionResult = "1"
+        return
+    }
+
+    if ($LDAPInfo.PortsThatWork -contains "389") {
+        $LDAPUri = $LDAPInfo.LDAPBaseUri + ":389"
+    }
+    elseif ($LDAPInfo.PortsThatWork -contains "3268") {
+        $LDAPUri = $LDAPInfo.LDAPBaseUri + ":3268"
+    }
+    elseif ($LDAPInfo.PortsThatWork -contains "636") {
+        $LDAPUri = $LDAPInfo.LDAPBaseUri + ":636"
+    }
+    elseif ($LDAPInfo.PortsThatWork -contains "3269") {
+        $LDAPUri = $LDAPInfo.LDAPBaseUri + ":3269"
+    }
+
+    $LDAPSearchRoot = [System.DirectoryServices.DirectoryEntry]::new($LDAPUri)
+    $LDAPSearcher = [System.DirectoryServices.DirectorySearcher]::new($LDAPSearchRoot)
+    $LDAPSearcher.Filter = "(&(objectCategory=User))"
+    $LDAPSearcher.SizeLimit = 0
+    $LDAPSearcher.PageSize = 250
+    $UserObjectsInLDAP = $LDAPSearcher.FindAll() | foreach {$_.GetDirectoryEntry()}
+
+    $UserObjectsInLDAP
+}
 
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUxsZFF3nv2gH4uvwHepHU1xvx
-# mEOgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUX+OB3D4jNnQ/GNB7yvqvdqA9
+# Pqqgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -81,11 +107,11 @@
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFLJpBrTAYDTp7UTg
-# eISTiTfo/qFqMA0GCSqGSIb3DQEBAQUABIIBAIYS/eh3QjAA18s5V0cbURGxRXDE
-# +ZURhCUVXmWwGvgwE3uE7Ed3+EjvedYa22eYKmAxHgHPoNLZrBxBdTpEI5nWYHcA
-# SOIdwlb0nMYb0tT2BYPIuoCjLTplG5R5jm04IWpyHoHNh8dXt8xcB5OkYJ+gD+bg
-# B8UVbjVrVRKMY6xrLrDx7t2WMFJRWQ3aLqBwGql8zzinFcZvV8Airv7RjuXqezLX
-# zGnAjSC0kTxsIWL+9mMDcLR2M6X2vte6r/8CM/GqtpM2vjnPW6/U9h9LsTaCCOpG
-# A0apYMUNTsOEx9A2n89dmsDcgPMTZY8DCr2goZknk/qISXDjOrAvAvwOGX8=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFJzY0TSWkuu18F1a
+# 04RrZmr3AXyLMA0GCSqGSIb3DQEBAQUABIIBAL2pMoOhpxnOl/5jQqRxukRp+fhN
+# q7MUKSOZ5gLgcn9j0uzQhqvxUP4Fhm8AWxk0FLd78klAux3oi0zaibxSQkOudbpn
+# rD7rR7RgIqeXnVDv5BFePIBPedR9/X1mpVZ5NIGPvQbaJr96KOyof7q76fJzgVH9
+# z0SU07IibFNE/9eRqCV1DqiSxgW9emkwYDOGblFpWL+3M0ktbKbO6uD/KsCXx1kH
+# X3Go6JI7w2XZnjbWrdCQKtNi3P5huWLi2p+JyFGfL/Zu/VMCHQQRIWbBHLw6WdoO
+# B8BT2mfIdeh+cxUIb2RxMWHpmWzxzqE8BZyi95W3U0QpjZp8MiyLj1DQug8=
 # SIG # End signature block

@@ -1,30 +1,34 @@
-[System.Collections.ArrayList]$script:FunctionsForSBUse = @(
-    ${Function:AddWinRMTrustedHost}.Ast.Extent.Text
-    ${Function:AddWinRMTrustLocalHost}.Ast.Extent.Text
-    ${Function:EnableWinRMViaRPC}.Ast.Extent.Text
-    ${Function:GetComputerObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetDomainController}.Ast.Extent.Text
-    ${Function:GetElevation}.Ast.Extent.Text
-    ${Function:GetGroupObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetModuleDependencies}.Ast.Extent.Text
-    ${Function:GetNativePath}.Ast.Extent.Text
-    ${Function:GetUserObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetWorkingCredentials}.Ast.Extent.Text
-    ${Function:InvokeModuleDependencies}.Ast.Extent.Text
-    ${Function:InvokePSCompatibility}.Ast.Extent.Text
-    ${Function:NewUniqueString}.Ast.Extent.Text
-    ${Function:ResolveHost}.Ast.Extent.Text
-    ${Function:TestIsValidIPAddress}.Ast.Extent.Text
-    ${Function:TestLDAP}.Ast.Extent.Text
-    ${Function:TestPort}.Ast.Extent.Text
-    ${Function:UnzipFile}.Ast.Extent.Text
-)
+function NewUniqueString {
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$False)]
+        [string[]]$ArrayOfStrings,
+
+        [Parameter(Mandatory=$True)]
+        [string]$PossibleNewUniqueString
+    )
+
+    if (!$ArrayOfStrings -or $ArrayOfStrings.Count -eq 0 -or ![bool]$($ArrayOfStrings -match "[\w]")) {
+        $PossibleNewUniqueString
+    }
+    else {
+        $OriginalString = $PossibleNewUniqueString
+        $Iteration = 1
+        while ($ArrayOfStrings -contains $PossibleNewUniqueString) {
+            $AppendedValue = "_$Iteration"
+            $PossibleNewUniqueString = $OriginalString + $AppendedValue
+            $Iteration++
+        }
+
+        $PossibleNewUniqueString
+    }
+}
 
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUxsZFF3nv2gH4uvwHepHU1xvx
-# mEOgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUHvzU0BS5wRqJMvA/U8Exx1pZ
+# 1yOgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -81,11 +85,11 @@
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFLJpBrTAYDTp7UTg
-# eISTiTfo/qFqMA0GCSqGSIb3DQEBAQUABIIBAIYS/eh3QjAA18s5V0cbURGxRXDE
-# +ZURhCUVXmWwGvgwE3uE7Ed3+EjvedYa22eYKmAxHgHPoNLZrBxBdTpEI5nWYHcA
-# SOIdwlb0nMYb0tT2BYPIuoCjLTplG5R5jm04IWpyHoHNh8dXt8xcB5OkYJ+gD+bg
-# B8UVbjVrVRKMY6xrLrDx7t2WMFJRWQ3aLqBwGql8zzinFcZvV8Airv7RjuXqezLX
-# zGnAjSC0kTxsIWL+9mMDcLR2M6X2vte6r/8CM/GqtpM2vjnPW6/U9h9LsTaCCOpG
-# A0apYMUNTsOEx9A2n89dmsDcgPMTZY8DCr2goZknk/qISXDjOrAvAvwOGX8=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFHMnywp7X3TUt9g1
+# T+lyVTmzc2iUMA0GCSqGSIb3DQEBAQUABIIBAEtlSCtqd/fhiHW62xifYnhUulT4
+# XRHbnvigZuhZUqTxv8/YfOsfJJ5Yura4IHLxaV0DS2ifjdSSCj/QyBbLQzyxGouI
+# ZzzzbTTdxa0YS2FfeLpvKjQkMUmQu1JkP2w/VY4AXxBjJpYmbOUXgnTd0jCLOkTJ
+# aHq8/13YxkcfhEKFADSrtgRErPrgfscb+gJFhpLKcN2VjPDZF5mFrQFYjmKKDZY0
+# KPVu0i0ZgKamFGHpvO9eB5Mj9BFRDd7JsVEeracbkW3Ui050jqeiZL6pSZF2Qb9E
+# 9L3fPyvqDCIpMzjKteu2P1G4zQTbWbDuMH4wUjr8h/uJ4l99X+0HCpFbdpg=
 # SIG # End signature block

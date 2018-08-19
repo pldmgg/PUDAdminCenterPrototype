@@ -1,30 +1,76 @@
-[System.Collections.ArrayList]$script:FunctionsForSBUse = @(
-    ${Function:AddWinRMTrustedHost}.Ast.Extent.Text
-    ${Function:AddWinRMTrustLocalHost}.Ast.Extent.Text
-    ${Function:EnableWinRMViaRPC}.Ast.Extent.Text
-    ${Function:GetComputerObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetDomainController}.Ast.Extent.Text
-    ${Function:GetElevation}.Ast.Extent.Text
-    ${Function:GetGroupObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetModuleDependencies}.Ast.Extent.Text
-    ${Function:GetNativePath}.Ast.Extent.Text
-    ${Function:GetUserObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetWorkingCredentials}.Ast.Extent.Text
-    ${Function:InvokeModuleDependencies}.Ast.Extent.Text
-    ${Function:InvokePSCompatibility}.Ast.Extent.Text
-    ${Function:NewUniqueString}.Ast.Extent.Text
-    ${Function:ResolveHost}.Ast.Extent.Text
-    ${Function:TestIsValidIPAddress}.Ast.Extent.Text
-    ${Function:TestLDAP}.Ast.Extent.Text
-    ${Function:TestPort}.Ast.Extent.Text
-    ${Function:UnzipFile}.Ast.Extent.Text
-)
+<#
+    
+    .SYNOPSIS
+        Updates or renames an environment variable specified by name, type, data and previous data.
+    
+    .DESCRIPTION
+        Updates or Renames an environment variable specified by name, type, data and previrous data.
+
+    .NOTES
+        This function is pulled directly from the real Microsoft Windows Admin Center
+
+        PowerShell scripts use rights (according to Microsoft):
+        We grant you a non-exclusive, royalty-free right to use, modify, reproduce, and distribute the scripts provided herein.
+
+        ANY SCRIPTS PROVIDED BY MICROSOFT ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
+        INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS OR A PARTICULAR PURPOSE.
+    
+    .ROLE
+        Administrators
+    
+#>
+function Set-EnvironmentVariable {
+    param(
+        [Parameter(Mandatory = $True)]
+        [String]
+        $oldName,
+    
+        [Parameter(Mandatory = $True)]
+        [String]
+        $newName,
+    
+        [Parameter(Mandatory = $True)]
+        [String]
+        $value,
+    
+        [Parameter(Mandatory = $True)]
+        [String]
+        $type
+    )
+    
+    Set-StrictMode -Version 5.0
+    
+    $nameChange = $false
+    if ($newName -ne $oldName) {
+        $nameChange = $true
+    }
+    
+    If (-not [Environment]::GetEnvironmentVariable($oldName, $type)) {
+        @{ Status = "currentMissing" }
+        return
+    }
+    
+    If ($nameChange -and [Environment]::GetEnvironmentVariable($newName, $type)) {
+        @{ Status = "targetConflict" }
+        return
+    }
+    
+    If ($nameChange) {
+        [Environment]::SetEnvironmentVariable($oldName, $null, $type)
+        [Environment]::SetEnvironmentVariable($newName, $value, $type)
+        @{ Status = "success" }
+    }
+    Else {
+        [Environment]::SetEnvironmentVariable($newName, $value, $type)
+        @{ Status = "success" }
+    }    
+}
 
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUxsZFF3nv2gH4uvwHepHU1xvx
-# mEOgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU5Rc9z7CP/8nnDW1qFbIqRblD
+# BL2gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -81,11 +127,11 @@
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFLJpBrTAYDTp7UTg
-# eISTiTfo/qFqMA0GCSqGSIb3DQEBAQUABIIBAIYS/eh3QjAA18s5V0cbURGxRXDE
-# +ZURhCUVXmWwGvgwE3uE7Ed3+EjvedYa22eYKmAxHgHPoNLZrBxBdTpEI5nWYHcA
-# SOIdwlb0nMYb0tT2BYPIuoCjLTplG5R5jm04IWpyHoHNh8dXt8xcB5OkYJ+gD+bg
-# B8UVbjVrVRKMY6xrLrDx7t2WMFJRWQ3aLqBwGql8zzinFcZvV8Airv7RjuXqezLX
-# zGnAjSC0kTxsIWL+9mMDcLR2M6X2vte6r/8CM/GqtpM2vjnPW6/U9h9LsTaCCOpG
-# A0apYMUNTsOEx9A2n89dmsDcgPMTZY8DCr2goZknk/qISXDjOrAvAvwOGX8=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFPdtRpBJd9C77/+H
+# iQ63PND73dtaMA0GCSqGSIb3DQEBAQUABIIBACMUjqyQ8RsiECiY7d4A/QnnR6X4
+# qelsbkZw3Qat7m2lOJiR6cbzdUQHp/S6m6Eu1x0pOCMhVCRRGWY9HZBE+UifumJ/
+# zTxouPGP02t0XlZbQneCj8V3wFpRNI8yQBEnVbEravZ8+YteMitQb2irVH2wKP4b
+# KBeASsuECq7z0EpJVuTwUHgC45FrPTEOsAGQaoXotOpK5iumLp+PuvMZl00yhhoe
+# c6qwyUzCDbTtq1XDSIlI2FgJmwKE7e7un1hpL8EPf7fkFsd1kV1ZZHljYqEZTkMs
+# KegkpTstTmfLuIrpcamfa5b+7DkT8Y7HeYYskpCVsUTL2Zez9xM0+ukz7mU=
 # SIG # End signature block
