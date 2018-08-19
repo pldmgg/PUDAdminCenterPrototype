@@ -57,6 +57,7 @@ Describe -Name "General Project Validation: $env:BHProjectName" -Tag 'Validation
         $Commands -contains 'AddWinRMTrustedHost' | Should Be $False
         $Commands -contains 'AddWinRMTrustLocalHost' | Should Be $False
         $Commands -contains 'EnableWinRMViaRPC' | Should Be $False
+        $Commands -contains 'GetComputerObjectsInLDAP' | Should Be $False
         $Commands -contains 'GetDomainController' | Should Be $False
         $Commands -contains 'GetElevation' | Should Be $False
         $Commands -contains 'GetGroupObjectsInLDAP' | Should Be $False
@@ -66,6 +67,7 @@ Describe -Name "General Project Validation: $env:BHProjectName" -Tag 'Validation
         $Commands -contains 'GetWorkingCredentials' | Should Be $False
         $Commands -contains 'InvokeModuleDependencies' | Should Be $False
         $Commands -contains 'InvokePSCompatibility' | Should Be $False
+        $Commands -contains 'ManualPSGalleryModuleInstall' | Should Be $False
         $Commands -contains 'NewUniqueString' | Should Be $False
         $Commands -contains 'ResolveHost' | Should Be $False
         $Commands -contains 'TestIsValidIPAddress' | Should Be $False
@@ -74,7 +76,18 @@ Describe -Name "General Project Validation: $env:BHProjectName" -Tag 'Validation
         $Commands -contains 'UnzipFile' | Should Be $False
         
         $Commands -contains 'Get-EnvironmentVariables' | Should Be $True
+        $Commands -contains 'Get-LocalUsers' | Should Be $True
+        $Commands -contains 'Get-PUDAdminCenter' | Should Be $True
+        $Commands -contains 'Get-RemoteDesktop' | Should Be $True
         $Commands -contains 'Get-ServerInventory' | Should Be $True
+        $Commands -contains 'New-EnvironmentVariable' | Should Be $True
+        $Commands -contains 'New-Runspace' | Should Be $True
+        $Commands -contains 'Remove-EnvironmentVariable' | Should Be $True
+        $Commands -contains 'Set-ComputerIdentification' | Should Be $True
+        $Commands -contains 'Set-EnvironmentVariable' | Should Be $True
+        $Commands -contains 'Set-RemoteDesktop' | Should Be $True
+        $Commands -contains 'Start-DiskPerf' | Should Be $True
+        $Commands -contains 'Stop-DiskPerf' | Should Be $True
     }
 
     It "Module '$env:BHProjectName' Private Functions Are Available in Internal Scope" {
@@ -82,6 +95,7 @@ Describe -Name "General Project Validation: $env:BHProjectName" -Tag 'Validation
         [bool]$Module.Invoke({Get-Item function:AddWinRMTrustedHost}) | Should Be $True
         [bool]$Module.Invoke({Get-Item function:AddWinRMTrustLocalHost}) | Should Be $True
         [bool]$Module.Invoke({Get-Item function:EnableWinRMViaRPC}) | Should Be $True
+        [bool]$Module.Invoke({Get-Item function:GetComputerObjectsInLDAP}) | Should Be $True
         [bool]$Module.Invoke({Get-Item function:GetDomainController}) | Should Be $True
         [bool]$Module.Invoke({Get-Item function:GetElevation}) | Should Be $True
         [bool]$Module.Invoke({Get-Item function:GetGroupObjectsInLDAP}) | Should Be $True
@@ -91,6 +105,7 @@ Describe -Name "General Project Validation: $env:BHProjectName" -Tag 'Validation
         [bool]$Module.Invoke({Get-Item function:GetWorkingCredentials}) | Should Be $True
         [bool]$Module.Invoke({Get-Item function:InvokeModuleDependencies}) | Should Be $True
         [bool]$Module.Invoke({Get-Item function:InvokePSCompatibility}) | Should Be $True
+        [bool]$Module.Invoke({Get-Item function:ManualPSGalleryModuleInstall}) | Should Be $True
         [bool]$Module.Invoke({Get-Item function:NewUniqueString}) | Should Be $True
         [bool]$Module.Invoke({Get-Item function:ResolveHost}) | Should Be $True
         [bool]$Module.Invoke({Get-Item function:TestIsValidIPAddress}) | Should Be $True

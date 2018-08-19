@@ -12,12 +12,26 @@
     ${Function:GetWorkingCredentials}.Ast.Extent.Text
     ${Function:InvokeModuleDependencies}.Ast.Extent.Text
     ${Function:InvokePSCompatibility}.Ast.Extent.Text
+    ${Function:ManualPSGalleryModuleInstall}.Ast.Extent.Text
     ${Function:NewUniqueString}.Ast.Extent.Text
     ${Function:ResolveHost}.Ast.Extent.Text
     ${Function:TestIsValidIPAddress}.Ast.Extent.Text
     ${Function:TestLDAP}.Ast.Extent.Text
     ${Function:TestPort}.Ast.Extent.Text
     ${Function:UnzipFile}.Ast.Extent.Text
+    ${Function:Get-EnvironmentVariables}.Ast.Extent.Text
+    ${Function:Get-LocalUsers}.Ast.Extent.Text
+    ${Function:Get-PUDAdminCenter}.Ast.Extent.Text
+    ${Function:Get-RemoteDesktop}.Ast.Extent.Text
+    ${Function:Get-ServerInventory}.Ast.Extent.Text
+    ${Function:New-EnvironmentVariable}.Ast.Extent.Text
+    ${Function:New-Runspace}.Ast.Extent.Text
+    ${Function:Remove-EnvironmentVariable}.Ast.Extent.Text
+    ${Function:Set-ComputerIdentification}.Ast.Extent.Text
+    ${Function:Set-EnvironmentVariable}.Ast.Extent.Text
+    ${Function:Set-RemoteDesktop}.Ast.Extent.Text
+    ${Function:Start-DiskPerf}.Ast.Extent.Text
+    ${Function:Stop-DiskPerf}.Ast.Extent.Text
 )
 
 # SIG # Begin signature block

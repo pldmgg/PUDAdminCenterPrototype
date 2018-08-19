@@ -68,4 +68,4 @@ Get-Service $NewServiceName
 
 ## Notes
 
-* PSGallery: 
+* PSGallery: https://www.powershellgallery.com/packages/PUDAdminCenterProtoType
