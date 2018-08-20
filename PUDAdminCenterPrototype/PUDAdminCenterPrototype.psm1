@@ -236,6 +236,9 @@ function Get-PUDAdminCenter {
         foreach ($RSpace in $RunspacesToDispose) {$_.Dispose()}
     }
 
+    # Define all of this Module's functions (both Public and Private) as an array of strings so that we can easily load them in different contexts/scopes
+    $Cache:ThisModuleFunctionsStringArray = $ThisModuleFunctionsStringArray =  $(Get-Module PUDAdminCenterPrototype).Invoke({$FunctionsForSBUse})
+
     # Create the $Pages ArrayList that will be used with 'New-UDDashboard -Pages'
     [System.Collections.ArrayList]$Pages = @()
 
@@ -536,6 +539,7 @@ function Get-PUDAdminCenter {
     $DisconnectedPageContentString = $DisconnectedPageContent.ToString()
     
     #endregion >> Disconnected Page
+    
     #region >> Overview Page
     
     $OverviewPageContent = {
@@ -2729,6 +2733,7 @@ function Get-PUDAdminCenter {
     $null = $Pages.Add($Page)
     
     #endregion >> Overview Page
+    
     #region >> PSRemoting Creds Page
     
     $PSRemotingCredsPageContent = {
@@ -2816,7 +2821,7 @@ function Get-PUDAdminCenter {
                     # Load PUDWinAdminCenter Module Functions Within ScriptBlock
                     $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
     
-                    if ($Session:CredentialHT -eq $null) {
+                    if ($Session:CredentialHT.Keys -notcontains $RemoteHost) {
                         #New-UDInputAction -Toast "`$Session:CredentialHT is not defined!" -Duration 10000
                         $Session:CredentialHT = @{}
                         $RHostCredHT = @{
@@ -2830,7 +2835,9 @@ function Get-PUDAdminCenter {
                         $Session:CredentialHT.Add($RemoteHost,$RHostCredHT)
     
                         # TODO: Need to remove this when finished testing
-                        #$Session:CredentialHT = $PUDRSSyncHT."$RemoteHost`Info".CredHT = $Session:CredentialHT
+                        $PUDRSSyncHT."$RemoteHost`Info".CredHT = $Session:CredentialHT
+    
+                        #New-UDInputAction -Toast "`$Session:CredentialHT was null" -Duration 10000
                     }
     
                     # In case this page was refreshed or redirected to from itself, check $Session:CredentialHT for existing values
@@ -3089,6 +3096,7 @@ function Get-PUDAdminCenter {
     $null = $Pages.Add($Page)
     
     #endregion >> PSRemoting Creds Page
+    
     #region >> Test Page
     
     $TestPageContent = {
@@ -3134,6 +3142,7 @@ function Get-PUDAdminCenter {
     $null = $Pages.Add($Page)
     
     #endregion >> Test Page
+    
     #region >> Tool Select Page
     
     $ToolSelectPageContent = {
@@ -3213,6 +3222,7 @@ function Get-PUDAdminCenter {
     
             if ($Session:CredentialHT.$RemoteHost.PSRemotingCreds -eq $null) {
                 Invoke-UDRedirect -Url "/PSRemotingCreds/$RemoteHost"
+                #Write-Error "Session:CredentialHT.$RemoteHost.PSRemotingCreds is null"
             }
             else {
                 # Check $Session:CredentialHT.$RemoteHost.PSRemotingCreds Credentials. If they don't work, redirect to "/PSRemotingCreds/$RemoteHost"
@@ -3222,14 +3232,17 @@ function Get-PUDAdminCenter {
                     if ($GetWorkingCredsResult.DeterminedCredsThatWorkedOnRemoteHost) {
                         if ($GetWorkingCredsResult.WorkingCredentials.GetType().FullName -ne "System.Management.Automation.PSCredential") {
                             Invoke-UDRedirect -Url "/PSRemotingCreds/$RemoteHost"
+                            #Write-Error "GetWorkingCredentials A"
                         }
                     }
                     else {
                         Invoke-UDRedirect -Url "/PSRemotingCreds/$RemoteHost"
+                        #Write-Error "GetWorkingCredentials B"
                     }
                 }
                 catch {
                     Invoke-UDRedirect -Url "/PSRemotingCreds/$RemoteHost"
+                    #Write-Error $_
                 }
             }
     
@@ -3383,6 +3396,7 @@ function Get-PUDAdminCenter {
     $null = $Pages.Add($Page)
     
     #endregion >> Tool Select Page
+    
 
     #endregion >> Dynamic Pages
 
@@ -3631,6 +3645,7 @@ function Get-PUDAdminCenter {
     $null = $Pages.Insert(0,$HomePage)
     
     #endregion >> Create Home Page
+    
 
     #endregion >> Static Pages
     
@@ -5122,8 +5137,8 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUNuH5u5Or/T62Tzvzd2Ku+UvR
-# sIugggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUUDD/Vv+JkmLatzEoave2oHEK
+# Maigggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -5180,11 +5195,11 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFDRLgM7MKfQsbFHP
-# EbsDnHEpu3voMA0GCSqGSIb3DQEBAQUABIIBALPXhtze1Q2IQ7sJmGpVZo9ATbXJ
-# VyONEumM19e3haQCkdnj8Y6Zf9Bxfosf9KXuBJqXLrHjk5tEjNsYnFFBxRxObBR7
-# AFy0C0PglO5YX1wSBTdnTCYXPU7uMBzKRgafFSuNj+wq4aSLhEf7TK9MwPAMnopu
-# p5D2Mt5h/kRusNBWAOdCnVpmfNKfH5V+Zwc9q/J2lqLc8zq8HKe/wivle0J+/IdL
-# 9VQ3Sjhy3rHh2Ij1MZCtCYiKdkLOj8WYgVQwNX0C9waB0mqtzy6VRILXOvRTrjlz
-# he2LD79um33eU4E5mi85VWa4vsGx0McTNbSPKDADfKMrphceJcJQ4HtHNCY=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFNraHcyQrpQ2DoJf
+# Aolg70jSodbgMA0GCSqGSIb3DQEBAQUABIIBABKFoMbI62jlxEr6QjEd/b6MDlQj
+# W3DGjtJjSTc5EoIvgTgsEpxUMdJPa1MLYeRnGtmXi14ghy/bdXv9BamZvmXdED+0
+# RPEMiEa2tLBf93uP7SWMmhrddaUgi9Ggext0/KxoGGymyoRJLQESvm/LxaGSj1Ty
+# 8PwFsDLllHn+B3iQkB9R1NjbVVn4J0onurgX9LBrbbP0Jj2FYt7UXzRVyu9hQJkn
+# ZK0y58G6T+5uuW3FGiwlE8pKTREugjWD4UbSUtuQQhjiumzlkjqYgMh0DNt+0kmx
+# ZcVmZrkJTIKJnxH+VRHpaS52f62dRrMwMHrpUQ4ypO0Qh4DLzuhhMtJM8e8=
 # SIG # End signature block

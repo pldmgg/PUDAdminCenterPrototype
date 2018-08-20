@@ -51,6 +51,9 @@ function Get-PUDAdminCenter {
         foreach ($RSpace in $RunspacesToDispose) {$_.Dispose()}
     }
 
+    # Define all of this Module's functions (both Public and Private) as an array of strings so that we can easily load them in different contexts/scopes
+    $Cache:ThisModuleFunctionsStringArray = $ThisModuleFunctionsStringArray =  $(Get-Module PUDAdminCenterPrototype).Invoke({$FunctionsForSBUse})
+
     # Create the $Pages ArrayList that will be used with 'New-UDDashboard -Pages'
     [System.Collections.ArrayList]$Pages = @()
 
@@ -201,8 +204,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUs0e35xadU9l3ab8Ryll4l5x1
-# uE+gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUTg4hXoFWZb10XPdM1AommOJD
+# oOmgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -259,11 +262,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFJTQKK8Fc6Lvp/Qh
-# u5GIneItcbpMMA0GCSqGSIb3DQEBAQUABIIBAGAMomErer1INo+Tmq2FkG6F/lpt
-# Eo+Pgco1+kiiqQSSunCV66R6ejpjP0l/fniL8oYPk1PqJVNQUPU+iGuN86k0CXWj
-# t9xA9joaMzh+naD4rwJCxgSGCklr2xTs0ThG27MCSrBPZMBq5rC20vqWkWH3eqfn
-# uqgBxVFziesPgQUA9mA8vgm2c5ZuwzpywdoxjyVOtRmzYTTzLh/TLEA1njogWs76
-# 2fvpfxnitX8xi/svftwO6pYUgk9WUu4sxoxMR4Pz/uVN4Leb7QiHsw1/wzd/Mbtj
-# Honl7aVC5T6XMsbpjWwlQD3dToL/fNXg6bLWo7gMofKOMHEWg2kS+H4Ftxo=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFLLdZkwyEQ0PoXsY
+# 2Sr6dusV6Q7QMA0GCSqGSIb3DQEBAQUABIIBAFabenuZSh/ZCLbHOIQh/1YNkI5O
+# ilDYbPjD2IeRi63C1TyIGIpdAs9RdeWrJ006gypIFHfQP+J9pitw9xqa4Mwwa5F+
+# lnWsv7dQzyxqeK7iJSkn82u8/TZaGJaEYa6VqMNrkFqbiT/mcQkBY8qq5xoCh7Kh
+# pprSNxE/W/KK1gkBg/XUa/h81SOwc8n720sZBY1ZyuL0yEp6HkZXcE8uhnnnvOUb
+# cVx/K4vD/nhY/oYSUaoYKy5ytOTjqtmWSlQF9AbpLFda/fn0OJiNzODZ/TQXwlhi
+# d4xiWpa+FSQx2qnhX3OAsgxheQehtUffSVfM5E1o4uLl4I4FMvZiGNURfvc=
 # SIG # End signature block

@@ -85,7 +85,7 @@ $PSRemotingCredsPageContent = {
                 # Load PUDWinAdminCenter Module Functions Within ScriptBlock
                 $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
 
-                if ($Session:CredentialHT -eq $null) {
+                if ($Session:CredentialHT.Keys -notcontains $RemoteHost) {
                     #New-UDInputAction -Toast "`$Session:CredentialHT is not defined!" -Duration 10000
                     $Session:CredentialHT = @{}
                     $RHostCredHT = @{
@@ -99,7 +99,9 @@ $PSRemotingCredsPageContent = {
                     $Session:CredentialHT.Add($RemoteHost,$RHostCredHT)
 
                     # TODO: Need to remove this when finished testing
-                    #$Session:CredentialHT = $PUDRSSyncHT."$RemoteHost`Info".CredHT = $Session:CredentialHT
+                    $PUDRSSyncHT."$RemoteHost`Info".CredHT = $Session:CredentialHT
+
+                    #New-UDInputAction -Toast "`$Session:CredentialHT was null" -Duration 10000
                 }
 
                 # In case this page was refreshed or redirected to from itself, check $Session:CredentialHT for existing values

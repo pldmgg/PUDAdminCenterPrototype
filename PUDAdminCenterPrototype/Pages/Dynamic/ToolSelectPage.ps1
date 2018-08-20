@@ -77,6 +77,7 @@ $ToolSelectPageContent = {
 
         if ($Session:CredentialHT.$RemoteHost.PSRemotingCreds -eq $null) {
             Invoke-UDRedirect -Url "/PSRemotingCreds/$RemoteHost"
+            #Write-Error "Session:CredentialHT.$RemoteHost.PSRemotingCreds is null"
         }
         else {
             # Check $Session:CredentialHT.$RemoteHost.PSRemotingCreds Credentials. If they don't work, redirect to "/PSRemotingCreds/$RemoteHost"
@@ -86,14 +87,17 @@ $ToolSelectPageContent = {
                 if ($GetWorkingCredsResult.DeterminedCredsThatWorkedOnRemoteHost) {
                     if ($GetWorkingCredsResult.WorkingCredentials.GetType().FullName -ne "System.Management.Automation.PSCredential") {
                         Invoke-UDRedirect -Url "/PSRemotingCreds/$RemoteHost"
+                        #Write-Error "GetWorkingCredentials A"
                     }
                 }
                 else {
                     Invoke-UDRedirect -Url "/PSRemotingCreds/$RemoteHost"
+                    #Write-Error "GetWorkingCredentials B"
                 }
             }
             catch {
                 Invoke-UDRedirect -Url "/PSRemotingCreds/$RemoteHost"
+                #Write-Error $_
             }
         }
 
