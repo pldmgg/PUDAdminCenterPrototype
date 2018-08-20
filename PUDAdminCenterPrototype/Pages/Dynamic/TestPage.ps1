@@ -1,44 +1,53 @@
-[System.Collections.ArrayList]$script:FunctionsForSBUse = @(
-    ${Function:AddWinRMTrustedHost}.Ast.Extent.Text
-    ${Function:AddWinRMTrustLocalHost}.Ast.Extent.Text
-    ${Function:EnableWinRMViaRPC}.Ast.Extent.Text
-    ${Function:GetComputerObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetDomainController}.Ast.Extent.Text
-    ${Function:GetElevation}.Ast.Extent.Text
-    ${Function:GetGroupObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetModuleDependencies}.Ast.Extent.Text
-    ${Function:GetNativePath}.Ast.Extent.Text
-    ${Function:GetUserObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetWorkingCredentials}.Ast.Extent.Text
-    ${Function:InvokeModuleDependencies}.Ast.Extent.Text
-    ${Function:InvokePSCompatibility}.Ast.Extent.Text
-    ${Function:ManualPSGalleryModuleInstall}.Ast.Extent.Text
-    ${Function:NewUniqueString}.Ast.Extent.Text
-    ${Function:ResolveHost}.Ast.Extent.Text
-    ${Function:TestIsValidIPAddress}.Ast.Extent.Text
-    ${Function:TestLDAP}.Ast.Extent.Text
-    ${Function:TestPort}.Ast.Extent.Text
-    ${Function:UnzipFile}.Ast.Extent.Text
-    ${Function:Get-EnvironmentVariables}.Ast.Extent.Text
-    ${Function:Get-LocalUsers}.Ast.Extent.Text
-    ${Function:Get-PUDAdminCenter}.Ast.Extent.Text
-    ${Function:Get-RemoteDesktop}.Ast.Extent.Text
-    ${Function:Get-ServerInventory}.Ast.Extent.Text
-    ${Function:New-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:New-Runspace}.Ast.Extent.Text
-    ${Function:Remove-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:Set-ComputerIdentification}.Ast.Extent.Text
-    ${Function:Set-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:Set-RemoteDesktop}.Ast.Extent.Text
-    ${Function:Start-DiskPerf}.Ast.Extent.Text
-    ${Function:Stop-DiskPerf}.Ast.Extent.Text
-)
+#region >> Test Page
 
+$TestPageContent = {
+    # Add the SyncHash to the Page so that we can pass output to other pages
+    $PUDRSSyncHT = $global:PUDRSSyncHT
+
+    # Load PUDWinAdminCenter Module Functions Within ScriptBlock
+    $ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
+
+    [System.Collections.ArrayList]$DynPageRows = @()
+    $RelevantDynamicPages = $DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"}
+    $ItemsPerRow = 3
+    $NumberOfRows = $RelevantDynamicPages.Count / $ItemsPerRow
+    for ($i=0; $i -lt $NumberOfRows; $i++) {
+        New-Variable -Name "Row$i" -Value $(New-Object System.Collections.ArrayList) -Force
+
+        if ($i -eq 0) {$j = 0} else {$j = $i * $ItemsPerRow}
+        $jLoopLimit = $j + $($ItemsPerRow - 1)
+        while ($j -le $jLoopLimit) {
+            $null = $(Get-Variable -Name "Row$i" -ValueOnly).Add($RelevantDynamicPages[$j])
+            $j++
+        }
+
+        $null = $DynPageRows.Add($(Get-Variable -Name "Row$i" -ValueOnly))
+    }
+
+    foreach ($DynPageRow in $DynPageRows) {
+        New-UDRow -Endpoint {
+            foreach ($DynPage in $DynPageRow) {
+                $DynPageNoSpace = $DynPage -replace "[\s]",""
+                $CardId = $DynPageNoSpace + "Card"
+                New-UDColumn -Size 4 -Endpoint {
+                    if ($DynPage -ne $null) {
+                        $Links = @(New-UDLink -Text $DynPage -Url "/$DynPageNoSpace/$RemoteHost" -Icon dashboard)
+                        New-UDCard -Title $DynPage -Id $CardId -Text "$DynPage Info" -Links $Links -Size small -TextSize small
+                    }
+                }
+            }
+        }
+    }
+}
+$Page = New-UDPage -Url "/Test" -Endpoint $TestPageContent
+$null = $Pages.Add($Page)
+
+#endregion >> Test Page
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUmXdwyhyyEYLUtdq23Y6ieGJ8
-# S7mgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUSEaZE5sdlciFM6Y1NhKcxO0M
+# AHWgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -95,11 +104,11 @@
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFNmoFuJ3yi/vmDZK
-# qCjb7iNd32WpMA0GCSqGSIb3DQEBAQUABIIBAFE+hHDqwfgRbwMF44p/omNvzuo3
-# eARTwx8M/9ge9r4wLW6np3uQ5v/QDY9d/wuz0ClxYmlmgSnlLwalcGbPvsyZVmwu
-# pYVXRrrtYyWgSBpUFZDym+Q7LjAi0Jl3kkBpwcWreNwGaBOBcJuG6lo786uNt10j
-# rCN1rAhvGK++Otw20MrWC2Kb49XBISqEQrwN4O6wIGvMWBUVIom4hJtj3JLmFxrB
-# rkHcCBlXDwG35RJb+U/xMKqvEurrymIa21OmRHXriszf8GWoYpNEopFx2r9cC7hR
-# f8GZbVEQf5JNh50272O+7Tvd4TbS+HeWapSDQQu77ruK3LMzcnAgmWoxpl0=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFH/GTIzvBITStKXN
+# M1ktcn4BqN7RMA0GCSqGSIb3DQEBAQUABIIBACmJAD9GlT7zizC6GQjlP24QUHhL
+# DUtnihR1s0oj0xe1ZsGO0OUVOhiy9MweyTkmt/LxNJPk7wW3FNk5Vj+b6ABqpj/a
+# McCCI2tmQZYt7cGCmxVC0s46aRQntUKFXLIfI3cspOA/TCj4eipqpwwrfDcE9riu
+# MOh4WjiTN9WWtwBAo5w1i49xD/P2uGLz9bv4DyLl+5qW/lFsxZLsOZPZ/VOoqepf
+# Z0e01JyialVnOfxKPPzqX8DLiJMHzPOZVeW0C2WVI2UEWeds+D2Et2k0RVIYgcL/
+# I6vFRaC2hC7WTiIpvJsPSP9v+xRgyKYKDwLf7hZazZcXJhnPsaAMied9JPA=
 # SIG # End signature block

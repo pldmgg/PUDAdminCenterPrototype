@@ -215,11 +215,27 @@ if ($Cert) {
         $_.Name -notmatch "^build\.requirements\.psd1" -and
         $_.Name -notmatch "^build\.ps1$" -and
         $_.Name -notmatch $($HelperFilesToSignNameRegex -join '|') -and
-        $_.Name -notmatch $RemoveSignatureFilePathRegex
+        $_.Name -notmatch $RemoveSignatureFilePathRegex -and
+        $_.FullName -notmatch "\\Pages\\Dynamic|\\Pages\\Static"
     }
     #$null = $FilesToSign.Add($(Get-Item $env:BHModulePath\Install-PSDepend.ps1))
 
     Remove-Signature -FilePath $FilesToSign.FullName
+
+    # Build the Get-PUDAdminCenter Public Function
+    $PUDAppMainFunctionTemplateContent = Get-Content "$env:BHModulePath\Private\PUDAppMainFunctionTemplate.ps1"
+    $DynamicPagesContent = foreach ($FileItem in $(Get-ChildItem -Path "$env:BHModulePath\Pages\Dynamic" -File)) {
+        # Indent each line...
+        Get-Content $FileItem | foreach {"    $_"}
+    }
+    $StaticPagesContent = foreach ($FileItem in $(Get-ChildItem -Path "$env:BHModulePath\Pages\Static" -File)) {
+        # Indent each line...
+        Get-Content $FileItem | foreach {"    $_"}
+    }
+    $GetPUDAdminCenterFunction = $(
+        $PUDAppMainFunctionTemplateContent -replace '\# Add Dynamic Pages Here',$DynamicPagesContent
+    ) -replace '\# Add Static Pages Here',$StaticPagesContent
+    Set-Content -Path $env:BHModulePath\Public\Get-PUDAdminCenter.ps1 -Value $GetPUDAdminCenterFunction
 
     [System.Collections.ArrayList]$FilesFailedToSign = @()
     foreach ($FilePath in $FilesToSign.FullName) {
@@ -237,6 +253,22 @@ if ($Cert) {
         $global:FunctionResult = "1"
         return
     }
+}
+else {
+    # Build the Get-PUDAdminCenter Public Function
+    $PUDAppMainFunctionTemplateContent = Get-Content "$env:BHModulePath\Private\PUDAppMainFunctionTemplate.ps1"
+    $DynamicPagesContent = foreach ($FileItem in $(Get-ChildItem -Path "$env:BHModulePath\Pages\Dynamic" -File)) {
+        # Indent each line...
+        Get-Content $FileItem | foreach {"    $_"}
+    }
+    $StaticPagesContent = foreach ($FileItem in $(Get-ChildItem -Path "$env:BHModulePath\Pages\Static" -File)) {
+        # Indent each line...
+        Get-Content $FileItem | foreach {"    $_"}
+    }
+    $GetPUDAdminCenterFunction = $(
+        $PUDAppMainFunctionTemplateContent -replace '\# Add Dynamic Functions Here',$DynamicPagesContent
+    ) -replace '\# Add Static Functions Here',$StaticPagesContent
+    Set-Content -Path $env:BHModulePath\Public\Get-PUDAdminCenter.ps1 -Value $GetPUDAdminCenterFunction
 }
 
 if (!$(Get-Module -ListAvailable PSDepend)) {
@@ -316,8 +348,8 @@ exit ( [int]( -not $psake.build_success ) )
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU3iuyNg2xJnPXn1JDOpkYws0H
-# t3Sgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUOtmn58EQCipJaPlv59MPWMYE
+# 7oegggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -374,11 +406,11 @@ exit ( [int]( -not $psake.build_success ) )
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFFfy0uxsIygxcpTF
-# l6LD1ztT1Y7CMA0GCSqGSIb3DQEBAQUABIIBALepDjZVa65WvLnY2695unNrm8XJ
-# wz41j+GPG57TD+eK3oNqIYKtt0dqXoTlBNiROV6R7Khlu33taVXbXY264G1HrZQ1
-# fELSU1xUyKiXnYc+nQQ/Tf+KiRj5k6zJ0JPNgZu0oQ8Ur0jeuE4JQWwtihiTb7Wk
-# TS3UpdN4S80rUVMB/vdNYAPX6twa5yS66LRgts+GdfEXd0mk6/MOxqRuGughspbS
-# BQ07aI2JzMCg+++LAhSwDWMkiNh5Sk15QqB4bzXjieflKxqbfVz6bXROqDmgTXqx
-# VWdxmsZIxg8dKj9KwyCyHk9q5Z7/fySh28NuKYufnbeU4+CagHOhz4nsIfA=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFCSDQw6utXppiiUb
+# gK5OEhJ740qcMA0GCSqGSIb3DQEBAQUABIIBAFHx3KLdN6RU9k8zxkn+bBN5LuYz
+# x8HZ/MEpKEDP0etPfYknSAtX4cN4flwHioJHAHZWM2lT5dHMWdu0TDDjhI/va5pe
+# dk/TmvmEd39QBT4rp8dB7hjKdUUTgbc/dZB71PUmPMK2wlQ/fAAwzcv7XQlzEl6+
+# tLKpWp5wBzButhAyUoxwJkIXtVw9ZYxQqK8t6gjms68wqMuId6ghy3NRlpBI6S85
+# 1lJ2Xj0IXzLzcIJSqshpfqCkBRagI/VseZNlGnBjM+jiTwOR8tbURFubjnH3wPBC
+# nZWfYS7QmaSR4MY9o10sY5c33ktCJxR4X89yu9i6DDhaV3EojHnezkuMAmk=
 # SIG # End signature block
