@@ -568,7 +568,7 @@ function Get-PUDAdminCenter {
                     New-UDCollapsible -Id "MoreToolsNav" -Items {
                         New-UDCollapsibleItem -Title "More Tools" -Icon laptop -Endpoint {
                             New-UDRow -Endpoint {
-                                foreach ($ToolName in $InfoPages) {
+                                foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
                                     New-UDColumn -Endpoint {
                                         New-UDLink -Text $ToolName -Url "/$ToolName/$RemoteHost" -Icon dashboard
                                     }
@@ -668,7 +668,7 @@ function Get-PUDAdminCenter {
                             @{ThreadsCount = $(Get-Counter "\Process(_total)\thread count").CounterSamples.CookedValue}
     
                             # Environment Variables
-                            @{EnvVars = Get-EnvironmentVariables}
+                            @{EnvVars = [pscustomobject]@{EnvVarsCollection = Get-EnvironmentVariables}}
     
                             # RAM Utilization
                             $OSInfo = Get-CimInstance Win32_OperatingSystem
@@ -1499,7 +1499,7 @@ function Get-PUDAdminCenter {
                                         $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.EnvVars
                                     ) | Where-Object {$_ -ne $null}
                                     if ($ArrayOfEnvVarsEntries.Count -gt 0) {
-                                        $EnvironmentVariables = $ArrayOfEnvVarsEntries[-1].EnvVars
+                                        $EnvironmentVariables = $ArrayOfEnvVarsEntries[-1].EnvVarsCollection
                                         $EnvVariableGridData = $EnvironmentVariables | foreach {[pscustomobject]$_} | Out-UDGridData
                                     }
                                 }
@@ -3479,8 +3479,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUPVUj/yFVjPB/p7F1BCU8rke9
-# EXOgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUn5PhtLjLLTL4I7XjTyIYjZ95
+# uh6gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -3537,11 +3537,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFJzH1Fe5xMPHNQZj
-# +5LUSfOGaemhMA0GCSqGSIb3DQEBAQUABIIBALdBoI+QSvuOwSJUfItvpbvjSfG6
-# tugfaW1gv4pnAsolbDix2KiDVkW4zj+PgQsrAaEsSaz4sWDBmqLsV7ZaHg4g01CU
-# Jwzpf6rPrk22fzKRKGfxeAb4c4HxYQt0lDwLsZZFJ6pZFE7eqT5yLh6dIfDw0Zb3
-# CCFSuc5FpMng8pZROF8215J9BRi6Jo2Uz7xmsC+hb9Hnc7HORYvL8YOPP0nw908X
-# ksZv5a8w4Fa2N7Setio8vL71Mcy51r0VfowNVE+1moUPYxXRnkeFbn+0qI2pmRaH
-# dLWmaULWwPS+Za5BIjozOFgbtOagjcLnnrkuaIucazbpELALpZNJqPuP4Ag=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFPtMuvBxqxEL67rH
+# ptL5nM7P1aQ0MA0GCSqGSIb3DQEBAQUABIIBACTsUOFshx3jrO1/p0JDjRnwvGbk
+# argrvQaL9zM1+L63CYkTd4rld0mMiQwEReMKzxhbwFooA5kL/hb7CHJVeNS+th1D
+# XqM/0dTtGYI6aoY3bnnUVeDR+OeksJY7EA0wCe7a2mAc7hZomEF/duhIsKW8NfSQ
+# N2GQ2Iumazl3f7uPDdySNo2HPUT1PtDJy2s/PDFzj5Tr8wBWFe58dGL3bcognmqb
+# am67V2WGfby06NSmdhcYDaTzYbuOXadQUxAgso5QPOGZSzbxDgnaGap2WcbNX6b2
+# ZOBSLkj94j/OjokmxcFnVKo2OL0jtoTy02intGQN/cLH4q2yeZagq1SRvjg=
 # SIG # End signature block

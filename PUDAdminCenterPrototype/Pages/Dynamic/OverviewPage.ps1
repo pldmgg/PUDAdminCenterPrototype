@@ -211,7 +211,7 @@ $OverviewPageContent = {
                 New-UDCollapsible -Id "MoreToolsNav" -Items {
                     New-UDCollapsibleItem -Title "More Tools" -Icon laptop -Endpoint {
                         New-UDRow -Endpoint {
-                            foreach ($ToolName in $InfoPages) {
+                            foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
                                 New-UDColumn -Endpoint {
                                     New-UDLink -Text $ToolName -Url "/$ToolName/$RemoteHost" -Icon dashboard
                                 }
@@ -311,7 +311,7 @@ $OverviewPageContent = {
                         @{ThreadsCount = $(Get-Counter "\Process(_total)\thread count").CounterSamples.CookedValue}
 
                         # Environment Variables
-                        @{EnvVars = Get-EnvironmentVariables}
+                        @{EnvVars = [pscustomobject]@{EnvVarsCollection = Get-EnvironmentVariables}}
 
                         # RAM Utilization
                         $OSInfo = Get-CimInstance Win32_OperatingSystem
@@ -1142,7 +1142,7 @@ $OverviewPageContent = {
                                     $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.EnvVars
                                 ) | Where-Object {$_ -ne $null}
                                 if ($ArrayOfEnvVarsEntries.Count -gt 0) {
-                                    $EnvironmentVariables = $ArrayOfEnvVarsEntries[-1].EnvVars
+                                    $EnvironmentVariables = $ArrayOfEnvVarsEntries[-1].EnvVarsCollection
                                     $EnvVariableGridData = $EnvironmentVariables | foreach {[pscustomobject]$_} | Out-UDGridData
                                 }
                             }

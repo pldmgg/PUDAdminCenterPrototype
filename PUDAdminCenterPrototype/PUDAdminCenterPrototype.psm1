@@ -753,7 +753,7 @@ function Get-PUDAdminCenter {
                     New-UDCollapsible -Id "MoreToolsNav" -Items {
                         New-UDCollapsibleItem -Title "More Tools" -Icon laptop -Endpoint {
                             New-UDRow -Endpoint {
-                                foreach ($ToolName in $InfoPages) {
+                                foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
                                     New-UDColumn -Endpoint {
                                         New-UDLink -Text $ToolName -Url "/$ToolName/$RemoteHost" -Icon dashboard
                                     }
@@ -853,7 +853,7 @@ function Get-PUDAdminCenter {
                             @{ThreadsCount = $(Get-Counter "\Process(_total)\thread count").CounterSamples.CookedValue}
     
                             # Environment Variables
-                            @{EnvVars = Get-EnvironmentVariables}
+                            @{EnvVars = [pscustomobject]@{EnvVarsCollection = Get-EnvironmentVariables}}
     
                             # RAM Utilization
                             $OSInfo = Get-CimInstance Win32_OperatingSystem
@@ -1684,7 +1684,7 @@ function Get-PUDAdminCenter {
                                         $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.EnvVars
                                     ) | Where-Object {$_ -ne $null}
                                     if ($ArrayOfEnvVarsEntries.Count -gt 0) {
-                                        $EnvironmentVariables = $ArrayOfEnvVarsEntries[-1].EnvVars
+                                        $EnvironmentVariables = $ArrayOfEnvVarsEntries[-1].EnvVarsCollection
                                         $EnvVariableGridData = $EnvironmentVariables | foreach {[pscustomobject]$_} | Out-UDGridData
                                     }
                                 }
@@ -5137,8 +5137,8 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUUDD/Vv+JkmLatzEoave2oHEK
-# Maigggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUo4i5jxEbP4xmXE7UI3nSady+
+# I5Ogggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -5195,11 +5195,11 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFNraHcyQrpQ2DoJf
-# Aolg70jSodbgMA0GCSqGSIb3DQEBAQUABIIBABKFoMbI62jlxEr6QjEd/b6MDlQj
-# W3DGjtJjSTc5EoIvgTgsEpxUMdJPa1MLYeRnGtmXi14ghy/bdXv9BamZvmXdED+0
-# RPEMiEa2tLBf93uP7SWMmhrddaUgi9Ggext0/KxoGGymyoRJLQESvm/LxaGSj1Ty
-# 8PwFsDLllHn+B3iQkB9R1NjbVVn4J0onurgX9LBrbbP0Jj2FYt7UXzRVyu9hQJkn
-# ZK0y58G6T+5uuW3FGiwlE8pKTREugjWD4UbSUtuQQhjiumzlkjqYgMh0DNt+0kmx
-# ZcVmZrkJTIKJnxH+VRHpaS52f62dRrMwMHrpUQ4ypO0Qh4DLzuhhMtJM8e8=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFB+iHyrzc4IRXJ/c
+# cw844CSjx6aVMA0GCSqGSIb3DQEBAQUABIIBAFRPzD10c/e/+ICrd5HgSeKqpbZt
+# B9cYXgAH2BpsBfMLZ3UbKh5jUPavfy7kHGmpuf94FRFvaTRAJHFZgku6s3wvXSNx
+# ET8MvMLvXULFrbWI36mVSUKL7NCXXD0TkiFotypJMb5lXH0VFuBq8zOpK57+vvKU
+# yM7rlUwTM3DVKAcd9PLsGsQCnUmtORZj+nbogle3rfPlvwNuU8ghmTThBwwsCAuw
+# MbyYpqzDzo69z9qY2DKE/OEhB5M1jkpIzM/D9BYOOhBdUpjPUTC3b6Y6eklJP6bT
+# mQ2QH56f/OI6vi4yaNsRo0LjGdPeO8UJXUM6DwtiCc5VItXOiumJ1YPmbm8=
 # SIG # End signature block
