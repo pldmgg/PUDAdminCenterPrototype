@@ -22,20 +22,17 @@
     .EXAMPLE
         # Open an elevated PowerShell Session, import the module, and -
 
-        PS C:\Users\zeroadmin> Get-UDNetMon
+        PS C:\Users\zeroadmin> Get-PUDAdminCenterPrototype
         
 #>
-function Get-PUDAdminCenter {
+function Get-PUDAdminCenterPrototype {
     Param (
         [Parameter(Mandatory=$False)]
         [ValidateRange(1,32768)]
         [int]$Port = 80,
 
         [Parameter(Mandatory=$False)]
-        [switch]$RemoveExistingPUD = $True,
-
-        [Parameter(Mandatory=$False)]
-        [pscredential]$UniversalPSRemotingCreds
+        [switch]$RemoveExistingPUD = $True
     )
 
     #region >> Prep
@@ -44,6 +41,40 @@ function Get-PUDAdminCenter {
     if ($RemoveExistingPUD) {
         Get-UDDashboard | Stop-UDDashboard
     }
+
+    # Remove All Runspaces to Remote Hosts
+    Get-PSSession | Remove-PSSession
+    $RunspacesToDispose = @(
+        Get-Runspace | Where-Object {$_.Type -eq "Remote"}
+    )
+    if ($RunspacesToDispose.Count -gt 0) {
+        foreach ($RSpace in $RunspacesToDispose) {$_.Dispose()}
+    }
+
+    # Create the $Pages ArrayList that will be used with 'New-UDDashboard -Pages'
+    [System.Collections.ArrayList]$Pages = @()
+
+    # Create a $Cache: and Current Scope ArrayList Containing a list of all **Dynamic** Pages - i.e. Pages
+    # where the URL contains a variable/parameter that is referenced within the Page
+    $Cache:DynamicPages = $DynamicPages = @(
+        "PSRemotingCreds"
+        "ToolSelect"
+        "Overview"
+        "Certificates"
+        "Devices"
+        "Events"
+        "Files"
+        "Firewall"
+        "Users And Groups"
+        "Network"
+        "Processes"
+        "Registry"
+        "Roles And Features"
+        "Scheduled Tasks"
+        "Services"
+        "Storage"
+        "Updates"
+    )
 
     # Make sure we can resolve the $DomainName
     try {
@@ -77,36 +108,7 @@ function Get-PUDAdminCenter {
         }
     }
 
-    [System.Collections.ArrayList]$Pages = @()
-
-    $Cache:InfoPages = $InfoPages = @(
-        "Overview"
-        "Certificates"
-        "Devices"
-        "Events"
-        "Files"
-        "Firewall"
-        "Users And Groups"
-        "Network"
-        "Processes"
-        "Registry"
-        "Roles And Features"
-        "Scheduled Tasks"
-        "Services"
-        "Storage"
-        "Updates"
-    )
-
-    $Cache:ThisModuleFunctionsStringArray = $ThisModuleFunctionsStringArray =  $(Get-Module PUDWinAdminCenter).Invoke({$FunctionsForSBUse})
-
-    # Remove All Runspaces to Remote Hosts
-    Get-PSSession | Remove-PSSession
-    $RunspacesToDispose = @(
-        Get-Runspace | Where-Object {$_.Type -eq "Remote"}
-    )
-    if ($RunspacesToDispose.Count -gt 0) {
-        foreach ($RSpace in $RunspacesToDispose) {$_.Dispose()}
-    }
+    
 
     # Create Runspace SyncHash so that we can pass variables between Pages regardless of them being within an Endpoint
     # This also allows us to communicate with our own custom Runspace(s) that handle Live Data.
@@ -114,16 +116,12 @@ function Get-PUDAdminCenter {
     Remove-Variable -Name PUDRSSyncHT -Scope Global -Force -ErrorAction SilentlyContinue
     $global:PUDRSSyncHT = [hashtable]::Synchronized(@{})
     $global:PUDRSSyncHT.Add("RemoteHostList",$InitialRemoteHostList)
-    foreach ($InfoPage in $InfoPages) {
-        $global:PUDRSSyncHT.Add("$InfoPage`LoadingTracker",[System.Collections.ArrayList]::new())
+    foreach ($DynPage in $DynamicPages) {
+        $global:PUDRSSyncHT.Add("$DynPage`LoadingTracker",[System.Collections.ArrayList]::new())
     }
     $global:PUDRSSyncHT.Add("HomePageLoadingTracker",[System.Collections.ArrayList]::new())
     $global:PUDRSSyncHT.Add("PSRemotingPageLoadingTracker",[System.Collections.ArrayList]::new())
     $global:PUDRSSyncHT.Add("ToolSelectPageLoadingTracker",[System.Collections.ArrayList]::new())
-
-    if ($UniversalPSRemotingCreds) {
-        $global:PUDRSSyncHT.Add("UniversalPSRemotingCreds",$UniversalPSRemotingCreds)
-    }
 
     # IMPORTANT NOTE: The following needs to be added to the top of every PAGE and ENDPOINT if we want them available
     <#
@@ -158,31 +156,32 @@ function Get-PUDAdminCenter {
         # Load PUDWinAdminCenter Module Functions Within ScriptBlock
         $ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
 
-        [System.Collections.ArrayList]$InfoPageRows = @()
+        [System.Collections.ArrayList]$DynPageRows = @()
+        $RelevantDynamicPages = $DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"}
         $ItemsPerRow = 3
-        $NumberOfRows = $InfoPages.Count / $ItemsPerRow
+        $NumberOfRows = $RelevantDynamicPages.Count / $ItemsPerRow
         for ($i=0; $i -lt $NumberOfRows; $i++) {
             New-Variable -Name "Row$i" -Value $(New-Object System.Collections.ArrayList) -Force
 
             if ($i -eq 0) {$j = 0} else {$j = $i * $ItemsPerRow}
             $jLoopLimit = $j + $($ItemsPerRow - 1)
             while ($j -le $jLoopLimit) {
-                $null = $(Get-Variable -Name "Row$i" -ValueOnly).Add($InfoPages[$j])
+                $null = $(Get-Variable -Name "Row$i" -ValueOnly).Add($RelevantDynamicPages[$j])
                 $j++
             }
 
-            $null = $InfoPageRows.Add($(Get-Variable -Name "Row$i" -ValueOnly))
+            $null = $DynPageRows.Add($(Get-Variable -Name "Row$i" -ValueOnly))
         }
 
-        foreach ($InfoPageRow in $InfoPageRows) {
+        foreach ($DynPageRow in $DynPageRows) {
             New-UDRow -Endpoint {
-                foreach ($InfoPage in $InfoPageRow) {
-                    $InfoPageNoSpace = $InfoPage -replace "[\s]",""
-                    $CardId = $InfoPageNoSpace + "Card"
+                foreach ($DynPage in $DynPageRow) {
+                    $DynPageNoSpace = $DynPage -replace "[\s]",""
+                    $CardId = $DynPageNoSpace + "Card"
                     New-UDColumn -Size 4 -Endpoint {
-                        if ($InfoPage -ne $null) {
-                            $Links = @(New-UDLink -Text $InfoPage -Url "/$InfoPageNoSpace/$RemoteHost" -Icon dashboard)
-                            New-UDCard -Title $InfoPage -Id $CardId -Text "$InfoPage Info" -Links $Links -Size small -TextSize small
+                        if ($DynPage -ne $null) {
+                            $Links = @(New-UDLink -Text $DynPage -Url "/$DynPageNoSpace/$RemoteHost" -Icon dashboard)
+                            New-UDCard -Title $DynPage -Id $CardId -Text "$DynPage Info" -Links $Links -Size small -TextSize small
                         }
                     }
                 }
@@ -940,32 +939,33 @@ function Get-PUDAdminCenter {
             #region >> Create the Tool Select Content
             
             if ($ConnectionStatus -eq "Connected") {
-                [System.Collections.ArrayList]$InfoPageRows = @()
+                [System.Collections.ArrayList]$DynPageRows = @()
+                $RelevantDynamicPages = $DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"}
                 $ItemsPerRow = 3
-                $NumberOfRows = $InfoPages.Count / $ItemsPerRow
+                $NumberOfRows = $DynamicPages.Count / $ItemsPerRow
                 for ($i=0; $i -lt $NumberOfRows; $i++) {
                     New-Variable -Name "Row$i" -Value $(New-Object System.Collections.ArrayList) -Force
 
                     if ($i -eq 0) {$j = 0} else {$j = $i * $ItemsPerRow}
                     $jLoopLimit = $j + $($ItemsPerRow - 1)
                     while ($j -le $jLoopLimit) {
-                        $null = $(Get-Variable -Name "Row$i" -ValueOnly).Add($InfoPages[$j])
+                        $null = $(Get-Variable -Name "Row$i" -ValueOnly).Add($RelevantDynamicPages[$j])
                         $j++
                     }
 
-                    $null = $InfoPageRows.Add($(Get-Variable -Name "Row$i" -ValueOnly))
+                    $null = $DynPageRows.Add($(Get-Variable -Name "Row$i" -ValueOnly))
                 }
 
-                foreach ($InfoPageRow in $InfoPageRows) {
+                foreach ($DynPageRow in $DynPageRows) {
                     New-UDRow -Endpoint {
-                        foreach ($InfoPage in $InfoPageRow) {
+                        foreach ($DynPage in $DynPageRow) {
                             # Make sure we're connected before loadting the UDCards
-                            $InfoPageNoSpace = $InfoPage -replace "[\s]",""
-                            $CardId = $InfoPageNoSpace + "Card"
+                            $DynPageNoSpace = $DynPage -replace "[\s]",""
+                            $CardId = $DynPageNoSpace + "Card"
                             New-UDColumn -Size 4 -Endpoint {
-                                if ($InfoPage -ne $null) {
-                                    $Links = @(New-UDLink -Text $InfoPage -Url "/$InfoPageNoSpace/$RemoteHost" -Icon dashboard)
-                                    New-UDCard -Title $InfoPage -Id $CardId -Text "$InfoPage Info" -Links $Links
+                                if ($DynPage -ne $null) {
+                                    $Links = @(New-UDLink -Text $DynPage -Url "/$DynPageNoSpace/$RemoteHost" -Icon dashboard)
+                                    New-UDCard -Title $DynPage -Id $CardId -Text "$DynPage Info" -Links $Links
                                 }
                             }
                         }
