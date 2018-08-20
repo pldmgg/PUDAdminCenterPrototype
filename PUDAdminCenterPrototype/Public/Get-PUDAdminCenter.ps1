@@ -22,10 +22,10 @@
     .EXAMPLE
         # Open an elevated PowerShell Session, import the module, and -
 
-        PS C:\Users\zeroadmin> Get-PUDAdminCenterPrototype
+        PS C:\Users\zeroadmin> Get-PUDAdminCenter
         
 #>
-function Get-PUDAdminCenterPrototype {
+function Get-PUDAdminCenter {
     Param (
         [Parameter(Mandatory=$False)]
         [ValidateRange(1,32768)]
@@ -54,8 +54,14 @@ function Get-PUDAdminCenterPrototype {
     # Create the $Pages ArrayList that will be used with 'New-UDDashboard -Pages'
     [System.Collections.ArrayList]$Pages = @()
 
-    # Create a $Cache: and Current Scope ArrayList Containing a list of all **Dynamic** Pages - i.e. Pages
-    # where the URL contains a variable/parameter that is referenced within the Page
+    # Create a $Cache: and Current Scope variable (ArrayList) containing the names of all of **Dynamic** Pages -
+    # i.e. Pages where the URL contains a variable/parameter that is referenced within the Page itself.
+    # For example, in this PUDAdminCenter App, the Overview Page (and all other Dynamic Pages in this list) is
+    # eventually created via...
+    #     New-UDPage -Url "/Overview/:RemoteHost" -Endpoint {param($RemoteHost) ...}
+    # ...meaning that if a user were to navigate to http://localhost/Overview/Server01, Overview Page Endpoint scriptblock
+    # code that referenced the variable $RemoteHost would contain the string value 'Server01' (unless it is specifcally
+    # overriden within the Overview Page Endpoint scriptblock, which is NOT recommended).
     $Cache:DynamicPages = $DynamicPages = @(
         "PSRemotingCreds"
         "ToolSelect"
@@ -85,9 +91,49 @@ function Get-PUDAdminCenterPrototype {
         Write-Error "Unable to resolve domain '$DomainName'! Halting!"
         $global:FunctionResult = "1"
         return
-    }
+    }    
 
-    # Get all Computers in Active Directory without the ActiveDirectory Module
+    # Create Synchronized Hashtable so that we can pass variables between Pages regardless of scope.
+    # This provides benefits above and beyond Universal Dashboard's $Cache: scope for two main reasons:
+    #     1) It can be referenced anywhere (not just within an -Endpoint, which is what $Cache: scope is limited to)
+    #     2) It allows us to more easily communicate with our own custom Runspace(s) that handle Live (Realtime) Data. For
+    #     examples of this, see uses of the 'New-Runspace' function within each of the Dynamic Pages (excluding the
+    #     PSRemotingCreds and ToolSelect Pages)
+    Remove-Variable -Name PUDRSSyncHT -Scope Global -Force -ErrorAction SilentlyContinue
+    $global:PUDRSSyncHT = [hashtable]::Synchronized(@{})
+
+    # Populate $PUDRSSyncHT with information that you will need for your PUD Application. This will vary depending on
+    # how your application works, but at the very least, you should:
+    #     1) Add a Key that will contain information that will be displayed on your HomePage (for the PUDAdminCenter App,
+    #     this is the Value contained within the 'RemoteHostList' Key)
+    #     2) If you are planning on using Live (Realtime) Data, ensure you add one or more keys that will contain
+    #     Live Data. (For the PUDAdminCenter App, this is the LiveDataRSInfo Key that exists within a hashtable
+    #     dedicated to each specific Remote Host)
+    # For this PUDAdminCenterPrototype Application, the structure of the $PUDRSSyncHT will look like...
+    <#
+        @{
+            RemoteHostList   = $null
+            <RemoteHostInfo> = @{
+                NetworkInfo                 = $null
+                RelevantNetworkInterfaces   = $null
+                ServerInventoryStatic       = $null
+                LiveDataRSInfo              = $null
+                LiveDataTracker             = @{
+                    Current     = $null
+                    Previous    = $null
+                }
+            }
+        }
+    #>
+    # In other words. each Key within the $PUDRSSyncHT Synchronized Hashtable (with the exception of the 'RemoteHostList' key)
+    # will represent a Remote Host that we intend to manage. Each RemoteHost key value will be a hashtable containing the keys
+    # 'NetworkInfo', 'RelevantNetworkInterfaces', 'ServerInventoryStatic', 'LiveDataRSInfo', and 'LiveDataTracker'. The values
+    # for each of these keys is set to $null initially because actions prior to starting the UDDashboard (in the case of the
+    # 'RemoteHostList' key) or actions taken within the PUDAdminCenter WebApp itself will set/reset their values as appropriate.
+
+    # Let's populate $PUDRSSyncHT.RemoteHostList with information that will be needed immediately upon navigating to the $HomePage.
+    # For this reason, we're gathering the info before we start the UDDashboard. (Note that the below 'GetComputerObjectInLDAP' Private
+    # function gets all Computers in Active Directory without using the ActiveDirectory PowerShell Module)
     [System.Collections.ArrayList]$InitialRemoteHostListPrep = $(GetComputerObjectsInLDAP).Name
     if ($PSVersionTable.PSEdition -eq "Core") {
         [System.Collections.ArrayList]$InitialRemoteHostListPrep = $InitialRemoteHostListPrep | foreach {$_ -replace "CN=",""}
@@ -108,28 +154,9 @@ function Get-PUDAdminCenterPrototype {
         }
     }
 
-    
+    $PUDRSSyncHT.Add("RemoteHostList",$InitialRemoteHostList)
 
-    # Create Runspace SyncHash so that we can pass variables between Pages regardless of them being within an Endpoint
-    # This also allows us to communicate with our own custom Runspace(s) that handle Live Data.
-    # See below: New-Runspace -RunspaceName ...
-    Remove-Variable -Name PUDRSSyncHT -Scope Global -Force -ErrorAction SilentlyContinue
-    $global:PUDRSSyncHT = [hashtable]::Synchronized(@{})
-    $global:PUDRSSyncHT.Add("RemoteHostList",$InitialRemoteHostList)
-    foreach ($DynPage in $DynamicPages) {
-        $global:PUDRSSyncHT.Add("$DynPage`LoadingTracker",[System.Collections.ArrayList]::new())
-    }
-    $global:PUDRSSyncHT.Add("HomePageLoadingTracker",[System.Collections.ArrayList]::new())
-    $global:PUDRSSyncHT.Add("PSRemotingPageLoadingTracker",[System.Collections.ArrayList]::new())
-    $global:PUDRSSyncHT.Add("ToolSelectPageLoadingTracker",[System.Collections.ArrayList]::new())
-
-    # IMPORTANT NOTE: The following needs to be added to the top of every PAGE and ENDPOINT if we want them available
-    <#
-        $PUDRSSyncHT = $global:PUDRSSyncHT
-
-        $ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
-    #>
-    
+    # Add Keys for each of the Remote Hosts in the $InitialRemoteHostList    
     foreach ($RHost in $InitialRemoteHostList) {
         $Key = $RHost.HostName + "Info"
         $Value = @{
@@ -140,7 +167,7 @@ function Get-PUDAdminCenterPrototype {
             LiveDataRSInfo              = $null
             LiveDataTracker             = @{Current = $null; Previous = $null}
         }
-        $global:PUDRSSyncHT.Add($Key,$Value)
+        $PUDRSSyncHT.Add($Key,$Value)
     }
 
     #endregion >> Prep
@@ -149,47 +176,7 @@ function Get-PUDAdminCenterPrototype {
 
     #region >> Test Page
 
-    $TestPageContent = {
-        # Add the SyncHash to the Page so that we can pass output to other pages
-        $PUDRSSyncHT = $global:PUDRSSyncHT
-
-        # Load PUDWinAdminCenter Module Functions Within ScriptBlock
-        $ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
-
-        [System.Collections.ArrayList]$DynPageRows = @()
-        $RelevantDynamicPages = $DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"}
-        $ItemsPerRow = 3
-        $NumberOfRows = $RelevantDynamicPages.Count / $ItemsPerRow
-        for ($i=0; $i -lt $NumberOfRows; $i++) {
-            New-Variable -Name "Row$i" -Value $(New-Object System.Collections.ArrayList) -Force
-
-            if ($i -eq 0) {$j = 0} else {$j = $i * $ItemsPerRow}
-            $jLoopLimit = $j + $($ItemsPerRow - 1)
-            while ($j -le $jLoopLimit) {
-                $null = $(Get-Variable -Name "Row$i" -ValueOnly).Add($RelevantDynamicPages[$j])
-                $j++
-            }
-
-            $null = $DynPageRows.Add($(Get-Variable -Name "Row$i" -ValueOnly))
-        }
-
-        foreach ($DynPageRow in $DynPageRows) {
-            New-UDRow -Endpoint {
-                foreach ($DynPage in $DynPageRow) {
-                    $DynPageNoSpace = $DynPage -replace "[\s]",""
-                    $CardId = $DynPageNoSpace + "Card"
-                    New-UDColumn -Size 4 -Endpoint {
-                        if ($DynPage -ne $null) {
-                            $Links = @(New-UDLink -Text $DynPage -Url "/$DynPageNoSpace/$RemoteHost" -Icon dashboard)
-                            New-UDCard -Title $DynPage -Id $CardId -Text "$DynPage Info" -Links $Links -Size small -TextSize small
-                        }
-                    }
-                }
-            }
-        }
-    }
-    $Page = New-UDPage -Url "/Test" -Endpoint $TestPageContent
-    $null = $Pages.Add($Page)
+    
 
     #endregion >> Test Page
 
@@ -471,7 +458,7 @@ function Get-PUDAdminCenterPrototype {
                         $Session:CredentialHT.Add($RemoteHost,$RHostCredHT)
 
                         # TODO: Need to remove this when finished testing
-                        $Session:CredentialHT = $PUDRSSyncHT."$RemoteHost`Info".CredHT = $Session:CredentialHT
+                        #$Session:CredentialHT = $PUDRSSyncHT."$RemoteHost`Info".CredHT = $Session:CredentialHT
                     }
 
                     # In case this page was refreshed or redirected to from itself, check $Session:CredentialHT for existing values
