@@ -118,21 +118,24 @@ function Get-PUDAdminCenter {
             RemoteHostList   = $null
             <RemoteHostInfo> = @{
                 NetworkInfo                 = $null
-                RelevantNetworkInterfaces   = $null
-                ServerInventoryStatic       = $null
-                LiveDataRSInfo              = $null
-                LiveDataTracker             = @{
-                    Current     = $null
-                    Previous    = $null
+                <DynamicPage>               = @{
+                    <StaticInfoKey>     = $null
+                    LiveDataRSInfo      = $null
+                    LiveDataTracker     = @{
+                        Current     = $null
+                        Previous    = $null
+                    }
                 }
             }
         }
     #>
     # In other words. each Key within the $PUDRSSyncHT Synchronized Hashtable (with the exception of the 'RemoteHostList' key)
-    # will represent a Remote Host that we intend to manage. Each RemoteHost key value will be a hashtable containing the keys
-    # 'NetworkInfo', 'RelevantNetworkInterfaces', 'ServerInventoryStatic', 'LiveDataRSInfo', and 'LiveDataTracker'. The values
-    # for each of these keys is set to $null initially because actions prior to starting the UDDashboard (in the case of the
-    # 'RemoteHostList' key) or actions taken within the PUDAdminCenter WebApp itself will set/reset their values as appropriate.
+    # will represent a Remote Host that we intend to manage. Each RemoteHost key value will be a hashtable containing the key
+    # 'NetworkInfo', as well as keys that rperesent relevant Dynamic Pages ('Overview','Certificates',etc). Each Dynamic Page
+    # key value will be a hashtable containing one or more keys with value(s) representing static info that is queried at the time
+    # the page loads as well as the keys 'LiveDataRSInfo', and 'LiveDataTracker'. Some key values are initially set to $null because
+    # actions taken either prior to starting the UDDashboard or actions taken within the PUDAdminCenter WebApp itself on different
+    # pages will set/reset their values as appropriate.
 
     # Let's populate $PUDRSSyncHT.RemoteHostList with information that will be needed immediately upon navigating to the $HomePage.
     # For this reason, we're gathering the info before we start the UDDashboard. (Note that the below 'GetComputerObjectInLDAP' Private
@@ -164,11 +167,18 @@ function Get-PUDAdminCenter {
         $Key = $RHost.HostName + "Info"
         $Value = @{
             NetworkInfo                 = $RHost
-            CredHT                      = $null
+            #CredHT                      = $null
             ServerInventoryStatic       = $null
             RelevantNetworkInterfaces   = $null
             LiveDataRSInfo              = $null
             LiveDataTracker             = @{Current = $null; Previous = $null}
+        }
+        foreach ($DynPage in $($DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
+            $DynPageHT = @{
+                LiveDataRSInfo      = $null
+                LiveDataTracker     = @{Current = $null; Previous = $null}
+            }
+            $Value.Add($DynPage,$DynPageHT)
         }
         $PUDRSSyncHT.Add($Key,$Value)
     }

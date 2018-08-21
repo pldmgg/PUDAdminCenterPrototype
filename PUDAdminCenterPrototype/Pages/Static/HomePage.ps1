@@ -3,7 +3,7 @@
 $HomePageContent = {
     $PUDRSSyncHT = $global:PUDRSSyncHT
 
-    # Load PUDWinAdminCenter Module Functions Within ScriptBlock
+    # Load PUDAdminCenter Module Functions Within ScriptBlock
     $ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
 
     #region >> Loading Indicator
@@ -37,10 +37,11 @@ $HomePageContent = {
 
         $RHost = $PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RHostName}
 
-        $GridData = @{}
-        $GridData.Add("HostName",$RHost.HostName.ToUpper())
-        $GridData.Add("FQDN",$RHost.FQDN)
-        $GridData.Add("IPAddress",$RHost.IPAddressList[0])
+        $RHostTableData = @{}
+        $RHostTableData.Add("HostName",$RHost.HostName.ToUpper())
+        $RHostTableData.Add("FQDN",$RHost.FQDN)
+        $IPAddressListAsString = @($RHost.IPAddressList) -join ", "
+        $RHostTableData.Add("IPAddress",$IPAddressListAsString)
 
         # Check Ping
         try {
@@ -49,10 +50,10 @@ $HomePageContent = {
             ) | Select-Object -Property Address,Status,RoundtripTime -ExcludeProperty PSComputerName,PSShowComputerName,RunspaceId
 
             $PingStatus = if ($PingResult.Status.ToString() -eq "Success") {"Available"} else {"Unavailable"}
-            $GridData.Add("PingStatus",$PingStatus)
+            $RHostTableData.Add("PingStatus",$PingStatus)
         }
         catch {
-            $GridData.Add("PingStatus","Unavailable")
+            $RHostTableData.Add("PingStatus","Unavailable")
         }
 
         # Check WSMan Ports
@@ -95,7 +96,7 @@ $HomePageContent = {
             }
 
             if ($WSMan5985Available -or $WSMan5986Available) {
-                $GridData.Add("WSMan","Available")
+                $RHostTableData.Add("WSMan","Available")
 
                 [System.Collections.ArrayList]$WSManPorts = @()
                 if ($WSMan5985Available) {
@@ -106,11 +107,11 @@ $HomePageContent = {
                 }
 
                 $WSManPortsString = $WSManPorts -join ', '
-                $GridData.Add("WSManPorts",$WSManPortsString)
+                $RHostTableData.Add("WSManPorts",$WSManPortsString)
             }
         }
         catch {
-            $GridData.Add("WSMan","Unavailable")
+            $RHostTableData.Add("WSMan","Unavailable")
         }
 
         # Check SSH
@@ -118,35 +119,35 @@ $HomePageContent = {
             $TestSSHResult = TestPort -HostName $RHost.IPAddressList[0] -Port 22
 
             if ($TestSSHResult.Open) {
-                $GridData.Add("SSH","Available")
+                $RHostTableData.Add("SSH","Available")
             }
             else {
-                $GridData.Add("SSH","Unavailable")
+                $RHostTableData.Add("SSH","Unavailable")
             }
         }
         catch {
-            $GridData.Add("SSH","Unavailable")
+            $RHostTableData.Add("SSH","Unavailable")
         }
 
-        $GridData.Add("DateTime",$(Get-Date -Format MM-dd-yy_hh:mm:sstt))
+        $RHostTableData.Add("DateTime",$(Get-Date -Format MM-dd-yy_hh:mm:sstt))
 
-        if ($GridData.WSMan -eq "Available" -or $GridData.SSH -eq "Available") {
+        if ($RHostTableData.WSMan -eq "Available" -or $RHostTableData.SSH -eq "Available") {
             # We are within an -Endpoint, so $Session: variables should be available
             #if ($PUDRSSyncHT."$($RHost.HostName)`Info".CredHT.PSRemotingCreds -ne $null) {
             if ($Session:CredentialHT.$($RHost.HostName).PSRemotingCreds -ne $null) {
-                $GridData.Add("ManageLink",$(New-UDLink -Text "Manage" -Url "/ToolSelect/$($RHost.HostName)"))
+                $RHostTableData.Add("ManageLink",$(New-UDLink -Text "Manage" -Url "/ToolSelect/$($RHost.HostName)"))
             }
             else {
-                $GridData.Add("ManageLink",$(New-UDLink -Text "Manage" -Url "/PSRemotingCreds/$($RHost.HostName)"))
+                $RHostTableData.Add("ManageLink",$(New-UDLink -Text "Manage" -Url "/PSRemotingCreds/$($RHost.HostName)"))
             }
         }
         else {
-            $GridData.Add("ManageLink","Unavailable")
+            $RHostTableData.Add("ManageLink","Unavailable")
         }
 
-        $GridData.Add("NewCreds",$(New-UDLink -Text "NewCreds" -Url "/PSRemotingCreds/$($RHost.HostName)"))
+        $RHostTableData.Add("NewCreds",$(New-UDLink -Text "NewCreds" -Url "/PSRemotingCreds/$($RHost.HostName)"))
         
-        [pscustomobject]$GridData | Out-UDTableData -Property @("HostName","FQDN","IPAddress","PingStatus","WSMan","WSManPorts","SSH","DateTime","ManageLink","NewCreds")
+        [pscustomobject]$RHostTableData | Out-UDTableData -Property @("HostName","FQDN","IPAddress","PingStatus","WSMan","WSManPorts","SSH","DateTime","ManageLink","NewCreds")
     }
     $RHostUDTableEndpointAsString = $RHostUDTableEndpoint.ToString()
 

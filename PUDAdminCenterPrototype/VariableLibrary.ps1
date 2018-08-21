@@ -19,6 +19,8 @@
     ${Function:TestLDAP}.Ast.Extent.Text
     ${Function:TestPort}.Ast.Extent.Text
     ${Function:UnzipFile}.Ast.Extent.Text
+    ${Function:Get-CertificateOverview}.Ast.Extent.Text
+    ${Function:Get-Certificates}.Ast.Extent.Text
     ${Function:Get-EnvironmentVariables}.Ast.Extent.Text
     ${Function:Get-LocalUsers}.Ast.Extent.Text
     ${Function:Get-PUDAdminCenter}.Ast.Extent.Text

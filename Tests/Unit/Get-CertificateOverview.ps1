@@ -6,14 +6,14 @@ param(
 # NOTE: `Set-BuildEnvironment -Force -Path $PSScriptRoot` from build.ps1 makes the following $env: available:
 <#
     $env:BHBuildSystem = "Unknown"
-    $env:BHProjectPath = "U:\powershell\ProjectRepos\PUDWinAdminCenter"
+    $env:BHProjectPath = "U:\powershell\ProjectRepos\PUDAdminCenterPrototype"
     $env:BHBranchName = "master"
     $env:BHCommitMessage = "!deploy"
     $env:BHBuildNumber = 0
-    $env:BHProjectName = "PUDWinAdminCenter"
-    $env:BHPSModuleManifest = "U:\powershell\ProjectRepos\PUDWinAdminCenter\PUDWinAdminCenter\PUDWinAdminCenter.psd1"
-    $env:BHModulePath = "U:\powershell\ProjectRepos\PUDWinAdminCenter\PUDWinAdminCenter"
-    $env:BHBuildOutput = "U:\powershell\ProjectRepos\PUDWinAdminCenter\BuildOutput"
+    $env:BHProjectName = "PUDAdminCenterPrototype"
+    $env:BHPSModuleManifest = "U:\powershell\ProjectRepos\PUDAdminCenterPrototype\PUDAdminCenterPrototype\PUDAdminCenterPrototype.psd1"
+    $env:BHModulePath = "U:\powershell\ProjectRepos\PUDAdminCenterPrototype\PUDAdminCenterPrototype"
+    $env:BHBuildOutput = "U:\powershell\ProjectRepos\PUDAdminCenterPrototype\BuildOutput"
 #>
 
 # NOTE: If -TestResources was used, the folloqing resources should be available

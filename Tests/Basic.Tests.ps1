@@ -75,6 +75,8 @@ Describe -Name "General Project Validation: $env:BHProjectName" -Tag 'Validation
         $Commands -contains 'TestPort' | Should Be $False
         $Commands -contains 'UnzipFile' | Should Be $False
         
+        $Commands -contains 'Get-CertificateOverview' | Should Be $True
+        $Commands -contains 'Get-Certificates' | Should Be $True
         $Commands -contains 'Get-EnvironmentVariables' | Should Be $True
         $Commands -contains 'Get-LocalUsers' | Should Be $True
         $Commands -contains 'Get-PUDAdminCenter' | Should Be $True

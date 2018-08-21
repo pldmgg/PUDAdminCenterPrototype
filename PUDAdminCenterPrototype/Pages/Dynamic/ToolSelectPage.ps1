@@ -5,7 +5,7 @@ $ToolSelectPageContent = {
 
     $PUDRSSyncHT = $global:PUDRSSyncHT
 
-    # Load PUDWinAdminCenter Module Functions Within ScriptBlock
+    # Load PUDAdminCenter Module Functions Within ScriptBlock
     $ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
 
     # For some reason, we can't use the $DisconnectedPageContent directly here. It needs to be a different object before it actually outputs
@@ -66,7 +66,7 @@ $ToolSelectPageContent = {
 
         $PUDRSSyncHT = $global:PUDRSSyncHT
 
-        # Load PUDWinAdminCenter Module Functions Within ScriptBlock
+        # Load PUDAdminCenter Module Functions Within ScriptBlock
         $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
 
         # For some reason, scriptblocks defined earlier can't be used directly here. They need to be a different objects before
@@ -122,7 +122,7 @@ $ToolSelectPageContent = {
                     New-UDTable -Id "TrackingTable" -Headers @("RemoteHost","Status","CredSSP","DateTime") -AutoRefresh -RefreshInterval 5 -Endpoint {
                         $PUDRSSyncHT = $global:PUDRSSyncHT
 
-                        # Load PUDWinAdminCenter Module Functions Within ScriptBlock
+                        # Load PUDAdminCenter Module Functions Within ScriptBlock
                         $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
                         
                         $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]

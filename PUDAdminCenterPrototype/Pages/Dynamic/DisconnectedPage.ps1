@@ -6,7 +6,7 @@ $DisconnectedPageContent = {
     # Add the SyncHash to the Page so that we can pass output to other pages
     $PUDRSSyncHT = $global:PUDRSSyncHT
 
-    # Load PUDWinAdminCenter Module Functions Within ScriptBlock
+    # Load PUDAdminCenter Module Functions Within ScriptBlock
     $ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
 
     $ConnectionStatusTableProperties = @("RemoteHost", "Status")

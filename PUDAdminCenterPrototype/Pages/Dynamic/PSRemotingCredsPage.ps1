@@ -6,7 +6,7 @@ $PSRemotingCredsPageContent = {
     # Add the SyncHash to the Page so that we can pass output to other pages
     #$PUDRSSyncHT = $global:PUDRSSyncHT
 
-    # Load PUDWinAdminCenter Module Functions Within ScriptBlock
+    # Load PUDAdminCenter Module Functions Within ScriptBlock
     #$ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
 
     #region >> Ensure $RemoteHost is Valid
@@ -82,7 +82,7 @@ $PSRemotingCredsPageContent = {
                 # Add the SyncHash to the Page so that we can pass output to other pages
                 $PUDRSSyncHT = $global:PUDRSSyncHT
 
-                # Load PUDWinAdminCenter Module Functions Within ScriptBlock
+                # Load PUDAdminCenter Module Functions Within ScriptBlock
                 $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
 
                 if ($Session:CredentialHT.Keys -notcontains $RemoteHost) {
@@ -99,7 +99,7 @@ $PSRemotingCredsPageContent = {
                     $Session:CredentialHT.Add($RemoteHost,$RHostCredHT)
 
                     # TODO: Need to remove this when finished testing
-                    $PUDRSSyncHT."$RemoteHost`Info".CredHT = $Session:CredentialHT
+                    #$PUDRSSyncHT."$RemoteHost`Info".CredHT = $Session:CredentialHT
 
                     #New-UDInputAction -Toast "`$Session:CredentialHT was null" -Duration 10000
                 }
