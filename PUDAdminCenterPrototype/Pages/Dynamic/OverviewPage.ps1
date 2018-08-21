@@ -267,7 +267,7 @@ $OverviewPageContent = {
                 }
             }
 
-            # Remove Existing Runspace for "Overview$RemoteHost`LiveData" if it exists as well as the PSSession Runspace within
+            # Remove Existing Runspace for LiveDataRSInfo if it exists as well as the PSSession Runspace within
             if ($PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo -ne $null) {
                 $PSSessionRunspacePrep = @(
                     Get-Runspace | Where-Object {
@@ -283,12 +283,12 @@ $OverviewPageContent = {
                 $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.ThisRunspace.Dispose()
             }
 
-            # Create a Scheduled Task that outputs all desired LiveData to a PSCustomObject .xml file every 5 seconds
+            # Create a Runspace that creates a PSSession to $RemoteHost that is used once every second to re-gather data from $RemoteHost
             $GetEnvVarsFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-EnvironmentVariables" -and $_ -notmatch "function Get-PUDAdminCenter"}
             $GetServerInventoryFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-ServerInventory" -and $_ -notmatch "function Get-PUDAdminCenter"}
-            $NewRunspaceFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function New-Runspace" -and $_ -notmatch "function Get-PUDAdminCenter"}
-            $LiveDataFunctionsToLoad = @($GetEnvVarsFunc,$GetServerInventoryFunc,$NewRunspaceFunc)
+            $LiveDataFunctionsToLoad = @($GetEnvVarsFunc,$GetServerInventoryFunc)
             
+            # The New-Runspace function handles scope for you behind the scenes, so just pretend that everything within -ScriptBlock {} is in the current scope
             New-Runspace -RunspaceName "Overview$RemoteHost`LiveData" -ScriptBlock {
                 $PUDRSSyncHT = $global:PUDRSSyncHT
             
@@ -304,11 +304,6 @@ $OverviewPageContent = {
                 while ($PUDRSSyncHT) {
                     # $LiveOutput is a special ArrayList created and used by the New-Runspace function that collects output as it occurs
                     # We need to limit the number of elements this ArrayList holds so we don't exhaust memory
-                    <#
-                    while ($LiveOutput.Count -gt 1000) {
-                        $LiveOutput.RemoveAt(0)
-                    }
-                    #>
                     if ($LiveOutput.Count -gt 1000) {
                         $LiveOutput.RemoveRange(0,800)
                     }
@@ -317,7 +312,8 @@ $OverviewPageContent = {
                     Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
                         # Place most resource intensive operations first
 
-                        # Only get ServerInventory once every 30 seconds because these spike CPU
+                        # Operations that you only want running once every 30 seconds go withing this 'if; block
+                        # Adjust the timing as needed with deference to $RemoteHost resource efficiency.
                         if ($using:RSLoopCounter -eq 0 -or $($using:RSLoopCounter % 30) -eq 0) {
                             # Server Inventory
                             @{ServerInventory = Get-ServerInventory}
@@ -327,6 +323,8 @@ $OverviewPageContent = {
                             #@{Processes = [System.Diagnostics.Process]::GetProcesses()}
                             #Start-Sleep -Seconds 3
                         }
+
+                        # Operations that you want to run once every second go here
 
                         # Processes
                         @{ProcessesCount = $(Get-Counter "\Process(*)\ID Process" -ErrorAction SilentlyContinue).CounterSamples.Count}
@@ -393,6 +391,11 @@ $OverviewPageContent = {
                     Start-Sleep -Seconds 1
                 }
             }
+            # The New-Runspace function outputs / continually updates a Global Scope variable called $global:RSSyncHash. The results of
+            # the Runspace we just created can be found in $global:RSSyncHash's "Overview$RemoteHost`LiveDataResult" Property - which is just
+            # the -RunspaceName value plus the word 'Info'. By setting $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo equal to
+            # $RSSyncHash."Overview$RemoteHost`LiveDataResult", we can now reference $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput
+            # to get the latest data from $RemoteHost.
             $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo = $RSSyncHash."Overview$RemoteHost`LiveDataResult"
         }
 
