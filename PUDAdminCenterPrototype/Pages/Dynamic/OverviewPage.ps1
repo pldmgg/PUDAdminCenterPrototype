@@ -221,13 +221,11 @@ $OverviewPageContent = {
                 New-UDCollapsible -Items {
                     New-UDCollapsibleItem -Title "More Tools" -Icon laptop -Endpoint {
                         New-UDRow -Endpoint {
-                            New-UDColumn -Size 1 -Endpoint {}
                             foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
                                 New-UDColumn -Endpoint {
                                     New-UDLink -Text $ToolName -Url "/$ToolName/$RemoteHost" -Icon dashboard
                                 }
                             }
-                            New-UDColumn -Size 1 -Endpoint {}
                             #New-UDCard -Links $Links
                         }
                     }

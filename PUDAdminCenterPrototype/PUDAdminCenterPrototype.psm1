@@ -39,6 +39,635 @@ if ($ModulesToInstallAndImport.Count -gt 0) {
 <#
     
     .SYNOPSIS
+        Script that get the certificates overview (total, ex) in the system.
+    
+    .DESCRIPTION
+        Script that get the certificates overview (total, ex) in the system.
+
+    .NOTES
+        This function is pulled directly from the real Microsoft Windows Admin Center
+
+        PowerShell scripts use rights (according to Microsoft):
+        We grant you a non-exclusive, royalty-free right to use, modify, reproduce, and distribute the scripts provided herein.
+
+        ANY SCRIPTS PROVIDED BY MICROSOFT ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
+        INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS OR A PARTICULAR PURPOSE.
+    
+    .ROLE
+        Readers
+    
+#>
+function Get-CertificateOverview {
+     param (
+            [Parameter(Mandatory = $true)]
+            [ValidateSet(
+                "Microsoft-Windows-CertificateServicesClient-Lifecycle-System*",
+                "Microsoft-Windows-CertificateServices-Deployment*",
+                "Microsoft-Windows-CertificateServicesClient-CredentialRoaming*",
+                "Microsoft-Windows-CertificateServicesClient-Lifecycle-User*",
+                "Microsoft-Windows-CAPI2*",
+                "Microsoft-Windows-CertPoleEng*"
+            )]
+            [String]$channel,
+
+            [Parameter(Mandatory = $false)]
+            [String]$path = "Cert:\",
+
+            [Parameter(Mandatory = $false)]
+            [int]$nearlyExpiredThresholdInDays = 60
+        )
+    
+    Import-Module Microsoft.PowerShell.Diagnostics -ErrorAction SilentlyContinue
+    
+    # Notes: $channelList must be in this format:
+    #"Microsoft-Windows-CertificateServicesClient-Lifecycle-System*,Microsoft-Windows-CertificateServices-Deployment*,
+    #Microsoft-Windows-CertificateServicesClient-CredentialRoaming*,Microsoft-Windows-CertificateServicesClient-Lifecycle-User*,
+    #Microsoft-Windows-CAPI2*,Microsoft-Windows-CertPoleEng*"
+    
+    function Get-ChildLeafRecurse
+    {
+        param (
+            [Parameter(Mandatory = $true)]
+            [String]
+            $pspath
+        )
+        try
+        {
+        Get-ChildItem -Path $pspath -ErrorAction SilentlyContinue |?{!$_.PSIsContainer} | Write-Output
+        Get-ChildItem -Path $pspath -ErrorAction SilentlyContinue |?{$_.PSIsContainer} | %{
+                $location = "Cert:\$($_.location)";
+                if ($_.psChildName -ne $_.location)
+                {
+                    $location += "\$($_.PSChildName)";
+                }
+                Get-ChildLeafRecurse $location | % { Write-Output $_};
+            }
+        } catch {}
+    }
+    
+    $certCounts = New-Object -TypeName psobject
+    $certs = Get-ChildLeafRecurse -pspath $path
+    
+    $channelList = $channel.split(",")
+    $totalCount = 0
+    $x = Get-WinEvent -ListLog $channelList -Force -ErrorAction 'SilentlyContinue'
+    for ($i = 0; $i -le $x.Count; $i++){
+        $totalCount += $x[$i].RecordCount;
+    }
+    
+    $certCounts | add-member -Name "allCount" -Value $certs.length -MemberType NoteProperty
+    $certCounts | add-member -Name "expiredCount" -Value ($certs | Where-Object {$_.NotAfter -lt [DateTime]::Now }).length -MemberType NoteProperty
+    $certCounts | add-member -Name "nearExpiredCount" -Value ($certs | Where-Object { ($_.NotAfter -gt [DateTime]::Now ) -and ($_.NotAfter -lt [DateTime]::Now.AddDays($nearlyExpiredThresholdInDays) ) }).length -MemberType NoteProperty
+    $certCounts | add-member -Name "eventCount" -Value $totalCount -MemberType NoteProperty
+    
+    $certCounts    
+}
+
+
+<#
+    
+    .SYNOPSIS
+        Script that enumerates all the certificates in the system.
+    
+    .DESCRIPTION
+        Script that enumerates all the certificates in the system.
+
+    .NOTES
+        This function is pulled directly from the real Microsoft Windows Admin Center
+
+        PowerShell scripts use rights (according to Microsoft):
+        We grant you a non-exclusive, royalty-free right to use, modify, reproduce, and distribute the scripts provided herein.
+
+        ANY SCRIPTS PROVIDED BY MICROSOFT ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
+        INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS OR A PARTICULAR PURPOSE.
+    
+    .ROLE
+        Readers
+    
+#>
+function Get-Certificates {
+    param (
+        [String]$path = "Cert:\",
+        [int]$nearlyExpiredThresholdInDays = 60
+    )
+    
+    <#############################################################################################
+    
+        Helper functions.
+    
+    #############################################################################################>
+    
+    <#
+    .Synopsis
+        Name: Get-ChildLeafRecurse
+        Description: Recursively enumerates each scope and store in Cert:\ drive.
+    
+    .Parameters
+        $pspath: The initial pspath to use for creating whole path to certificate store.
+    
+    .Returns
+        The constructed ps-path object.
+    #>
+    function Get-ChildLeafRecurse
+    {
+        param (
+            [Parameter(Mandatory = $true)]
+            [String]
+            $pspath
+        )
+        try
+        {
+        Get-ChildItem -Path $pspath -ErrorAction SilentlyContinue |?{!$_.PSIsContainer} | Write-Output
+        Get-ChildItem -Path $pspath -ErrorAction SilentlyContinue |?{$_.PSIsContainer} | %{
+                $location = "Cert:\$($_.location)";
+                if ($_.psChildName -ne $_.location)
+                {
+                    $location += "\$($_.PSChildName)";
+                }
+                Get-ChildLeafRecurse $location | % { Write-Output $_};
+            }
+        } catch {}
+    }
+    
+    <#
+    .Synopsis
+        Name: Compute-PublicKey
+        Description: Computes public key algorithm and public key parameters
+    
+    .Parameters
+        $cert: The original certificate object.
+    
+    .Returns
+        A hashtable object of public key algorithm and public key parameters.
+    #>
+    function Compute-PublicKey
+    {
+        param (
+            [Parameter(Mandatory = $true)]
+            [System.Security.Cryptography.X509Certificates.X509Certificate2]
+            $cert
+        )
+    
+        $publicKeyInfo = @{}
+    
+        $publicKeyInfo["PublicKeyAlgorithm"] = ""
+        $publicKeyInfo["PublicKeyParameters"] = ""
+    
+        if ($cert.PublicKey)
+        {
+            $publicKeyInfo["PublicKeyAlgorithm"] =  $cert.PublicKey.Oid.FriendlyName
+            $publicKeyInfo["PublicKeyParameters"] = $cert.PublicKey.EncodedParameters.Format($true)
+        }
+    
+        $publicKeyInfo
+    }
+    
+    <#
+    .Synopsis
+        Name: Compute-SignatureAlgorithm
+        Description: Computes signature algorithm out of original certificate object.
+    
+    .Parameters
+        $cert: The original certificate object.
+    
+    .Returns
+        The signature algorithm friendly name.
+    #>
+    function Compute-SignatureAlgorithm
+    {
+        param (
+            [Parameter(Mandatory = $true)]
+            [System.Security.Cryptography.X509Certificates.X509Certificate2]
+            $cert
+        )
+    
+        $signatureAlgorithm = [System.String]::Empty
+    
+        if ($cert.SignatureAlgorithm)
+        {
+            $signatureAlgorithm = $cert.SignatureAlgorithm.FriendlyName;
+        }
+    
+        $signatureAlgorithm
+    }
+    
+    <#
+    .Synopsis
+        Name: Compute-PrivateKeyStatus
+        Description: Computes private key exportable status.
+    .Parameters
+        $hasPrivateKey: A flag indicating certificate has a private key or not.
+        $canExportPrivateKey: A flag indicating whether certificate can export a private key.
+    
+    .Returns
+        Enum values "Exported" or "NotExported"
+    #>
+    function Compute-PrivateKeyStatus
+    {
+        param (
+            [Parameter(Mandatory = $true)]
+            [bool]
+            $hasPrivateKey,
+    
+            [Parameter(Mandatory = $true)]
+            [bool]
+            $canExportPrivateKey
+        )
+    
+        if (-not ($hasPrivateKey))
+        {
+            $privateKeystatus = "None"
+        }
+        else
+        {
+            if ($canExportPrivateKey)
+            {
+                $privateKeystatus = "Exportable"
+            }
+            else
+            {
+                $privateKeystatus = "NotExportable"
+            }
+        }
+    
+        $privateKeystatus
+    }
+    
+    <#
+    .Synopsis
+        Name: Compute-ExpirationStatus
+        Description: Computes expiration status based on notAfter date.
+    .Parameters
+        $notAfter: A date object refering to certificate expiry date.
+    
+    .Returns
+        Enum values "Expired", "NearlyExpired" and "Healthy"
+    #>
+    function Compute-ExpirationStatus
+    {
+        param (
+            [Parameter(Mandatory = $true)]
+            [DateTime]$notAfter
+        )
+    
+        if ([DateTime]::Now -gt $notAfter)
+        {
+           $expirationStatus = "Expired"
+        }
+        else
+        {
+           $nearlyExpired = [DateTime]::Now.AddDays($nearlyExpiredThresholdInDays);
+    
+           if ($nearlyExpired -ge $notAfter)
+           {
+              $expirationStatus = "NearlyExpired"
+           }
+           else
+           {
+              $expirationStatus = "Healthy"
+           }
+        }
+    
+        $expirationStatus
+    }
+    
+    <#
+    .Synopsis
+        Name: Compute-ArchivedStatus
+        Description: Computes archived status of certificate.
+    .Parameters
+        $archived: A flag to represent archived status.
+    
+    .Returns
+        Enum values "Archived" and "NotArchived"
+    #>
+    function Compute-ArchivedStatus
+    {
+        param (
+            [Parameter(Mandatory = $true)]
+            [bool]
+            $archived
+        )
+    
+        if ($archived)
+        {
+            $archivedStatus = "Archived"
+        }
+        else
+        {
+            $archivedStatus = "NotArchived"
+        }
+    
+        $archivedStatus
+    }
+    
+    <#
+    .Synopsis
+        Name: Compute-IssuedTo
+        Description: Computes issued to field out of the certificate subject.
+    .Parameters
+        $subject: Full subject string of the certificate.
+    
+    .Returns
+        Issued To authority name.
+    #>
+    function Compute-IssuedTo
+    {
+        param (
+            [String]
+            $subject
+        )
+    
+        $issuedTo = [String]::Empty
+    
+        $issuedToRegex = "CN=(?<issuedTo>[^,?]+)"
+        $matched = $subject -match $issuedToRegex
+    
+        if ($matched -and $Matches)
+        {
+           $issuedTo = $Matches["issuedTo"]
+        }
+    
+        $issuedTo
+    }
+    
+    <#
+    .Synopsis
+        Name: Compute-IssuerName
+        Description: Computes issuer name of certificate.
+    .Parameters
+        $cert: The original cert object.
+    
+    .Returns
+        The Issuer authority name.
+    #>
+    function Compute-IssuerName
+    {
+        param (
+            [Parameter(Mandatory = $true)]
+            [System.Security.Cryptography.X509Certificates.X509Certificate2]
+            $cert
+        )
+    
+        $issuerName = $cert.GetNameInfo([System.Security.Cryptography.X509Certificates.X509NameType]::SimpleName, $true)
+    
+        $issuerName
+    }
+    
+    <#
+    .Synopsis
+        Name: Compute-CertificateName
+        Description: Computes certificate name of certificate.
+    .Parameters
+        $cert: The original cert object.
+    
+    .Returns
+        The certificate name.
+    #>
+    function Compute-CertificateName
+    {
+        param (
+            [Parameter(Mandatory = $true)]
+            [System.Security.Cryptography.X509Certificates.X509Certificate2]
+            $cert
+        )
+    
+        $certificateName = $cert.GetNameInfo([System.Security.Cryptography.X509Certificates.X509NameType]::SimpleName, $false)
+        if (!$certificateName) {
+            $certificateName = $cert.GetNameInfo([System.Security.Cryptography.X509Certificates.X509NameType]::DnsName, $false)
+        }
+    
+        $certificateName
+    }
+    
+    <#
+    .Synopsis
+        Name: Compute-Store
+        Description: Computes certificate store name.
+    .Parameters
+        $pspath: The full certificate ps path of the certificate.
+    
+    .Returns
+        The certificate store name.
+    #>
+    function Compute-Store
+    {
+        param (
+            [Parameter(Mandatory = $true)]
+            [String]
+            $pspath
+        )
+    
+        $pspath.Split('\')[2]
+    }
+    
+    <#
+    .Synopsis
+        Name: Compute-Scope
+        Description: Computes certificate scope/location name.
+    .Parameters
+        $pspath: The full certificate ps path of the certificate.
+    
+    .Returns
+        The certificate scope/location name.
+    #>
+    function Compute-Scope
+    {
+        param (
+            [Parameter(Mandatory = $true)]
+            [String]
+            $pspath
+        )
+    
+        $pspath.Split('\')[1].Split(':')[2]
+    }
+    
+    <#
+    .Synopsis
+        Name: Compute-Path
+        Description: Computes certificate path. E.g. CurrentUser\My\<thumbprint>
+    .Parameters
+        $pspath: The full certificate ps path of the certificate.
+    
+    .Returns
+        The certificate path.
+    #>
+    function Compute-Path
+    {
+        param (
+            [Parameter(Mandatory = $true)]
+            [String]
+            $pspath
+        )
+    
+        $pspath.Split(':')[2]
+    }
+    
+    
+    <#
+    .Synopsis
+        Name: EnhancedKeyUsage-List
+        Description: Enhanced KeyUsage
+    .Parameters
+        $cert: The original cert object.
+    
+    .Returns
+        Enhanced Key Usage.
+    #>
+    function EnhancedKeyUsage-List
+    {
+        param (
+            [Parameter(Mandatory = $true)]
+            [System.Security.Cryptography.X509Certificates.X509Certificate2]
+            $cert
+        )
+    
+        $usageString = ''
+        foreach ( $usage in $cert.EnhancedKeyUsageList){
+           $usageString = $usageString + $usage.FriendlyName + ' ' + $usage.ObjectId + "`n"
+        }
+    
+        $usageString
+    }
+    
+    <#
+    .Synopsis
+        Name: Compute-Template
+        Description: Compute template infomation of a certificate
+        $certObject: The original certificate object.
+    
+    .Returns
+        The certificate template if there is one otherwise empty string
+    #>
+    function Compute-Template
+    {
+        param (
+            [Parameter(Mandatory = $true)]
+            [System.Security.Cryptography.X509Certificates.X509Certificate2]
+            $cert
+        )
+    
+        $template = $cert.Extensions | Where-Object {$_.Oid.FriendlyName -match "Template"}
+        if ($template) {
+            $name = $template.Format(1).split('(')[0]
+            if ($name) {
+                $name -replace "Template="
+            }
+            else {
+                ''
+            }
+        }
+        else {
+            ''
+        }
+    }
+    
+    <#
+    .Synopsis
+        Name: Extract-CertInfo
+        Description: Extracts certificate info by decoding different field and create a custom object.
+    .Parameters
+        $certObject: The original certificate object.
+    
+    .Returns
+        The custom object for certificate.
+    #>
+    function Extract-CertInfo
+    {
+        param (
+            [Parameter(Mandatory = $true)]
+            [System.Security.Cryptography.X509Certificates.X509Certificate2]
+            $certObject
+        )
+    
+        $certInfo = @{}
+    
+        $certInfo["Archived"] = $(Compute-ArchivedStatus $certObject.Archived)
+        $certInfo["CertificateName"] = $(Compute-CertificateName $certObject)
+    
+        $certInfo["EnhancedKeyUsage"] = $(EnhancedKeyUsage-List $certObject) #new
+        $certInfo["FriendlyName"] = $certObject.FriendlyName
+        $certInfo["IssuerName"] = $(Compute-IssuerName $certObject)
+        $certInfo["IssuedTo"] = $(Compute-IssuedTo $certObject.Subject)
+        $certInfo["Issuer"] = $certObject.Issuer #new
+    
+        $certInfo["NotAfter"] = $certObject.NotAfter
+        $certInfo["NotBefore"] = $certObject.NotBefore
+    
+        $certInfo["Path"] = $(Compute-Path  $certObject.PsPath)
+        $certInfo["PrivateKey"] =  $(Compute-PrivateKeyStatus -hasPrivateKey $certObject.CalculatedHasPrivateKey -canExportPrivateKey  $certObject.CanExportPrivateKey)
+        $publicKeyInfo = $(Compute-PublicKey $certObject)
+        $certInfo["PublicKey"] = $publicKeyInfo.PublicKeyAlgorithm
+        $certInfo["PublicKeyParameters"] = $publicKeyInfo.PublicKeyParameters
+    
+        $certInfo["Scope"] = $(Compute-Scope  $certObject.PsPath)
+        $certInfo["Store"] = $(Compute-Store  $certObject.PsPath)
+        $certInfo["SerialNumber"] = $certObject.SerialNumber
+        $certInfo["Subject"] = $certObject.Subject
+        $certInfo["Status"] =  $(Compute-ExpirationStatus $certObject.NotAfter)
+        $certInfo["SignatureAlgorithm"] = $(Compute-SignatureAlgorithm $certObject)
+    
+        $certInfo["Thumbprint"] = $certObject.Thumbprint
+        $certInfo["Version"] = $certObject.Version
+    
+        $certInfo["Template"] = $(Compute-Template $certObject)
+    
+        $certInfo
+    }
+    
+    
+    <#############################################################################################
+    
+        Main script.
+    
+    #############################################################################################>
+    
+    
+    $certificates =  @()
+    
+    Get-ChildLeafRecurse $path | foreach {
+        $cert = $_
+        $cert | Add-Member -Force -NotePropertyName "CalculatedHasPrivateKey" -NotePropertyValue $_.HasPrivateKey
+        $exportable = $false
+    
+        if ($cert.HasPrivateKey)
+        {
+            [System.Security.Cryptography.CspParameters] $cspParams = new-object System.Security.Cryptography.CspParameters
+            $contextField = $cert.GetType().GetField("m_safeCertContext", [Reflection.BindingFlags]::NonPublic -bor [Reflection.BindingFlags]::Instance)
+            $privateKeyMethod = $cert.GetType().GetMethod("GetPrivateKeyInfo", [Reflection.BindingFlags]::NonPublic -bor [Reflection.BindingFlags]::Static)
+            if ($contextField -and $privateKeyMethod) {
+            $contextValue = $contextField.GetValue($cert)
+            $privateKeyInfoAvailable = $privateKeyMethod.Invoke($cert, @($ContextValue, $cspParams))
+            if ($privateKeyInfoAvailable)
+            {
+                $PrivateKeyCount++
+                $csp = new-object System.Security.Cryptography.CspKeyContainerInfo -ArgumentList @($cspParams)
+                if ($csp.Exportable)
+                {
+                    $exportable = $true
+                }
+            }
+            }
+            else
+            {
+                    $exportable = $true
+            }
+        }
+    
+        $cert | Add-Member -Force -NotePropertyName "CanExportPrivateKey" -NotePropertyValue $exportable
+    
+        $certificates += Extract-CertInfo $cert
+    
+        }
+    
+    $certificates
+    
+}
+
+
+<#
+    
+    .SYNOPSIS
         Gets 'Machine' and 'User' environment variables.
     
     .DESCRIPTION
@@ -303,21 +932,24 @@ function Get-PUDAdminCenter {
             RemoteHostList   = $null
             <RemoteHostInfo> = @{
                 NetworkInfo                 = $null
-                RelevantNetworkInterfaces   = $null
-                ServerInventoryStatic       = $null
-                LiveDataRSInfo              = $null
-                LiveDataTracker             = @{
-                    Current     = $null
-                    Previous    = $null
+                <DynamicPage>               = @{
+                    <StaticInfoKey>     = $null
+                    LiveDataRSInfo      = $null
+                    LiveDataTracker     = @{
+                        Current     = $null
+                        Previous    = $null
+                    }
                 }
             }
         }
     #>
     # In other words. each Key within the $PUDRSSyncHT Synchronized Hashtable (with the exception of the 'RemoteHostList' key)
-    # will represent a Remote Host that we intend to manage. Each RemoteHost key value will be a hashtable containing the keys
-    # 'NetworkInfo', 'RelevantNetworkInterfaces', 'ServerInventoryStatic', 'LiveDataRSInfo', and 'LiveDataTracker'. The values
-    # for each of these keys is set to $null initially because actions prior to starting the UDDashboard (in the case of the
-    # 'RemoteHostList' key) or actions taken within the PUDAdminCenter WebApp itself will set/reset their values as appropriate.
+    # will represent a Remote Host that we intend to manage. Each RemoteHost key value will be a hashtable containing the key
+    # 'NetworkInfo', as well as keys that rperesent relevant Dynamic Pages ('Overview','Certificates',etc). Each Dynamic Page
+    # key value will be a hashtable containing one or more keys with value(s) representing static info that is queried at the time
+    # the page loads as well as the keys 'LiveDataRSInfo', and 'LiveDataTracker'. Some key values are initially set to $null because
+    # actions taken either prior to starting the UDDashboard or actions taken within the PUDAdminCenter WebApp itself on different
+    # pages will set/reset their values as appropriate.
 
     # Let's populate $PUDRSSyncHT.RemoteHostList with information that will be needed immediately upon navigating to the $HomePage.
     # For this reason, we're gathering the info before we start the UDDashboard. (Note that the below 'GetComputerObjectInLDAP' Private
@@ -349,11 +981,18 @@ function Get-PUDAdminCenter {
         $Key = $RHost.HostName + "Info"
         $Value = @{
             NetworkInfo                 = $RHost
-            CredHT                      = $null
+            #CredHT                      = $null
             ServerInventoryStatic       = $null
             RelevantNetworkInterfaces   = $null
             LiveDataRSInfo              = $null
             LiveDataTracker             = @{Current = $null; Previous = $null}
+        }
+        foreach ($DynPage in $($DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
+            $DynPageHT = @{
+                LiveDataRSInfo      = $null
+                LiveDataTracker     = @{Current = $null; Previous = $null}
+            }
+            $Value.Add($DynPage,$DynPageHT)
         }
         $PUDRSSyncHT.Add($Key,$Value)
     }
@@ -363,6 +1002,347 @@ function Get-PUDAdminCenter {
 
     #region >> Dynamic Pages
 
+    $CertificatesPageContent = {
+        param($RemoteHost)
+    
+        $PUDRSSyncHT = $global:PUDRSSyncHT
+    
+        # Load PUDAdminCenter Module Functions Within ScriptBlock
+        $ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
+    
+        # For some reason, scriptblocks defined earlier can't be used directly here. They need to be a different objects before
+        # they actually behave as expected. Not sure why.
+        #$RecreatedDisconnectedPageContent = [scriptblock]::Create($DisconnectedPageContentString)
+    
+        $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+    
+        #region >> Ensure $RemoteHost is Valid
+    
+        if ($PUDRSSyncHT.RemoteHostList.HostName -notcontains $RemoteHost) {
+            $ErrorText = "The Remote Host $($RemoteHost.ToUpper()) is not a valid Host Name!"
+        }
+    
+        if ($ErrorText) {
+            New-UDRow -Columns {
+                New-UDColumn -Size 4 -Content {
+                    New-UDHeading -Text ""
+                }
+                New-UDColumn -Size 4 -Content {
+                    New-UDHeading -Text $ErrorText -Size 6
+                }
+                New-UDColumn -Size 4 -Content {
+                    New-UDHeading -Text ""
+                }
+            }
+        }
+    
+        # If $RemoteHost isn't valid, don't load anything else
+        if ($ErrorText) {
+            return
+        }
+    
+        #endregion >> Ensure $RemoteHost is Valid
+    
+        #region >> Loading Indicator
+    
+        New-UDRow -Columns {
+            New-UDColumn -Endpoint {
+                $Session:CertificatesPageLoadingTracker = [System.Collections.ArrayList]::new()
+            }
+            New-UDColumn -AutoRefresh -RefreshInterval 5 -Endpoint {
+                if ($Session:CertificatesPageLoadingTracker -notcontains "FinishedLoading") {
+                    New-UDHeading -Text "Loading...Please wait..." -Size 5
+                    New-UDPreloader -Size small
+                }
+            }
+        }
+    
+        #endregion >> Loading Indicator
+    
+        # Master Endpoint - All content will be within this Endpoint so that we can reference $Cache: and $Session: scope variables
+        New-UDColumn -Size 12 -Endpoint {
+            #region >> Ensure We Are Connected / Can Connect to $RemoteHost
+    
+            $PUDRSSyncHT = $global:PUDRSSyncHT
+    
+            # Load PUDAdminCenter Module Functions Within ScriptBlock
+            $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
+    
+            # For some reason, scriptblocks defined earlier can't be used directly here. They need to be a different objects before
+            # they actually behave as expected. Not sure why.
+            #$RecreatedDisconnectedPageContent = [scriptblock]::Create($DisconnectedPageContentString)
+    
+            $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+    
+            if ($Session:CredentialHT.$RemoteHost.PSRemotingCreds -eq $null) {
+                Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
+            }
+    
+            try {
+                $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+            }
+            catch {
+                $ConnectionStatus = "Disconnected"
+            }
+    
+            # If we're not connected to $RemoteHost, don't load anything else
+            if ($ConnectionStatus -ne "Connected") {
+                #Invoke-Command -ScriptBlock $RecreatedDisconnectedPageContent -ArgumentList $RemoteHost
+                Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
+            }
+            else {
+                New-UDRow -EndPoint {
+                    New-UDColumn -Size 3 -Content {
+                        New-UDHeading -Text ""
+                    }
+                    New-UDColumn -Size 6 -Endpoint {
+                        New-UDTable -Id "TrackingTable" -Headers @("RemoteHost","Status","DateTime") -AutoRefresh -RefreshInterval 2 -Endpoint {
+                            $PUDRSSyncHT = $global:PUDRSSyncHT
+    
+                            # Load PUDAdminCenter Module Functions Within ScriptBlock
+                            $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
+                            
+                            $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+    
+                            $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
+                            $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
+    
+                            if ($WSMan5985Available -or $WSMan5986Available) {
+                                $TableData = @{
+                                    RemoteHost      = $RemoteHost.ToUpper()
+                                    Status          = "Connected"
+                                }
+                            }
+                            else {
+                                Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
+                            }
+    
+                            # SUPER IMPORTANT NOTE: ALL Real-Time Enpoints on the Page reference LiveOutputClone!
+                            if ($PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo.LiveOutput.Count -gt 0) {
+                                if ($PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataTracker.Previous -eq $null) {
+                                    $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataTracker.Previous = $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo.LiveOutput.Clone()
+                                }
+                                if ($PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataTracker.Current.Count -gt 0) {
+                                    $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataTracker.Previous = $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataTracker.Current.Clone()
+                                }
+                                $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataTracker.Current = $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo.LiveOutput.Clone()
+                            }
+    
+                            $TableData.Add("DateTime",$(Get-Date -Format MM-dd-yy_hh:mm:sstt))
+    
+                            [PSCustomObject]$TableData | Out-UDTableData -Property @("RemoteHost","Status","DateTime")
+                        }
+                    }
+                    New-UDColumn -Size 3 -Content {
+                        New-UDHeading -Text ""
+                    }
+                }
+            }
+    
+            #endregion >> Ensure We Are Connected / Can Connect to $RemoteHost
+    
+            #region >> Gather Some Initial Info From $RemoteHost
+    
+            $GetCertificateOverviewFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-CertificateOverview" -and $_ -notmatch "function Get-PUDAdminCenter"}
+            $GetCertificatesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-Certificates" -and $_ -notmatch "function Get-PUDAdminCenter"}
+            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                Invoke-Expression $using:GetCertificateOverviewFunc
+                Invoke-Expression $using:GetCertificatesFunc
+                
+                $CertificateSummary = Get-CertificateOverview -channel "Microsoft-Windows-CertificateServicesClient-Lifecycle-System*"
+                $AllCertificates = Get-Certificates
+    
+                [pscustomobject]@{
+                    CertificateSummary          = $CertificateSummary
+                    AllCertificates             = [pscustomobject]$AllCertificates
+                }
+            }
+            $Session:CertSummaryStatic = $StaticInfo.CertificateSummary
+            $Session:AllCertsStatic = $StaticInfo.AllCertificates
+            if ($PUDRSSyncHT."$RemoteHost`Info".Certificates.Keys -notcontains "CertSummary") {
+                $PUDRSSyncHT."$RemoteHost`Info".Certificates.Add("CertSummary",$Session:CertSummaryStatic)
+            }
+            else {
+                $PUDRSSyncHT."$RemoteHost`Info".Certificates.CertSummary = $Session:CertSummaryStatic
+            }
+            if ($PUDRSSyncHT."$RemoteHost`Info".Certificates.Keys -notcontains "AllCerts") {
+                $PUDRSSyncHT."$RemoteHost`Info".Certificates.Add("AllCerts",$Session:AllCertsStatic)
+            }
+            else {
+                $PUDRSSyncHT."$RemoteHost`Info".Certificates.AllCerts = $Session:AllCertsStatic
+            }
+    
+            #endregion >> Gather Some Initial Info From $RemoteHost
+    
+            #region >> Page Name and Horizontal Nav
+    
+            New-UDRow -Endpoint {
+                New-UDColumn -Content {
+                    New-UDHeading -Text "Certificates" -Size 3
+                    New-UDHeading -Text "NOTE: Domain Group Policy trumps controls with an asterisk (*)" -Size 6
+                }
+            }
+            New-UDRow -Endpoint {
+                New-UDColumn -Size 12 -Content {
+                    New-UDCollapsible -Items {
+                        New-UDCollapsibleItem -Title "More Tools" -Icon laptop -Endpoint {
+                            New-UDRow -Endpoint {
+                                foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
+                                    New-UDColumn -Endpoint {
+                                        New-UDLink -Text $ToolName -Url "/$ToolName/$RemoteHost" -Icon dashboard
+                                    }
+                                }
+                                #New-UDCard -Links $Links
+                            }
+                        }
+                    }
+                }
+            }
+    
+            #endregion >> Page Name and Horizontal Nav
+    
+            #region >> Setup LiveData
+    
+            New-UDColumn -Endpoint {
+                $PUDRSSyncHT = $global:PUDRSSyncHT
+    
+                $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
+    
+                $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+    
+                # Remove Existing Runspace for LiveDataRSInfo if it exists as well as the PSSession Runspace within
+                if ($PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo -ne $null) {
+                    $PSSessionRunspacePrep = @(
+                        Get-Runspace | Where-Object {
+                            $_.RunspaceIsRemote -and
+                            $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo.ThisRunspace.Id -and
+                            $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
+                        }
+                    )
+                    if ($PSSessionRunspacePrep.Count -gt 0) {
+                        $PSSessionRunspace = $($PSSessionRunspacePrep | Sort-Object -Property Id)[0]
+                    }
+                    $PSSessionRunspace.Dispose()
+                    $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo.ThisRunspace.Dispose()
+                }
+    
+                # Create a Runspace that creates a PSSession to $RemoteHost that is used once every second to re-gather data from $RemoteHost
+                $GetCertificateOverviewFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-CertificateOverview" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                $GetCertificatesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-Certificates" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                $LiveDataFunctionsToLoad = @($GetCertificateOverviewFunc,$GetCertificatesFunc)
+                
+                # The New-Runspace function handles scope for you behind the scenes, so just pretend that everything within -ScriptBlock {} is in the current scope
+                New-Runspace -RunspaceName "Certificates$RemoteHost`LiveData" -ScriptBlock {
+                    $PUDRSSyncHT = $global:PUDRSSyncHT
+                
+                    $LiveDataPSSession = New-PSSession -Name "Certificates$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
+    
+                    # Load needed functions in the PSSession
+                    Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
+                        $using:LiveDataFunctionsToLoad | foreach {Invoke-Expression $_}
+                    }
+    
+                    $RSLoopCounter = 0
+    
+                    while ($PUDRSSyncHT) {
+                        # $LiveOutput is a special ArrayList created and used by the New-Runspace function that collects output as it occurs
+                        # We need to limit the number of elements this ArrayList holds so we don't exhaust memory
+                        if ($LiveOutput.Count -gt 1000) {
+                            $LiveOutput.RemoveRange(0,800)
+                        }
+    
+                        # Stream Results to $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo.LiveOutput
+                        Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
+                            # Place most resource intensive operations first
+    
+                            # Operations that you only want running once every 30 seconds go within this 'if; block
+                            # Adjust the timing as needed with deference to $RemoteHost resource efficiency.
+                            if ($using:RSLoopCounter -eq 0 -or $($using:RSLoopCounter % 30) -eq 0) {
+                                #@{AllCerts = Get-Certificates}
+                            }
+    
+                            # Operations that you want to run once every second go here
+                            @{CertSummary = Get-CertificateOverview -channel "Microsoft-Windows-CertificateServicesClient-Lifecycle-System*"}
+    
+                        } | foreach {$null = $LiveOutput.Add($_)}
+    
+                        $RSLoopCounter++
+    
+                        Start-Sleep -Seconds 1
+                    }
+                }
+                # The New-Runspace function outputs / continually updates a Global Scope variable called $global:RSSyncHash. The results of
+                # the Runspace we just created can be found in $global:RSSyncHash's "Certificates$RemoteHost`LiveDataResult" Property - which is just
+                # the -RunspaceName value plus the word 'Info'. By setting $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo equal to
+                # $RSSyncHash."Certificates$RemoteHost`LiveDataResult", we can now reference $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo.LiveOutput
+                # to get the latest data from $RemoteHost.
+                $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo = $RSSyncHash."Certificates$RemoteHost`LiveDataResult"
+            }
+    
+            #endregion >> Setup LiveData
+    
+            #region >> Controls
+    
+            # Static Data Element Example
+    
+            $AllCertsProperties = @("CertificateName","FriendlyName","Subject","Issuer","Path","Status","PrivateKey","PublicKey","NotBefore","NotAfter")
+            $AllCertsUDTableSplatParams = @{
+                Headers         = $AllCertsProperties
+                Properties      = $AllCertsProperties
+                PageSize        = 5
+            }
+            New-UDGrid @AllCertsUDTableSplatParams -Endpoint {
+                $PUDRSSyncHT = $global:PUDRSSyncHT
+    
+                $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+    
+                $AllCertsGridData = $PUDRSSyncHT."$RemoteHost`Info".Certificates.AllCerts | Out-UDGridData
+    
+                $AllCertsGridData
+            }
+    
+            # Live Data Element Example
+            $CertSummaryProperties = @("allCount","expiredCount","nearExpiredCount","eventCount")
+            $CertSummaryUDTableSplatParams = @{
+                Headers         = $CertSummaryProperties
+                AutoRefresh     = $True 
+                RefreshInterval = 5
+            }
+            New-UDTable @CertSummaryUDTableSplatParams -Endpoint {
+                $PUDRSSyncHT = $global:PUDRSSyncHT
+    
+                $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+    
+                $CertSummaryLiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo.LiveOutput.Count
+                if ($CertSummaryLiveOutputCount -gt 0) {
+                    $ArrayOfCertSummaryEntries = @(
+                        $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataTracker.Previous.CertSummary
+                    ) | Where-Object {$_ -ne $null}
+                    if ($ArrayOfCertSummaryEntries.Count -gt 0) {
+                        $CertSummaryTableData = $ArrayOfCertSummaryEntries[-1] | Out-UDTableData -Property $CertSummaryProperties
+                    }
+                }
+                if (!$CertSummaryTableData) {
+                    $CertSummaryTableData = [pscustomobject]@{
+                        allCount            = "Collecting Info"
+                        expiredCount        = "Collecting Info"
+                        nearExpiredcount    = "Collecting Info"
+                        eventCount          = "Collecting Info"
+                    } | Out-UDTableData -Property $CertSummaryProperties
+                }
+    
+                $CertSummaryTableData
+            }
+    
+            # Remove the Loading  Indicator
+            $null = $Session:CertificatesPageLoadingTracker.Add("FinishedLoading")
+    
+            #endregion >> Controls
+        }
+    }
+    $Page = New-UDPage -Url "/Certificates/:RemoteHost" -Endpoint $CertificatesPageContent
+    $null = $Pages.Add($Page)
+    
     #region >> Disconnected Page
     
     $DisconnectedPageContent = {
@@ -371,7 +1351,7 @@ function Get-PUDAdminCenter {
         # Add the SyncHash to the Page so that we can pass output to other pages
         $PUDRSSyncHT = $global:PUDRSSyncHT
     
-        # Load PUDWinAdminCenter Module Functions Within ScriptBlock
+        # Load PUDAdminCenter Module Functions Within ScriptBlock
         $ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
     
         $ConnectionStatusTableProperties = @("RemoteHost", "Status")
@@ -547,12 +1527,12 @@ function Get-PUDAdminCenter {
     
         $PUDRSSyncHT = $global:PUDRSSyncHT
     
-        # Load PUDWinAdminCenter Module Functions Within ScriptBlock
+        # Load PUDAdminCenter Module Functions Within ScriptBlock
         $ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
     
         # For some reason, scriptblocks defined earlier can't be used directly here. They need to be a different objects before
         # they actually behave as expected. Not sure why.
-        $RecreatedDisconnectedPageContent = [scriptblock]::Create($DisconnectedPageContentString)
+        #$RecreatedDisconnectedPageContent = [scriptblock]::Create($DisconnectedPageContentString)
     
         $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
@@ -599,18 +1579,18 @@ function Get-PUDAdminCenter {
     
         #endregion >> Loading Indicator
     
-        # Master Endpoint -All content will be within this Endpoint
+        # Master Endpoint - All content will be within this Endpoint so that we can reference $Cache: and $Session: scope variables
         New-UDColumn -Size 12 -Endpoint {
-            #region >> Ensure We Are Connected to $RemoteHost
+            #region >> Ensure We Are Connected / Can Connect to $RemoteHost
     
             $PUDRSSyncHT = $global:PUDRSSyncHT
     
-            # Load PUDWinAdminCenter Module Functions Within ScriptBlock
+            # Load PUDAdminCenter Module Functions Within ScriptBlock
             $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
     
             # For some reason, scriptblocks defined earlier can't be used directly here. They need to be a different objects before
             # they actually behave as expected. Not sure why.
-            $RecreatedDisconnectedPageContent = [scriptblock]::Create($DisconnectedPageContentString)
+            #$RecreatedDisconnectedPageContent = [scriptblock]::Create($DisconnectedPageContentString)
     
             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
@@ -639,7 +1619,7 @@ function Get-PUDAdminCenter {
                         New-UDTable -Id "TrackingTable" -Headers @("RemoteHost","Status","CredSSP","DateTime") -AutoRefresh -RefreshInterval 2 -Endpoint {
                             $PUDRSSyncHT = $global:PUDRSSyncHT
     
-                            # Load PUDWinAdminCenter Module Functions Within ScriptBlock
+                            # Load PUDAdminCenter Module Functions Within ScriptBlock
                             $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
                             
                             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
@@ -664,17 +1644,17 @@ function Get-PUDAdminCenter {
                             }
     
                             # SUPER IMPORTANT NOTE: ALL Real-Time Enpoints on the Page reference LiveOutputClone!
-                            if ($PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Count -gt 0) {
-                                if ($PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous -eq $null) {
-                                    $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Clone()
+                            if ($PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Count -gt 0) {
+                                if ($PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous -eq $null) {
+                                    $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Clone()
                                 }
-                                if ($PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Current.Count -gt 0) {
-                                    $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous = $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Current.Clone()
+                                if ($PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Current.Count -gt 0) {
+                                    $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Current.Clone()
                                 }
-                                $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Current = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Clone()
+                                $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Current = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Clone()
                             }
                             
-                            if ($PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.Count -eq 0) {
+                            if ($PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous.Count -eq 0) {
                                 if ($Session:ServerInventoryStatic.IsCredSSPEnabled) {
                                     $CredSSPStatus = "Enabled"
                                 }
@@ -682,8 +1662,8 @@ function Get-PUDAdminCenter {
                                     $CredSSPStatus = "Disabled"
                                 }
                             }
-                            elseif (@($PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.ServerInventory).Count -gt 0) {
-                                if (@($PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.ServerInventory)[-1].IsCredSSPEnabled) {
+                            elseif (@($PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous.ServerInventory).Count -gt 0) {
+                                if (@($PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous.ServerInventory)[-1].IsCredSSPEnabled) {
                                     $CredSSPStatus = "Enabled"
                                 }
                                 else {
@@ -706,7 +1686,7 @@ function Get-PUDAdminCenter {
                 }
             }
     
-            #endregion >> Ensure We Are Connected to $RemoteHost
+            #region >> Ensure We Are Connected / Can Connect to $RemoteHost
     
             #region >> Gather Some Initial Info From $RemoteHost
     
@@ -735,8 +1715,18 @@ function Get-PUDAdminCenter {
             }
             $Session:ServerInventoryStatic = $StaticInfo.ServerInventoryStatic
             $Session:RelevantNetworkInterfacesStatic = $StaticInfo.RelevantNetworkInterfaces
-            $PUDRSSyncHT."$RemoteHost`Info".ServerInventoryStatic = $Session:ServerInventoryStatic
-            $PUDRSSyncHT."$RemoteHost`Info".RelevantNetworkInterfaces = $Session:RelevantNetworkInterfacesStatic
+            if ($PUDRSSyncHT."$RemoteHost`Info".Overview.Keys -notcontains "ServerInventoryStatic") {
+                $PUDRSSyncHT."$RemoteHost`Info".Overview.Add("ServerInventoryStatic",$Session:ServerInventoryStatic)
+            }
+            else {
+                $PUDRSSyncHT."$RemoteHost`Info".Overview.ServerInventoryStatic = $Session:ServerInventoryStatic
+            }
+            if ($PUDRSSyncHT."$RemoteHost`Info".Overview.Keys -notcontains "RelevantNetworkInterfaces") {
+                $PUDRSSyncHT."$RemoteHost`Info".Overview.Add("RelevantNetworkInterfaces",$Session:RelevantNetworkInterfacesStatic)
+            }
+            else {
+                $PUDRSSyncHT."$RemoteHost`Info".Overview.RelevantNetworkInterfaces = $Session:RelevantNetworkInterfacesStatic
+            }
     
             #endregion >> Gather Some Initial Info From $RemoteHost
     
@@ -750,7 +1740,7 @@ function Get-PUDAdminCenter {
             }
             New-UDRow -Endpoint {
                 New-UDColumn -Size 12 -Content {
-                    New-UDCollapsible -Id "MoreToolsNav" -Items {
+                    New-UDCollapsible -Items {
                         New-UDCollapsibleItem -Title "More Tools" -Icon laptop -Endpoint {
                             New-UDRow -Endpoint {
                                 foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
@@ -779,19 +1769,30 @@ function Get-PUDAdminCenter {
                 if (!$Session:ServerInventoryStatic) {
                     # Gather Basic Info From $RemoteHost
                     $GetServerInventoryFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-ServerInventory" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                    $Session:ServerInventoryStatic = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                    $StaticInfoA = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                         Invoke-Expression $using:GetServerInventoryFunc
-                        Get-ServerInventory
+    
+                        $SrvInv = Get-ServerInventory
+    
+                        [pscustomobject]@{
+                            ServerInventoryStatic       = $SrvInv
+                        }
                     }
-                    $PUDRSSyncHT."$RemoteHost`Info".ServerInventoryStatic = $Session:ServerInventoryStatic
+                    $Session:ServerInventoryStatic = $StaticInfoA.ServerInventoryStatic
+                    if ($PUDRSSyncHT."$RemoteHost`Info".Overview.Keys -notcontains "ServerInventoryStatic") {
+                        $PUDRSSyncHT."$RemoteHost`Info".Overview.Add("ServerInventoryStatic",$Session:ServerInventoryStatic)
+                    }
+                    else {
+                        $PUDRSSyncHT."$RemoteHost`Info".Overview.ServerInventoryStatic = $Session:ServerInventoryStatic
+                    }
                 }
     
-                # Remove Existing Runspace for "Overview$RemoteHost`LiveData" if it exists as well as the PSSession Runspace within
-                if ($PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo -ne $null) {
+                # Remove Existing Runspace for LiveDataRSInfo if it exists as well as the PSSession Runspace within
+                if ($PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo -ne $null) {
                     $PSSessionRunspacePrep = @(
                         Get-Runspace | Where-Object {
                             $_.RunspaceIsRemote -and
-                            $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.ThisRunspace.Id -and
+                            $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.ThisRunspace.Id -and
                             $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
                         }
                     )
@@ -799,15 +1800,15 @@ function Get-PUDAdminCenter {
                         $PSSessionRunspace = $($PSSessionRunspacePrep | Sort-Object -Property Id)[0]
                     }
                     $PSSessionRunspace.Dispose()
-                    $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.ThisRunspace.Dispose()
+                    $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.ThisRunspace.Dispose()
                 }
     
-                # Create a Scheduled Task that outputs all desired LiveData to a PSCustomObject .xml file every 5 seconds
+                # Create a Runspace that creates a PSSession to $RemoteHost that is used once every second to re-gather data from $RemoteHost
                 $GetEnvVarsFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-EnvironmentVariables" -and $_ -notmatch "function Get-PUDAdminCenter"}
                 $GetServerInventoryFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-ServerInventory" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                $NewRunspaceFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function New-Runspace" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                $LiveDataFunctionsToLoad = @($GetEnvVarsFunc,$GetServerInventoryFunc,$NewRunspaceFunc)
+                $LiveDataFunctionsToLoad = @($GetEnvVarsFunc,$GetServerInventoryFunc)
                 
+                # The New-Runspace function handles scope for you behind the scenes, so just pretend that everything within -ScriptBlock {} is in the current scope
                 New-Runspace -RunspaceName "Overview$RemoteHost`LiveData" -ScriptBlock {
                     $PUDRSSyncHT = $global:PUDRSSyncHT
                 
@@ -823,20 +1824,16 @@ function Get-PUDAdminCenter {
                     while ($PUDRSSyncHT) {
                         # $LiveOutput is a special ArrayList created and used by the New-Runspace function that collects output as it occurs
                         # We need to limit the number of elements this ArrayList holds so we don't exhaust memory
-                        <#
-                        while ($LiveOutput.Count -gt 1000) {
-                            $LiveOutput.RemoveAt(0)
-                        }
-                        #>
                         if ($LiveOutput.Count -gt 1000) {
                             $LiveOutput.RemoveRange(0,800)
                         }
     
-                        # Stream Results to $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput
+                        # Stream Results to $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput
                         Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
                             # Place most resource intensive operations first
     
-                            # Only get ServerInventory once every 30 seconds because these spike CPU
+                            # Operations that you only want running once every 30 seconds go withing this 'if; block
+                            # Adjust the timing as needed with deference to $RemoteHost resource efficiency.
                             if ($using:RSLoopCounter -eq 0 -or $($using:RSLoopCounter % 30) -eq 0) {
                                 # Server Inventory
                                 @{ServerInventory = Get-ServerInventory}
@@ -846,6 +1843,8 @@ function Get-PUDAdminCenter {
                                 #@{Processes = [System.Diagnostics.Process]::GetProcesses()}
                                 #Start-Sleep -Seconds 3
                             }
+    
+                            # Operations that you want to run once every second go here
     
                             # Processes
                             @{ProcessesCount = $(Get-Counter "\Process(*)\ID Process" -ErrorAction SilentlyContinue).CounterSamples.Count}
@@ -912,7 +1911,12 @@ function Get-PUDAdminCenter {
                         Start-Sleep -Seconds 1
                     }
                 }
-                $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo = $RSSyncHash."Overview$RemoteHost`LiveDataResult"
+                # The New-Runspace function outputs / continually updates a Global Scope variable called $global:RSSyncHash. The results of
+                # the Runspace we just created can be found in $global:RSSyncHash's "Overview$RemoteHost`LiveDataResult" Property - which is just
+                # the -RunspaceName value plus the word 'Info'. By setting $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo equal to
+                # $RSSyncHash."Overview$RemoteHost`LiveDataResult", we can now reference $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput
+                # to get the latest data from $RemoteHost.
+                $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo = $RSSyncHash."Overview$RemoteHost`LiveDataResult"
             }
     
             #endregion >> Setup LiveData
@@ -926,7 +1930,7 @@ function Get-PUDAdminCenter {
                     New-UDCollapsible -Id $CollapsibleId -Items {
                         New-UDCollapsibleItem -Title "Restart" -Icon laptop -Endpoint {
                             New-UDInput -SubmitText "Restart" -Id "RestartComputerForm" -Content {
-                                $HName = $PUDRSSyncHT."$RemoteHost`Info".ServerInventoryStatic.ComputerSystem.Name
+                                $HName = $PUDRSSyncHT."$RemoteHost`Info".Overview.ServerInventoryStatic.ComputerSystem.Name
                                 New-UDInputField -Name 'RestartComputer' -Type select -Values @($HName) -DefaultValue $HName
                             } -Endpoint {
                                 #region >> Check Connection
@@ -959,7 +1963,7 @@ function Get-PUDAdminCenter {
                     New-UDCollapsible -Id $CollapsibleId -Items {
                         New-UDCollapsibleItem -Title "Shutdown" -Icon laptop -Endpoint {
                             New-UDInput -SubmitText "Shutdown" -Id "ShutdownComputerForm" -Content {
-                                $HName = $PUDRSSyncHT."$RemoteHost`Info".ServerInventoryStatic.ComputerSystem.Name
+                                $HName = $PUDRSSyncHT."$RemoteHost`Info".Overview.ServerInventoryStatic.ComputerSystem.Name
                                 New-UDInputField -Name "ShutdownComputer" -Type select -Values @($HName) -DefaultValue $HName
                             } -Endpoint {
                                 #region >> Check Connection
@@ -991,7 +1995,7 @@ function Get-PUDAdminCenter {
                     New-UDCollapsible -Id $CollapsibleId -Items {
                         New-UDCollapsibleItem -Title "Enable Disk Metrics" -Icon laptop -Endpoint {
                             New-UDInput -SubmitText "Enable Disk Perf" -Id "EnableDiskMetricsForm" -Content {
-                                $HName = $PUDRSSyncHT."$RemoteHost`Info".ServerInventoryStatic.ComputerSystem.Name
+                                $HName = $PUDRSSyncHT."$RemoteHost`Info".Overview.ServerInventoryStatic.ComputerSystem.Name
                                 New-UDInputField -Name "EnableDiskMetrics" -Type select -Values @($HName) -DefaultValue $HName
                             } -Endpoint {
                                 #region >> Check Connection
@@ -1029,9 +2033,9 @@ function Get-PUDAdminCenter {
                     New-UDCollapsible -Id $CollapsibleId -Items {
                         New-UDCollapsibleItem -Title "Edit Computer ID" -Icon laptop -Endpoint {
                             New-UDInput -SubmitText "Edit Computer" -Id "ComputerIDForm" -Content {
-                                $HName = $PUDRSSyncHT."$RemoteHost`Info".ServerInventoryStatic.ComputerSystem.Name
-                                $DName = $PUDRSSyncHT."$RemoteHost`Info".ServerInventoryStatic.ComputerSystem.Domain
-                                $WGName = $PUDRSSyncHT."$RemoteHost`Info".ServerInventoryStatic.ComputerSystem.Workgroup
+                                $HName = $PUDRSSyncHT."$RemoteHost`Info".Overview.ServerInventoryStatic.ComputerSystem.Name
+                                $DName = $PUDRSSyncHT."$RemoteHost`Info".Overview.ServerInventoryStatic.ComputerSystem.Domain
+                                $WGName = $PUDRSSyncHT."$RemoteHost`Info".Overview.ServerInventoryStatic.ComputerSystem.Workgroup
     
                                 New-UDInputField -Type textbox -Name 'Change_Host_Name' -DefaultValue $HName
                                 New-UDInputField -Type textbox -Name 'Join_Domain' -DefaultValue $DName
@@ -1051,10 +2055,10 @@ function Get-PUDAdminCenter {
     
                                 #region >> Main
     
-                                $HName = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.ServerInventory[-1].ComputerSystem.Name
-                                $DName = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.ServerInventory[-1].ComputerSystem.Domain
-                                $WGName = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.ServerInventory[-1].ComputerSystem.Workgroup
-                                $PartOfDomainCheck = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.ServerInventory[-1].ComputerSystem.PartOfDomain
+                                $HName = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.ServerInventory[-1].ComputerSystem.Name
+                                $DName = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.ServerInventory[-1].ComputerSystem.Domain
+                                $WGName = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.ServerInventory[-1].ComputerSystem.Workgroup
+                                $PartOfDomainCheck = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.ServerInventory[-1].ComputerSystem.PartOfDomain
                                 $SetComputerIdFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Set-ComputerIdentification" -and $_ -notmatch "function Get-PUDAdminCenter"}
     
                                 # Make sure that $Join_Workgroup and $Join_Domain are NOT both filled out
@@ -1148,7 +2152,17 @@ function Get-PUDAdminCenter {
                                     $UpdatedKey = $Change_Host_Name + "Info"
                                     $UpdatedValue = @{
                                         NetworkInfo         = [pscustomobject]$UpdatedNetworkInfoHT
-                                        LiveDataRSInfo      = $RSSyncHash."Overview$RemoteHost`LiveDataResult"
+                                        Overview            = @{
+                                            LiveDataRSInfo      = $RSSyncHash."Overview$RemoteHost`LiveDataResult"
+                                            LiveDataTracker     = @{Current = $null; Previous = $null}
+                                        }
+                                    }
+                                    foreach ($DynPage in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
+                                        $DynPageHT = @{
+                                            LiveDataRSInfo      = $null
+                                            LiveDataTracker     = @{Current = $null; Previous = $null}
+                                        }
+                                        $UpdatedValue.Add($DynPage,$DynPageHT)
                                     }
                                     $global:PUDRSSyncHT.Add($UpdatedKey,$UpdatedValue)
     
@@ -1504,7 +2518,7 @@ function Get-PUDAdminCenter {
                     New-UDCollapsible -Id $CollapsibleId -Items {
                         New-UDCollapsibleItem -Title "Disable CredSSP*" -Icon laptop -Endpoint {
                             New-UDInput -SubmitText "DisableCredSSP" -Id "DisableCredSSPForm" -Content {
-                                $HName = $PUDRSSyncHT."$RemoteHost`Info".ServerInventoryStatic.ComputerSystem.Name
+                                $HName = $PUDRSSyncHT."$RemoteHost`Info".Overview.ServerInventoryStatic.ComputerSystem.Name
                                 New-UDInputField -Name "Disable_CredSSP" -Type select -Values @($HName) -DefaultValue $HName
                             } -Endpoint {
                                 param($Disable_CredSSP)
@@ -1676,14 +2690,14 @@ function Get-PUDAdminCenter {
     
                                         $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
-                                        $EnvVarsLiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Count
+                                        $EnvVarsLiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Count
                                         if ($EnvVarsLiveOutputCount -gt 0) {
                                             # Clone the LiveOutput ArrayList Object because if we try to Enumerate (using Where-Object or other method) while elements are
                                             # being added/removed from the ArrayList, things break
-                                            #$EnvVarsLiveOutputClone = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Clone()
+                                            #$EnvVarsLiveOutputClone = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Clone()
     
                                             $ArrayOfEnvVarsEntries = @(
-                                                $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.EnvVars
+                                                $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous.EnvVars
                                             ) | Where-Object {$_ -ne $null}
                                             if ($ArrayOfEnvVarsEntries.Count -gt 0) {
                                                 $EnvironmentVariables = $ArrayOfEnvVarsEntries[-1].EnvVarsCollection
@@ -1905,7 +2919,7 @@ function Get-PUDAdminCenter {
     
                     $PUDRSSyncHT = $global:PUDRSSyncHT
     
-                    # Load PUDWinAdminCenter Module Functions Within ScriptBlock
+                    # Load PUDAdminCenter Module Functions Within ScriptBlock
                     $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
     
                     $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
@@ -2002,14 +3016,14 @@ function Get-PUDAdminCenter {
                     $SummaryInfoCGridEndpoint = {
                         $PUDRSSyncHT = $global:PUDRSSyncHT
     
-                        $UptimeLiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Count
+                        $UptimeLiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Count
                         if ($UptimeLiveOutputCount -gt 0) {
                             # Clone the LiveOutput ArrayList Object because if we try to Enumerate (using Where-Object or other method) while elements are
                             # being added/removed from the ArrayList, things break
-                            #$UptimeLiveOutputClone = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Clone()
+                            #$UptimeLiveOutputClone = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Clone()
     
                             $ArrayOfUptimeEntries = @(
-                                $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.Uptime
+                                $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous.Uptime
                             ) | Where-Object {$_ -ne $null}
                         }
     
@@ -2057,42 +3071,42 @@ function Get-PUDAdminCenter {
                     New-UDTable -Id "CPUTable" -Headers $CPUTableProperties -AutoRefresh -RefreshInterval 5 -Endpoint {
                         $PUDRSSyncHT = $global:PUDRSSyncHT
     
-                        $CPULiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Count
+                        $CPULiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Count
                         if ($CPULiveOutputCount -gt 0) {
                             # Clone the LiveOutput ArrayList Object because if we try to Enumerate (using Where-Object or other method) while elements are
                             # being added/removed from the ArrayList, things break
-                            #$CPULiveOutputClone = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Clone()
+                            #$CPULiveOutputClone = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Clone()
     
                             $ArrayOfCPUPctEntries = @(
-                                $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.CPUPct
+                                $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous.CPUPct
                             ) | Where-Object {$_ -ne $null}
                             if ($ArrayOfCPUPctEntries.Count -gt 0) {
                                 $LatestCPUPctEntry = $ArrayOfCPUPctEntries[-1]
                             }
     
                             $ArrayOfClockSpeedEntries = @(
-                                $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.ClockSpeed
+                                $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous.ClockSpeed
                             ) | Where-Object {$_ -ne $null}
                             if ($ArrayOfClockSpeedEntries.Count -gt 0) {
                                 $LatestClockSpeedEntry = $ArrayOfClockSpeedEntries[-1]
                             }
     
                             $ArrayOfProcessesCountEntries = @(
-                                $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.ProcessesCount
+                                $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous.ProcessesCount
                             ) | Where-Object {$_ -ne $null}
                             if ($ArrayOfProcessesCountEntries.Count -gt 0) {
                                 $LatestProcessesEntry = $ArrayOfProcessesCountEntries[-1]
                             }
     
                             $ArrayOfHandlesCountEntries = @(
-                                $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.HandlesCount
+                                $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous.HandlesCount
                             ) | Where-Object {$_ -ne $null}
                             if ($ArrayOfHandlesCountEntries.Count -gt 0) {
                                 $LatestHandlesEntry = $ArrayOfHandlesCountEntries[-1]
                             }
     
                             $ArrayOfThreadsCountEntries = @(
-                                $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.ThreadsCount
+                                $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous.ThreadsCount
                             ) | Where-Object {$_ -ne $null}
                             if ($ArrayOfThreadsCountEntries.Count -gt 0) {
                                 $LatestThreadsEntry = $ArrayOfThreadsCountEntries[-1]
@@ -2117,14 +3131,14 @@ function Get-PUDAdminCenter {
                     $CPUMonitorEndpoint = {
                         $PUDRSSyncHT = $global:PUDRSSyncHT
     
-                        $CPULiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Count
+                        $CPULiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Count
                         if ($CPULiveOutputCount -gt 0) {
                             # Clone the LiveOutput ArrayList Object because if we try to Enumerate (using Where-Object or other method) while elements are
                             # being added/removed from the ArrayList, things break
-                            #$CPULiveOutputClone = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Clone()
+                            #$CPULiveOutputClone = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Clone()
     
                             $ArrayOfCPUPctEntries = @(
-                                $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.CPUPct
+                                $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous.CPUPct
                                 ) | Where-Object {$_ -ne $null}
                             if ($ArrayOfCPUPctEntries.Count -gt 0) {
                                 $LatestCPUPctEntry = $ArrayOfCPUPctEntries[-1]
@@ -2155,63 +3169,63 @@ function Get-PUDAdminCenter {
                     New-UDTable -Id "RamTable" -Headers $RamTableProperties -AutoRefresh -RefreshInterval 5 -Endpoint {
                         $PUDRSSyncHT = $global:PUDRSSyncHT
     
-                        $RamLiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Count
+                        $RamLiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Count
                         if ($RamLiveOutputCount -gt 0) {
                             # Clone the LiveOutput ArrayList Object because if we try to Enumerate (using Where-Object or other method) while elements are
                             # being added/removed from the ArrayList, things break
-                            #$RamLiveOutputClone = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Clone()
+                            #$RamLiveOutputClone = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Clone()
     
                             $ArrayOfRamPctEntries = @(
-                                $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.RamPct
+                                $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous.RamPct
                             ) | Where-Object {$_ -ne $null}
                             if ($ArrayOfRamPctEntries.Count -gt 0) {
                                 $LatestRamPctEntry = $ArrayOfRamPctEntries[-1]
                             }
     
                             $ArrayOfRamTotalGBEntries = @(
-                                $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.RamTotalGB
+                                $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous.RamTotalGB
                             ) | Where-Object {$_ -ne $null}
                             if ($ArrayOfRamTotalGBEntries.Count -gt 0) {
                                 $LatestRamTotalGBEntry = $ArrayOfRamTotalGBEntries[-1]
                             }
                             
                             $ArrayOfRamInUseGBEntries = @(
-                                $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.RamInUseGB
+                                $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous.RamInUseGB
                             ) | Where-Object {$_ -ne $null}
                             if ($ArrayOfRamInUseGBEntries.Count -gt 0) {
                                 $LatestRamInUseGBEntry = $ArrayOfRamInUseGBEntries[-1]
                             }
     
                             $ArrayOfRamFreeGBEntries = @(
-                                $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.RamFreeGB
+                                $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous.RamFreeGB
                             ) | Where-Object {$_ -ne $null}
                             if ($ArrayOfRamFreeGBEntries.Count -gt 0) {
                                 $LatestRamFreeGBEntry = $ArrayOfRamFreeGBEntries[-1]
                             }
     
                             $ArrayOfRamCommittedGBEntries = @(
-                                $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.RamCommittedGB
+                                $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous.RamCommittedGB
                             ) | Where-Object {$_ -ne $null}
                             if ($ArrayOfRamCommittedGBEntries.Count -gt 0) {
                                 $LatestRamCommittedGBEntry = $ArrayOfRamCommittedGBEntries[-1]
                             }
     
                             $ArrayOfRamCachedGBEntries = @(
-                                $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.RamCachedGB
+                                $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous.RamCachedGB
                             ) | Where-Object {$_ -ne $null}
                             if ($ArrayOfRamCachedGBEntries.Count -gt 0) {
                                 $LatestRamCachedGBEntry = $ArrayOfRamCachedGBEntries[-1]
                             }
     
                             $ArrayOfRamPagedPoolMBEntries = @(
-                                $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.RamPagedPoolMB
+                                $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous.RamPagedPoolMB
                             ) | Where-Object {$_ -ne $null}
                             if ($ArrayOfRamPagedPoolMBEntries.Count -gt 0) {
                                 $LatestRamPagedPoolMBEntry = $ArrayOfRamPagedPoolMBEntries[-1]
                             }
     
                             $ArrayOfRamNonPagedPoolMBEntries = @(
-                                $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.RamNonPagedPoolMB
+                                $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous.RamNonPagedPoolMB
                             ) | Where-Object {$_ -ne $null}
                             if ($ArrayOfRamNonPagedPoolMBEntries.Count -gt 0) {
                                 $LatestRamNonPagedPoolMBEntry = $ArrayOfRamNonPagedPoolMBEntries[-1]
@@ -2242,14 +3256,14 @@ function Get-PUDAdminCenter {
                     $RamMonitorEndpoint = {
                         $PUDRSSyncHT = $global:PUDRSSyncHT
     
-                        $RamLiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Count
+                        $RamLiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Count
                         if ($RamLiveOutputCount -gt 0) {
                             # Clone the LiveOutput ArrayList Object because if we try to Enumerate (using Where-Object or other method) while elements are
                             # being added/removed from the ArrayList, things break
-                            #$RamLiveOutputClone = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Clone()
+                            #$RamLiveOutputClone = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Clone()
                             
                             $ArrayOfRamPctEntries = @(
-                                $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.RamPct
+                                $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous.RamPct
                             ) | Where-Object {$_ -ne $null}
                             if ($ArrayOfRamPctEntries.Count -gt 0) {
                                 $LatestRamPctEntry = $ArrayOfRamPctEntries[-1]
@@ -2277,20 +3291,20 @@ function Get-PUDAdminCenter {
     
             # Network Statistics
     
-            if (@($PUDRSSyncHT."$RemoteHost`Info".RelevantNetworkInterfaces).Count -eq 1) {
+            if (@($PUDRSSyncHT."$RemoteHost`Info".Overview.RelevantNetworkInterfaces).Count -eq 1) {
                 New-UDRow -Columns {
                     New-UDHeading -Text "Network Interface Info" -Size 4
                     New-UDColumn -Size 6 -Endpoint {
                         $NetworkTableProperties = @("Name","Description","Sent","Received","DeltaSent","DeltaReceived")
                         New-UDTable -Headers $NetworkTableProperties -AutoRefresh -RefreshInterval 5 -Endpoint {
                             $PUDRSSyncHT = $global:PUDRSSyncHT
-                            #$ThisNetworkInterfaceStaticInfo = $PUDRSSyncHT."$RemoteHost`Info".RelevantNetworkInterfaces
+                            #$ThisNetworkInterfaceStaticInfo = $PUDRSSyncHT."$RemoteHost`Info".Overview.RelevantNetworkInterfaces
     
-                            #$NetworkLiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Count
-                            if ($PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Count -gt 0) {
+                            #$NetworkLiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Count
+                            if ($PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Count -gt 0) {
                                 # Clone the LiveOutput ArrayList Object because if we try to Enumerate (using Where-Object or other method) while elements are
                                 # being added/removed from the ArrayList, things break
-                                #$NetworkLiveOutputClone = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Clone()
+                                #$NetworkLiveOutputClone = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Clone()
                                 
                                 # NOTE: Each element in the below $ArrayOfNetworkEntries is an ArrayList of PSCustomObjects.
                                 # Each PSCustomObject contains:
@@ -2303,7 +3317,7 @@ function Get-PUDAdminCenter {
                                 #}
                                 
                                 $ArrayOfNetworkEntriesA = @(
-                                    $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.NetStats
+                                    $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous.NetStats
                                 ) | Where-Object {$_ -ne $null}
                                 if ($ArrayOfNetworkEntriesA.Count -gt 0) {
                                     $PreviousNetworkEntryA = $ArrayOfNetworkEntriesA[-2]
@@ -2336,8 +3350,8 @@ function Get-PUDAdminCenter {
                             #$FinalKBReceivedA = [Math]::Round($($DifferenceReceivedBytesA / 1KB),2).ToString() + 'KB'
     
                             [pscustomobject]@{
-                                Name                        = $PUDRSSyncHT."$RemoteHost`Info".RelevantNetworkInterfaces.Name
-                                Description                 = $PUDRSSyncHT."$RemoteHost`Info".RelevantNetworkInterfaces.Description
+                                Name                        = $PUDRSSyncHT."$RemoteHost`Info".Overview.RelevantNetworkInterfaces.Name
+                                Description                 = $PUDRSSyncHT."$RemoteHost`Info".Overview.RelevantNetworkInterfaces.Description
                                 Sent                        = [Math]::Round($($NewSentBytesTotalA / 1GB),2).ToString() + 'GB'
                                 Received                    = [Math]::Round($($NewReceivedBytesTotalA / 1GB),2).ToString() + 'GB'
                                 DeltaSent                   = $FinalKBSentA
@@ -2347,13 +3361,13 @@ function Get-PUDAdminCenter {
                         }
                         New-Variable -Name "NetworkMonitorEndpoint" -Force -Value $({
                             $PUDRSSyncHT = $global:PUDRSSyncHT
-                            #$ThisNetworkInterfaceStaticInfo = $PUDRSSyncHT."$RemoteHost`Info".RelevantNetworkInterfaces
+                            #$ThisNetworkInterfaceStaticInfo = $PUDRSSyncHT."$RemoteHost`Info".Overview.RelevantNetworkInterfaces
     
-                            #$NetworkLiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Count
-                            if ($PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Count -gt 0) {
+                            #$NetworkLiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Count
+                            if ($PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Count -gt 0) {
                                 # Clone the LiveOutput ArrayList Object because if we try to Enumerate (using Where-Object or other method) while elements are
                                 # being added/removed from the ArrayList, things break
-                                #$NetworkLiveOutputClone = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Clone()
+                                #$NetworkLiveOutputClone = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Clone()
                                 
                                 # NOTE: Each element in the below $ArrayOfNetworkEntries is an ArrayList of PSCustomObjects.
                                 # Each PSCustomObject contains:
@@ -2366,7 +3380,7 @@ function Get-PUDAdminCenter {
                                     }
                                 #>
                                 $ArrayOfNetworkEntries = @(
-                                    $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.NetStats
+                                    $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous.NetStats
                                 ) | Where-Object {$_ -ne $null}
                                 if ($ArrayOfNetworkEntries.Count -gt 0) {
                                     $PreviousNetworkEntry = $ArrayOfNetworkEntries[-2]
@@ -2405,7 +3419,7 @@ function Get-PUDAdminCenter {
                         })
     
                         $NetworkMonitorSplatParams = @{
-                            Title                   = '"' + $PUDRSSyncHT."$RemoteHost`Info".RelevantNetworkInterfaces.Name + '"' + ' Interface' + " Delta Sent KB"
+                            Title                   = '"' + $PUDRSSyncHT."$RemoteHost`Info".Overview.RelevantNetworkInterfaces.Name + '"' + ' Interface' + " Delta Sent KB"
                             Type                    = "Line"
                             DataPointHistory        = 20
                             ChartBackgroundColor    = "#80FF6B63"
@@ -2425,19 +3439,19 @@ function Get-PUDAdminCenter {
                 New-UDRow -EndPoint {
                     New-UDHeading -Text "Network Interface Info" -Size 4
                 }
-                for ($i=0; $i -lt @($PUDRSSyncHT."$RemoteHost`Info".RelevantNetworkInterfaces).Count; $i = $i+2) {
+                for ($i=0; $i -lt @($PUDRSSyncHT."$RemoteHost`Info".Overview.RelevantNetworkInterfaces).Count; $i = $i+2) {
                     New-UDRow -Columns {
                         New-UDColumn -Size 6 -Endpoint {
                             $NetworkTableProperties = @("Name","Description","Sent","Received","DeltaSent","DeltaReceived")
                             New-UDTable -Headers $NetworkTableProperties -AutoRefresh -RefreshInterval 5 -Endpoint {
                                 $PUDRSSyncHT = $global:PUDRSSyncHT
-                                #$ThisNetworkInterfaceStaticInfo = $PUDRSSyncHT."$RemoteHost`Info".RelevantNetworkInterfaces[$i]
+                                #$ThisNetworkInterfaceStaticInfo = $PUDRSSyncHT."$RemoteHost`Info".Overview.RelevantNetworkInterfaces[$i]
     
-                                #$NetworkLiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Count
-                                if ($PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Count -gt 0) {
+                                #$NetworkLiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Count
+                                if ($PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Count -gt 0) {
                                     # Clone the LiveOutput ArrayList Object because if we try to Enumerate (using Where-Object or other method) while elements are
                                     # being added/removed from the ArrayList, things break
-                                    #$NetworkLiveOutputClone = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Clone()
+                                    #$NetworkLiveOutputClone = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Clone()
                                     
                                     # NOTE: Each element in the below $ArrayOfNetworkEntries is an ArrayList of PSCustomObjects.
                                     # Each PSCustomObject contains:
@@ -2450,8 +3464,8 @@ function Get-PUDAdminCenter {
                                         }
                                     #>
                                     $ArrayOfNetworkEntries = @(
-                                        $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.NetStats | Where-Object {
-                                            $_.Name -eq $PUDRSSyncHT."$RemoteHost`Info".RelevantNetworkInterfaces[$i].Name
+                                        $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous.NetStats | Where-Object {
+                                            $_.Name -eq $PUDRSSyncHT."$RemoteHost`Info".Overview.RelevantNetworkInterfaces[$i].Name
                                         }
                                     ) | Where-Object {$_ -ne $null}
                                     if ($ArrayOfNetworkEntries.Count -gt 0) {
@@ -2485,8 +3499,8 @@ function Get-PUDAdminCenter {
                                 #$FinalKBReceived = [Math]::Round($($DifferenceReceivedBytes / 1KB),2).ToString() + 'KB'
     
                                 [pscustomobject]@{
-                                    Name                        = $PUDRSSyncHT."$RemoteHost`Info".RelevantNetworkInterfaces[$i].Name
-                                    Description                 = $PUDRSSyncHT."$RemoteHost`Info".RelevantNetworkInterfaces[$i].Description
+                                    Name                        = $PUDRSSyncHT."$RemoteHost`Info".Overview.RelevantNetworkInterfaces[$i].Name
+                                    Description                 = $PUDRSSyncHT."$RemoteHost`Info".Overview.RelevantNetworkInterfaces[$i].Description
                                     Sent                        = [Math]::Round($($NewSentBytesTotal / 1GB),2).ToString() + 'GB'
                                     Received                    = [Math]::Round($($NewReceivedBytesTotal / 1GB),2).ToString() + 'GB'
                                     DeltaSent                   = $FinalKBSent
@@ -2496,13 +3510,13 @@ function Get-PUDAdminCenter {
     
                             New-Variable -Name "NetworkMonitorEndpoint$i" -Force -Value $({
                                 $PUDRSSyncHT = $global:PUDRSSyncHT
-                                #$ThisNetworkInterfaceStaticInfo = $PUDRSSyncHT."$RemoteHost`Info".RelevantNetworkInterfaces[$i]
+                                #$ThisNetworkInterfaceStaticInfo = $PUDRSSyncHT."$RemoteHost`Info".Overview.RelevantNetworkInterfaces[$i]
             
-                                #$NetworkLiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Count
-                                if ($PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Count -gt 0) {
+                                #$NetworkLiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Count
+                                if ($PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Count -gt 0) {
                                     # Clone the LiveOutput ArrayList Object because if we try to Enumerate (using Where-Object or other method) while elements are
                                     # being added/removed from the ArrayList, things break
-                                    #$NetworkLiveOutputClone = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Clone()
+                                    #$NetworkLiveOutputClone = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Clone()
                                     
                                     # NOTE: Each element in the below $ArrayOfNetworkEntries is an ArrayList of PSCustomObjects.
                                     # Each PSCustomObject contains:
@@ -2515,8 +3529,8 @@ function Get-PUDAdminCenter {
                                         }
                                     #>
                                     $ArrayOfNetworkEntriesA = @(
-                                        $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.NetStats | Where-Object {
-                                            $_.Name -eq $PUDRSSyncHT."$RemoteHost`Info".RelevantNetworkInterfaces[$i].Name
+                                        $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous.NetStats | Where-Object {
+                                            $_.Name -eq $PUDRSSyncHT."$RemoteHost`Info".Overview.RelevantNetworkInterfaces[$i].Name
                                         }
                                     ) | Where-Object {$_ -ne $null}
                                     if ($ArrayOfNetworkEntriesA.Count -gt 0) {
@@ -2556,7 +3570,7 @@ function Get-PUDAdminCenter {
                             })
             
                             $NetworkMonitorSplatParamsA = @{
-                                Title                   = '"' + $PUDRSSyncHT."$RemoteHost`Info".RelevantNetworkInterfaces[$i].Name + '"' + ' Interface' + " Delta Sent KB"
+                                Title                   = '"' + $PUDRSSyncHT."$RemoteHost`Info".Overview.RelevantNetworkInterfaces[$i].Name + '"' + ' Interface' + " Delta Sent KB"
                                 Type                    = "Line"
                                 DataPointHistory        = 20
                                 ChartBackgroundColor    = "#80FF6B63"
@@ -2571,13 +3585,13 @@ function Get-PUDAdminCenter {
                             $NetworkTableProperties = @("Name","Description","Sent","Received","DeltaSent","DeltaReceived")
                             New-UDTable -Headers $NetworkTableProperties -AutoRefresh -RefreshInterval 5 -Endpoint {
                                 $PUDRSSyncHT = $global:PUDRSSyncHT
-                                #$ThisNetworkInterfaceStaticInfo = $PUDRSSyncHT."$RemoteHost`Info".RelevantNetworkInterfaces[$($i+1)]
+                                #$ThisNetworkInterfaceStaticInfo = $PUDRSSyncHT."$RemoteHost`Info".Overview.RelevantNetworkInterfaces[$($i+1)]
     
-                                #$NetworkLiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Count
-                                if ($PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Count -gt 0) {
+                                #$NetworkLiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Count
+                                if ($PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Count -gt 0) {
                                     # Clone the LiveOutput ArrayList Object because if we try to Enumerate (using Where-Object or other method) while elements are
                                     # being added/removed from the ArrayList, things break
-                                    #$NetworkLiveOutputClone = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Clone()
+                                    #$NetworkLiveOutputClone = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Clone()
                                     
                                     # NOTE: Each element in the below $ArrayOfNetworkEntries is an ArrayList of PSCustomObjects.
                                     # Each PSCustomObject contains:
@@ -2590,8 +3604,8 @@ function Get-PUDAdminCenter {
                                         }
                                     #>
                                     $ArrayOfNetworkEntriesB = @(
-                                        $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.NetStats | Where-Object {
-                                            $_.Name -eq $PUDRSSyncHT."$RemoteHost`Info".RelevantNetworkInterfaces[$($i+1)].Name
+                                        $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous.NetStats | Where-Object {
+                                            $_.Name -eq $PUDRSSyncHT."$RemoteHost`Info".Overview.RelevantNetworkInterfaces[$($i+1)].Name
                                         }
                                     ) | Where-Object {$_ -ne $null}
                                     if ($ArrayOfNetworkEntriesB.Count -gt 0) {
@@ -2625,8 +3639,8 @@ function Get-PUDAdminCenter {
                                 #$FinalKBReceived = [Math]::Round($($DifferenceReceivedBytes / 1KB),2).ToString() + 'KB'
     
                                 [pscustomobject]@{
-                                    Name                        = $PUDRSSyncHT."$RemoteHost`Info".RelevantNetworkInterfaces[$($i+1)].Name
-                                    Description                 = $PUDRSSyncHT."$RemoteHost`Info".RelevantNetworkInterfaces[$($i+1)].Description
+                                    Name                        = $PUDRSSyncHT."$RemoteHost`Info".Overview.RelevantNetworkInterfaces[$($i+1)].Name
+                                    Description                 = $PUDRSSyncHT."$RemoteHost`Info".Overview.RelevantNetworkInterfaces[$($i+1)].Description
                                     Sent                        = [Math]::Round($($NewSentBytesTotalB / 1GB),2).ToString() + 'GB'
                                     Received                    = [Math]::Round($($NewReceivedBytesTotalB / 1GB),2).ToString() + 'GB'
                                     DeltaSent                   = $FinalKBSentB
@@ -2636,13 +3650,13 @@ function Get-PUDAdminCenter {
     
                             New-Variable -Name "NetworkMonitorEndpoint$($i+1)" -Force -Value $({
                                 $PUDRSSyncHT = $global:PUDRSSyncHT
-                                #$ThisNetworkInterfaceStaticInfo = $PUDRSSyncHT."$RemoteHost`Info".RelevantNetworkInterfaces[$($i+1)]
+                                #$ThisNetworkInterfaceStaticInfo = $PUDRSSyncHT."$RemoteHost`Info".Overview.RelevantNetworkInterfaces[$($i+1)]
             
-                                #$NetworkLiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Count
-                                if ($PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Count -gt 0) {
+                                #$NetworkLiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Count
+                                if ($PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Count -gt 0) {
                                     # Clone the LiveOutput ArrayList Object because if we try to Enumerate (using Where-Object or other method) while elements are
                                     # being added/removed from the ArrayList, things break
-                                    #$NetworkLiveOutputClone = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Clone()
+                                    #$NetworkLiveOutputClone = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Clone()
                                     
                                     # NOTE: Each element in the below $ArrayOfNetworkEntries is an ArrayList of PSCustomObjects.
                                     # Each PSCustomObject contains:
@@ -2655,8 +3669,8 @@ function Get-PUDAdminCenter {
                                         }
                                     #>
                                     $ArrayOfNetworkEntriesC = @(
-                                        $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.NetStats | Where-Object {
-                                            $_.Name -eq $PUDRSSyncHT."$RemoteHost`Info".RelevantNetworkInterfaces[$($i+1)].Name
+                                        $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous.NetStats | Where-Object {
+                                            $_.Name -eq $PUDRSSyncHT."$RemoteHost`Info".Overview.RelevantNetworkInterfaces[$($i+1)].Name
                                         }
                                     ) | Where-Object {$_ -ne $null}
                                     if ($ArrayOfNetworkEntriesC.Count -gt 0) {
@@ -2696,7 +3710,7 @@ function Get-PUDAdminCenter {
                             })
             
                             $NetworkMonitorSplatParamsC = @{
-                                Title                   = '"' + $PUDRSSyncHT."$RemoteHost`Info".RelevantNetworkInterfaces[$($i+1)].Name + '"' + ' Interface' + " Delta Sent KB"
+                                Title                   = '"' + $PUDRSSyncHT."$RemoteHost`Info".Overview.RelevantNetworkInterfaces[$($i+1)].Name + '"' + ' Interface' + " Delta Sent KB"
                                 Type                    = "Line"
                                 DataPointHistory        = 20
                                 ChartBackgroundColor    = "#80FF6B63"
@@ -2730,7 +3744,7 @@ function Get-PUDAdminCenter {
         # Add the SyncHash to the Page so that we can pass output to other pages
         #$PUDRSSyncHT = $global:PUDRSSyncHT
     
-        # Load PUDWinAdminCenter Module Functions Within ScriptBlock
+        # Load PUDAdminCenter Module Functions Within ScriptBlock
         #$ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
     
         #region >> Ensure $RemoteHost is Valid
@@ -2806,7 +3820,7 @@ function Get-PUDAdminCenter {
                     # Add the SyncHash to the Page so that we can pass output to other pages
                     $PUDRSSyncHT = $global:PUDRSSyncHT
     
-                    # Load PUDWinAdminCenter Module Functions Within ScriptBlock
+                    # Load PUDAdminCenter Module Functions Within ScriptBlock
                     $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
     
                     if ($Session:CredentialHT.Keys -notcontains $RemoteHost) {
@@ -2823,7 +3837,7 @@ function Get-PUDAdminCenter {
                         $Session:CredentialHT.Add($RemoteHost,$RHostCredHT)
     
                         # TODO: Need to remove this when finished testing
-                        $PUDRSSyncHT."$RemoteHost`Info".CredHT = $Session:CredentialHT
+                        #$PUDRSSyncHT."$RemoteHost`Info".CredHT = $Session:CredentialHT
     
                         #New-UDInputAction -Toast "`$Session:CredentialHT was null" -Duration 10000
                     }
@@ -3138,7 +4152,7 @@ function Get-PUDAdminCenter {
     
         $PUDRSSyncHT = $global:PUDRSSyncHT
     
-        # Load PUDWinAdminCenter Module Functions Within ScriptBlock
+        # Load PUDAdminCenter Module Functions Within ScriptBlock
         $ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
     
         # For some reason, we can't use the $DisconnectedPageContent directly here. It needs to be a different object before it actually outputs
@@ -3199,7 +4213,7 @@ function Get-PUDAdminCenter {
     
             $PUDRSSyncHT = $global:PUDRSSyncHT
     
-            # Load PUDWinAdminCenter Module Functions Within ScriptBlock
+            # Load PUDAdminCenter Module Functions Within ScriptBlock
             $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
     
             # For some reason, scriptblocks defined earlier can't be used directly here. They need to be a different objects before
@@ -3255,7 +4269,7 @@ function Get-PUDAdminCenter {
                         New-UDTable -Id "TrackingTable" -Headers @("RemoteHost","Status","CredSSP","DateTime") -AutoRefresh -RefreshInterval 5 -Endpoint {
                             $PUDRSSyncHT = $global:PUDRSSyncHT
     
-                            # Load PUDWinAdminCenter Module Functions Within ScriptBlock
+                            # Load PUDAdminCenter Module Functions Within ScriptBlock
                             $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
                             
                             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
@@ -3396,7 +4410,7 @@ function Get-PUDAdminCenter {
     $HomePageContent = {
         $PUDRSSyncHT = $global:PUDRSSyncHT
     
-        # Load PUDWinAdminCenter Module Functions Within ScriptBlock
+        # Load PUDAdminCenter Module Functions Within ScriptBlock
         $ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
     
         #region >> Loading Indicator
@@ -3430,10 +4444,11 @@ function Get-PUDAdminCenter {
     
             $RHost = $PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RHostName}
     
-            $GridData = @{}
-            $GridData.Add("HostName",$RHost.HostName.ToUpper())
-            $GridData.Add("FQDN",$RHost.FQDN)
-            $GridData.Add("IPAddress",$RHost.IPAddressList[0])
+            $RHostTableData = @{}
+            $RHostTableData.Add("HostName",$RHost.HostName.ToUpper())
+            $RHostTableData.Add("FQDN",$RHost.FQDN)
+            $IPAddressListAsString = @($RHost.IPAddressList) -join ", "
+            $RHostTableData.Add("IPAddress",$IPAddressListAsString)
     
             # Check Ping
             try {
@@ -3442,10 +4457,10 @@ function Get-PUDAdminCenter {
                 ) | Select-Object -Property Address,Status,RoundtripTime -ExcludeProperty PSComputerName,PSShowComputerName,RunspaceId
     
                 $PingStatus = if ($PingResult.Status.ToString() -eq "Success") {"Available"} else {"Unavailable"}
-                $GridData.Add("PingStatus",$PingStatus)
+                $RHostTableData.Add("PingStatus",$PingStatus)
             }
             catch {
-                $GridData.Add("PingStatus","Unavailable")
+                $RHostTableData.Add("PingStatus","Unavailable")
             }
     
             # Check WSMan Ports
@@ -3488,7 +4503,7 @@ function Get-PUDAdminCenter {
                 }
     
                 if ($WSMan5985Available -or $WSMan5986Available) {
-                    $GridData.Add("WSMan","Available")
+                    $RHostTableData.Add("WSMan","Available")
     
                     [System.Collections.ArrayList]$WSManPorts = @()
                     if ($WSMan5985Available) {
@@ -3499,11 +4514,11 @@ function Get-PUDAdminCenter {
                     }
     
                     $WSManPortsString = $WSManPorts -join ', '
-                    $GridData.Add("WSManPorts",$WSManPortsString)
+                    $RHostTableData.Add("WSManPorts",$WSManPortsString)
                 }
             }
             catch {
-                $GridData.Add("WSMan","Unavailable")
+                $RHostTableData.Add("WSMan","Unavailable")
             }
     
             # Check SSH
@@ -3511,35 +4526,35 @@ function Get-PUDAdminCenter {
                 $TestSSHResult = TestPort -HostName $RHost.IPAddressList[0] -Port 22
     
                 if ($TestSSHResult.Open) {
-                    $GridData.Add("SSH","Available")
+                    $RHostTableData.Add("SSH","Available")
                 }
                 else {
-                    $GridData.Add("SSH","Unavailable")
+                    $RHostTableData.Add("SSH","Unavailable")
                 }
             }
             catch {
-                $GridData.Add("SSH","Unavailable")
+                $RHostTableData.Add("SSH","Unavailable")
             }
     
-            $GridData.Add("DateTime",$(Get-Date -Format MM-dd-yy_hh:mm:sstt))
+            $RHostTableData.Add("DateTime",$(Get-Date -Format MM-dd-yy_hh:mm:sstt))
     
-            if ($GridData.WSMan -eq "Available" -or $GridData.SSH -eq "Available") {
+            if ($RHostTableData.WSMan -eq "Available" -or $RHostTableData.SSH -eq "Available") {
                 # We are within an -Endpoint, so $Session: variables should be available
                 #if ($PUDRSSyncHT."$($RHost.HostName)`Info".CredHT.PSRemotingCreds -ne $null) {
                 if ($Session:CredentialHT.$($RHost.HostName).PSRemotingCreds -ne $null) {
-                    $GridData.Add("ManageLink",$(New-UDLink -Text "Manage" -Url "/ToolSelect/$($RHost.HostName)"))
+                    $RHostTableData.Add("ManageLink",$(New-UDLink -Text "Manage" -Url "/ToolSelect/$($RHost.HostName)"))
                 }
                 else {
-                    $GridData.Add("ManageLink",$(New-UDLink -Text "Manage" -Url "/PSRemotingCreds/$($RHost.HostName)"))
+                    $RHostTableData.Add("ManageLink",$(New-UDLink -Text "Manage" -Url "/PSRemotingCreds/$($RHost.HostName)"))
                 }
             }
             else {
-                $GridData.Add("ManageLink","Unavailable")
+                $RHostTableData.Add("ManageLink","Unavailable")
             }
     
-            $GridData.Add("NewCreds",$(New-UDLink -Text "NewCreds" -Url "/PSRemotingCreds/$($RHost.HostName)"))
+            $RHostTableData.Add("NewCreds",$(New-UDLink -Text "NewCreds" -Url "/PSRemotingCreds/$($RHost.HostName)"))
             
-            [pscustomobject]$GridData | Out-UDTableData -Property @("HostName","FQDN","IPAddress","PingStatus","WSMan","WSManPorts","SSH","DateTime","ManageLink","NewCreds")
+            [pscustomobject]$RHostTableData | Out-UDTableData -Property @("HostName","FQDN","IPAddress","PingStatus","WSMan","WSManPorts","SSH","DateTime","ManageLink","NewCreds")
         }
         $RHostUDTableEndpointAsString = $RHostUDTableEndpoint.ToString()
     
@@ -5107,6 +6122,8 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
     ${Function:TestLDAP}.Ast.Extent.Text
     ${Function:TestPort}.Ast.Extent.Text
     ${Function:UnzipFile}.Ast.Extent.Text
+    ${Function:Get-CertificateOverview}.Ast.Extent.Text
+    ${Function:Get-Certificates}.Ast.Extent.Text
     ${Function:Get-EnvironmentVariables}.Ast.Extent.Text
     ${Function:Get-LocalUsers}.Ast.Extent.Text
     ${Function:Get-PUDAdminCenter}.Ast.Extent.Text
@@ -5125,8 +6142,8 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUSeoEEycmkRcmyDrT52FlNpji
-# jhGgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUrTfucBbyyO+lIRViFoSIXhqN
+# raagggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -5183,11 +6200,11 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFNu74JV4fVUOUopt
-# f1rvAJNoZI6pMA0GCSqGSIb3DQEBAQUABIIBAB9R+SLhMzBC7UXs25WbeObAcEKE
-# +kzDBZtbd1ff/UReA4VfyXCLMIeg4DYwi2k0luB/1IbUDTSLqNmwi463KTZRDY5p
-# TAyPG3b7KuF7hLWMy7UsBWCSX6k23oUnKfuPywq6Hed/o/gFqLw6uzrdFSB3AUeE
-# 6d/y1OuDRnzb39bCcdggHfvsEdtPABm09+YC1Mkp9lU5L7shy1d8n6U6bt725ZUi
-# mHStApeMaQ6ePP364qdc474lTbZ+4xRMO1gcpeVCGXoGHU/y27tY7QCJjLV9517Y
-# vQNPmSWFVJpIXIUrdphIYZXuhh98YVjAtyvdjKGIHPopaTE412/rZCJ4rRw=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFHTEBTq5WsGndhx/
+# lLVYn3VSPfTyMA0GCSqGSIb3DQEBAQUABIIBAIVy9VlHntpxxiXjJvGKXGHumPec
+# SjURhpMoRG/simYr8LOdPvGraI+UN1bE4NmbNSCU8aytrkgYyUUfcMqLeY7sOaYd
+# 5+SoZ0YjuPURLff8RC+xTFfndJttMlmGt4Axw6LvYJ9hRoxtlfzGM/kMJKVb7AGy
+# uD9g8NEIwY1oYc/lMYB54Z9oA+lKW0cDGcPphQMDfWf6AW/+ID4YH4XHVEXVP9Z5
+# bYEPF50fWjGbyCoh5BqYlKF+ynK4Q4IurbpHO69pylhTVrsQ38WlDJFqnL45mxxh
+# c5d8ulVY2v7Z8gZSQ/aUMdKBIVDZ0P7+W/qVk/iZRbe0x/iURbWlnJN2nSs=
 # SIG # End signature block

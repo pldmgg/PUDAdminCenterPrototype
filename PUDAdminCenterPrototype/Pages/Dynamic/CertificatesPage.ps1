@@ -92,7 +92,7 @@ $CertificatesPageContent = {
                     New-UDHeading -Text ""
                 }
                 New-UDColumn -Size 6 -Endpoint {
-                    New-UDTable -Id "TrackingTable" -Headers @("RemoteHost","Status","CredSSP","DateTime") -AutoRefresh -RefreshInterval 2 -Endpoint {
+                    New-UDTable -Id "TrackingTable" -Headers @("RemoteHost","Status","DateTime") -AutoRefresh -RefreshInterval 2 -Endpoint {
                         $PUDRSSyncHT = $global:PUDRSSyncHT
 
                         # Load PUDAdminCenter Module Functions Within ScriptBlock
@@ -110,12 +110,6 @@ $CertificatesPageContent = {
                             }
                         }
                         else {
-                            <#
-                            $TableData = @{
-                                RemoteHost      = $RemoteHost.ToUpper()
-                                Status          = "Disconnected"
-                            }
-                            #>
                             Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
                         }
 
@@ -129,31 +123,10 @@ $CertificatesPageContent = {
                             }
                             $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataTracker.Current = $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo.LiveOutput.Clone()
                         }
-                        
-                        if ($PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataTracker.Previous.Count -eq 0) {
-                            if ($Session:ServerInventoryStatic.IsCredSSPEnabled) {
-                                $CredSSPStatus = "Enabled"
-                            }
-                            else {
-                                $CredSSPStatus = "Disabled"
-                            }
-                        }
-                        elseif (@($PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataTracker.Previous.ServerInventory).Count -gt 0) {
-                            if (@($PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataTracker.Previous.ServerInventory)[-1].IsCredSSPEnabled) {
-                                $CredSSPStatus = "Enabled"
-                            }
-                            else {
-                                $CredSSPStatus = "Disabled"
-                            }
-                        }
-                        else {
-                            $CredSSPStatus = "NotYetDetermined"
-                        }
-                        $TableData.Add("CredSSP",$CredSSPStatus)
 
                         $TableData.Add("DateTime",$(Get-Date -Format MM-dd-yy_hh:mm:sstt))
 
-                        [PSCustomObject]$TableData | Out-UDTableData -Property @("RemoteHost","Status","CredSSP","DateTime")
+                        [PSCustomObject]$TableData | Out-UDTableData -Property @("RemoteHost","Status","DateTime")
                     }
                 }
                 New-UDColumn -Size 3 -Content {
@@ -172,12 +145,12 @@ $CertificatesPageContent = {
             Invoke-Expression $using:GetCertificateOverviewFunc
             Invoke-Expression $using:GetCertificatesFunc
             
-            $CertificateSummary = Get-CertificateOverview
+            $CertificateSummary = Get-CertificateOverview -channel "Microsoft-Windows-CertificateServicesClient-Lifecycle-System*"
             $AllCertificates = Get-Certificates
 
             [pscustomobject]@{
                 CertificateSummary          = $CertificateSummary
-                AllCertificates             = $AllCertificates
+                AllCertificates             = [pscustomobject]$AllCertificates
             }
         }
         $Session:CertSummaryStatic = $StaticInfo.CertificateSummary
@@ -210,13 +183,11 @@ $CertificatesPageContent = {
                 New-UDCollapsible -Items {
                     New-UDCollapsibleItem -Title "More Tools" -Icon laptop -Endpoint {
                         New-UDRow -Endpoint {
-                            New-UDColumn -Size 1 -Endpoint {}
                             foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
                                 New-UDColumn -Endpoint {
                                     New-UDLink -Text $ToolName -Url "/$ToolName/$RemoteHost" -Icon dashboard
                                 }
                             }
-                            New-UDColumn -Size 1 -Endpoint {}
                             #New-UDCard -Links $Links
                         }
                     }
@@ -234,27 +205,6 @@ $CertificatesPageContent = {
             $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
 
             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
-
-            if (!$Session:CertSummaryStatic) {
-                $GetCertificateOverviewFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-CertificateOverview" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                $StaticInfoA = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                    Invoke-Expression $using:GetCertificateOverviewFunc
-                    Invoke-Expression $using:GetCertificatesFunc
-                    
-                    $CertificateSummary = Get-CertificateOverview
-
-                    [pscustomobject]@{
-                        CertificateSummary  = $CertificateSummary
-                    }
-                }
-                $Session:CertSummaryStatic = $StaticInfoA.CertificateSummary
-                if ($PUDRSSyncHT."$RemoteHost`Info".Certificates.Keys -notcontains "CertSummary") {
-                    $PUDRSSyncHT."$RemoteHost`Info".Certificates.Add("CertSummary",$Session:CertSummaryStatic)
-                }
-                else {
-                    $PUDRSSyncHT."$RemoteHost`Info".Certificates.CertSummary = $Session:CertSummaryStatic
-                }
-            }
 
             # Remove Existing Runspace for LiveDataRSInfo if it exists as well as the PSSession Runspace within
             if ($PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo -ne $null) {
@@ -275,7 +225,7 @@ $CertificatesPageContent = {
             # Create a Runspace that creates a PSSession to $RemoteHost that is used once every second to re-gather data from $RemoteHost
             $GetCertificateOverviewFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-CertificateOverview" -and $_ -notmatch "function Get-PUDAdminCenter"}
             $GetCertificatesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-Certificates" -and $_ -notmatch "function Get-PUDAdminCenter"}
-            $LiveDataFunctionsToLoad = @($GetEnvVarsFunc,$GetServerInventoryFunc)
+            $LiveDataFunctionsToLoad = @($GetCertificateOverviewFunc,$GetCertificatesFunc)
             
             # The New-Runspace function handles scope for you behind the scenes, so just pretend that everything within -ScriptBlock {} is in the current scope
             New-Runspace -RunspaceName "Certificates$RemoteHost`LiveData" -ScriptBlock {
@@ -308,7 +258,7 @@ $CertificatesPageContent = {
                         }
 
                         # Operations that you want to run once every second go here
-                        @{CertSummary = Get-CertificateOverview}
+                        @{CertSummary = Get-CertificateOverview -channel "Microsoft-Windows-CertificateServicesClient-Lifecycle-System*"}
 
                     } | foreach {$null = $LiveOutput.Add($_)}
 
@@ -322,7 +272,7 @@ $CertificatesPageContent = {
             # the -RunspaceName value plus the word 'Info'. By setting $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo equal to
             # $RSSyncHash."Certificates$RemoteHost`LiveDataResult", we can now reference $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo.LiveOutput
             # to get the latest data from $RemoteHost.
-            $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo = $RSSyncHash."Overview$RemoteHost`LiveDataResult"
+            $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo = $RSSyncHash."Certificates$RemoteHost`LiveDataResult"
         }
 
         #endregion >> Setup LiveData
@@ -331,11 +281,26 @@ $CertificatesPageContent = {
 
         # Static Data Element Example
 
+        $AllCertsProperties = @("CertificateName","FriendlyName","Subject","Issuer","Path","Status","PrivateKey","PublicKey","NotBefore","NotAfter")
+        $AllCertsUDTableSplatParams = @{
+            Headers         = $AllCertsProperties
+            Properties      = $AllCertsProperties
+            PageSize        = 5
+        }
+        New-UDGrid @AllCertsUDTableSplatParams -Endpoint {
+            $PUDRSSyncHT = $global:PUDRSSyncHT
+
+            $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+
+            $AllCertsGridData = $PUDRSSyncHT."$RemoteHost`Info".Certificates.AllCerts | Out-UDGridData
+
+            $AllCertsGridData
+        }
 
         # Live Data Element Example
         $CertSummaryProperties = @("allCount","expiredCount","nearExpiredCount","eventCount")
         $CertSummaryUDTableSplatParams = @{
-            Headers         = $ResultProperties
+            Headers         = $CertSummaryProperties
             AutoRefresh     = $True 
             RefreshInterval = 5
         }
@@ -364,6 +329,9 @@ $CertificatesPageContent = {
 
             $CertSummaryTableData
         }
+
+        # Remove the Loading  Indicator
+        $null = $Session:CertificatesPageLoadingTracker.Add("FinishedLoading")
 
         #endregion >> Controls
     }
