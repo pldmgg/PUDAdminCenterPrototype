@@ -1818,7 +1818,7 @@ function Get-PUDAdminCenter {
                                 }
     
                                 New-UDColumn -Size 4 -Endpoint {
-                                    New-UDInput "Edit Environment Variable" -SubmitText "Edit" -Content {
+                                    New-UDInput -Title "Edit Environment Variable" -SubmitText "Edit" -Content {
                                         New-UDInputField -Name "Name" -Type textbox
                                         New-UDInputField -Name "NewName" -Type textbox
                                         New-UDInputField -Name "Value" -Type textbox
@@ -5125,8 +5125,8 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUKRA6RBS6c1qakLpqQ4HnHd1z
-# Riygggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUSeoEEycmkRcmyDrT52FlNpji
+# jhGgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -5183,11 +5183,11 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFNcvOWwKAqSwuP3e
-# F0bnPU0CiOhLMA0GCSqGSIb3DQEBAQUABIIBAMVcXPogCXDoQ0ZL4g9G9/1TaugU
-# lw5F/1YFoVJZ4VBN7oy9+Jw2phhJF5iUy9bnP69YjXI/xOIQHGiujs2hcQcEpzSE
-# io9Atqj5qSa3XIxO0krRv/hz3cPx1/g7SE34ON4UmVm8QpmuI7gZOUTjHgE2c846
-# BninMatk+awz/FXlWfcxGcytZoSphh1N81rPGDS7DngjNywxdLyF8EFoJiJK2p9Y
-# VEcdhwMsXO1GjsThsUtpy6KTbMhC4Z0uMIShXKY1BMxlZac4JSavlt+ypcwizl9W
-# lyZqpnevaxa6sRrqYKKSoXJvEc+4Y+dMMyLjPoccUYgt0GXrVDtJUH4SxvM=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFNu74JV4fVUOUopt
+# f1rvAJNoZI6pMA0GCSqGSIb3DQEBAQUABIIBAB9R+SLhMzBC7UXs25WbeObAcEKE
+# +kzDBZtbd1ff/UReA4VfyXCLMIeg4DYwi2k0luB/1IbUDTSLqNmwi463KTZRDY5p
+# TAyPG3b7KuF7hLWMy7UsBWCSX6k23oUnKfuPywq6Hed/o/gFqLw6uzrdFSB3AUeE
+# 6d/y1OuDRnzb39bCcdggHfvsEdtPABm09+YC1Mkp9lU5L7shy1d8n6U6bt725ZUi
+# mHStApeMaQ6ePP364qdc474lTbZ+4xRMO1gcpeVCGXoGHU/y27tY7QCJjLV9517Y
+# vQNPmSWFVJpIXIUrdphIYZXuhh98YVjAtyvdjKGIHPopaTE412/rZCJ4rRw=
 # SIG # End signature block

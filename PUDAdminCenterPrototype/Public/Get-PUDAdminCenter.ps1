@@ -1633,7 +1633,7 @@ function Get-PUDAdminCenter {
                                 }
     
                                 New-UDColumn -Size 4 -Endpoint {
-                                    New-UDInput "Edit Environment Variable" -SubmitText "Edit" -Content {
+                                    New-UDInput -Title "Edit Environment Variable" -SubmitText "Edit" -Content {
                                         New-UDInputField -Name "Name" -Type textbox
                                         New-UDInputField -Name "NewName" -Type textbox
                                         New-UDInputField -Name "Value" -Type textbox
@@ -3467,8 +3467,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUULgelWQuUw9ViM4HpbFkZIdo
-# CWKgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUykMhkwM6t86A0QEqkPzVMxL0
+# DGigggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -3525,11 +3525,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFLCkahg+TJXQsAM1
-# ikL2gsKHpyBGMA0GCSqGSIb3DQEBAQUABIIBAGIfjLq3JGkcbqxyXiDSEEsga6IN
-# 7J5o1+KzLEsf0YU0Lfb9o4crKJVYDiRYQRY2Z1wSjtOfUe97RpXI3tJfjyEZcvlQ
-# knntXTVXqrAoU5ALruJDTXz7RpYlgK+IJkXm7YNgqtU1dAgtFkCSO9E/HikvltiO
-# FB/JCEtlCsWlThAmslRtmYG0zmTOAtzFFVFijOR6WeshmA+MyUGfi2KR1iz5Rg3P
-# Lp1oRXRQEk4NJSrgjOHvEE8PTHzh0bsv2fspA87cs/98u+qsXhLuSdpv//gwMnPY
-# 0o27DpwSn2FeaKFIAvCIZJUSVfBJ+U4uYtQgNbvrCAEgLuRklwlWlyw2mZY=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFEy+JNmIzzXlIvd6
+# EiVTwNHqrAIUMA0GCSqGSIb3DQEBAQUABIIBAB+GCWRWvow1Io3uu4ICNmBj/J7m
+# DfgMQc1gM/kIkA8ylBj4NrfojuwfGIg/A2/Kc2/ndatCbAk/UOqA75Q3GyHgbYPz
+# K3xdjUJN6zWGsD021d8EBbeNiER0B0zFE9UPg8vlnGwop6VEVxjRxchq+PZ7PNUk
+# 53/JFKbVwhFcxzJriPr+rVRG3q4BoHU3SGXOcTOx3MwMpZCvFwo06NV6vRzHX2X5
+# AfrAX3SvotZD0FDa6/BA/rhI5XCP4h7h8nJ3mMb/7HLOrYzVu+VhjcLLmTgA6hK8
+# s8OCsXblhQaIsPjPszEgIVRLKE5wVkVDWzHtRDHQJsbhLjEQjBZBAuesNPo=
 # SIG # End signature block

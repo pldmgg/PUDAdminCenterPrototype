@@ -1276,7 +1276,7 @@ $OverviewPageContent = {
                             }
 
                             New-UDColumn -Size 4 -Endpoint {
-                                New-UDInput "Edit Environment Variable" -SubmitText "Edit" -Content {
+                                New-UDInput -Title "Edit Environment Variable" -SubmitText "Edit" -Content {
                                     New-UDInputField -Name "Name" -Type textbox
                                     New-UDInputField -Name "NewName" -Type textbox
                                     New-UDInputField -Name "Value" -Type textbox
