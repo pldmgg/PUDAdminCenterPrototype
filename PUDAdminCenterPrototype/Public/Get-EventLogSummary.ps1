@@ -1,48 +1,44 @@
-[System.Collections.ArrayList]$script:FunctionsForSBUse = @(
-    ${Function:AddWinRMTrustedHost}.Ast.Extent.Text
-    ${Function:AddWinRMTrustLocalHost}.Ast.Extent.Text
-    ${Function:EnableWinRMViaRPC}.Ast.Extent.Text
-    ${Function:GetComputerObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetDomainController}.Ast.Extent.Text
-    ${Function:GetElevation}.Ast.Extent.Text
-    ${Function:GetGroupObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetModuleDependencies}.Ast.Extent.Text
-    ${Function:GetNativePath}.Ast.Extent.Text
-    ${Function:GetUserObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetWorkingCredentials}.Ast.Extent.Text
-    ${Function:InvokeModuleDependencies}.Ast.Extent.Text
-    ${Function:InvokePSCompatibility}.Ast.Extent.Text
-    ${Function:ManualPSGalleryModuleInstall}.Ast.Extent.Text
-    ${Function:NewUniqueString}.Ast.Extent.Text
-    ${Function:ResolveHost}.Ast.Extent.Text
-    ${Function:TestIsValidIPAddress}.Ast.Extent.Text
-    ${Function:TestLDAP}.Ast.Extent.Text
-    ${Function:TestPort}.Ast.Extent.Text
-    ${Function:UnzipFile}.Ast.Extent.Text
-    ${Function:Get-CertificateOverview}.Ast.Extent.Text
-    ${Function:Get-Certificates}.Ast.Extent.Text
-    ${Function:Get-CimPnpEntity}.Ast.Extent.Text
-    ${Function:Get-EnvironmentVariables}.Ast.Extent.Text
-    ${Function:Get-EventLogSummary}.Ast.Extent.Text
-    ${Function:Get-LocalUsers}.Ast.Extent.Text
-    ${Function:Get-PUDAdminCenter}.Ast.Extent.Text
-    ${Function:Get-RemoteDesktop}.Ast.Extent.Text
-    ${Function:Get-ServerInventory}.Ast.Extent.Text
-    ${Function:New-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:New-Runspace}.Ast.Extent.Text
-    ${Function:Remove-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:Set-ComputerIdentification}.Ast.Extent.Text
-    ${Function:Set-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:Set-RemoteDesktop}.Ast.Extent.Text
-    ${Function:Start-DiskPerf}.Ast.Extent.Text
-    ${Function:Stop-DiskPerf}.Ast.Extent.Text
-)
+<#
+    
+    .SYNOPSIS
+        Get the log summary (Name, Total) for the channel selected by using Get-WinEvent cmdlet.
+    
+    .DESCRIPTION
+        Get the log summary (Name, Total) for the channel selected by using Get-WinEvent cmdlet.
+        The supported Operating Systems are Window Server 2012, Windows Server 2012R2, Windows Server 2016.
+
+    .NOTES
+        This function is pulled directly from the real Microsoft Windows Admin Center
+
+        PowerShell scripts use rights (according to Microsoft):
+        We grant you a non-exclusive, royalty-free right to use, modify, reproduce, and distribute the scripts provided herein.
+
+        ANY SCRIPTS PROVIDED BY MICROSOFT ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
+        INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS OR A PARTICULAR PURPOSE.
+    
+    .ROLE
+        Readers
+    
+#>
+function Get-EventLogSummary {
+    Param(
+        [string]$channel
+    )
+    
+    $ErrorActionPreference = 'SilentlyContinue'
+    
+    Import-Module Microsoft.PowerShell.Diagnostics;
+    
+    $channelList = $channel.split(",")
+    
+    Get-WinEvent -ListLog $channelList -Force -ErrorAction SilentlyContinue
+}
 
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUFb39WCFbvAEnb+DplhNAaDfc
-# /bagggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUhF7hoqXM1lZ2wxSSkwZ6ov/p
+# Ev6gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -99,11 +95,11 @@
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFEtLZi6X0APWY0F+
-# ym0/GrxKMfc1MA0GCSqGSIb3DQEBAQUABIIBAGs2dOqIkgScTWjgSQVdle7UgNzM
-# UuZMeJxMe8km5Vkf4fvTPlYQIjLvchW0vDtkNSRcUaxz7fZ/gHQK73N5p5YYI0Dv
-# TAeWrv6L0BtTwEhcf5Yzv5pqtEvRAxaZRyLRvKQOpyd02gJ0mPOP/wRoEcN7vi7W
-# V0gXzWU5taDLkBit/bQ02o/SS3Mw1OvbqlQE/U+R8bhoMHtzvxEsuf3ml/g0OTyy
-# sZxI0HkU8BQ/GHg/qASLOTUJN3aH2jkmBNJy1RHnkdDmWASO4mEaC7jb8/SULEfR
-# ih3bM2NC7DUNOMSzDZJIDW/0d3rbkQPYp18DDrGDle6G1mbUSntZr7sPNPw=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFDwE/Dr+RvkhNi0R
+# ZuMcmWujudxOMA0GCSqGSIb3DQEBAQUABIIBAB7Y+qui7UwnzfYLbM8lSEZymHYp
+# neZkcBXHuJON/7E9UxHyueiL5TzqktypaPX2LKnY0B+zP7fRPfzEZd4/F2wYq5rm
+# 4P4VEgFKBgpEhlGG5AhEvoG96EvY4b+d3k9t6hf1zRKKZcNXMBL99KmniQoXn214
+# SootkDYBDxoJRLSBT0a4tH1W4LWNNx/t9Gjxdp5LslySnk6f6fr6bMrQK3MYjuTB
+# xt8/IPJSdrRCDOcRYdDoUGz7Tw937tRN9B4XkXDsbNxkoFGXp1djm6/9nP+X2cG6
+# RnbaIf+y03DbKozURkJDRY+tiiQm1qmebOMJs2kxvaNKtI4IkiMG4UxFCAA=
 # SIG # End signature block
