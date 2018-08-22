@@ -1,47 +1,35 @@
-[System.Collections.ArrayList]$script:FunctionsForSBUse = @(
-    ${Function:AddWinRMTrustedHost}.Ast.Extent.Text
-    ${Function:AddWinRMTrustLocalHost}.Ast.Extent.Text
-    ${Function:EnableWinRMViaRPC}.Ast.Extent.Text
-    ${Function:GetComputerObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetDomainController}.Ast.Extent.Text
-    ${Function:GetElevation}.Ast.Extent.Text
-    ${Function:GetGroupObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetModuleDependencies}.Ast.Extent.Text
-    ${Function:GetNativePath}.Ast.Extent.Text
-    ${Function:GetUserObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetWorkingCredentials}.Ast.Extent.Text
-    ${Function:InvokeModuleDependencies}.Ast.Extent.Text
-    ${Function:InvokePSCompatibility}.Ast.Extent.Text
-    ${Function:ManualPSGalleryModuleInstall}.Ast.Extent.Text
-    ${Function:NewUniqueString}.Ast.Extent.Text
-    ${Function:ResolveHost}.Ast.Extent.Text
-    ${Function:TestIsValidIPAddress}.Ast.Extent.Text
-    ${Function:TestLDAP}.Ast.Extent.Text
-    ${Function:TestPort}.Ast.Extent.Text
-    ${Function:UnzipFile}.Ast.Extent.Text
-    ${Function:Get-CertificateOverview}.Ast.Extent.Text
-    ${Function:Get-Certificates}.Ast.Extent.Text
-    ${Function:Get-CimPnpEntity}.Ast.Extent.Text
-    ${Function:Get-EnvironmentVariables}.Ast.Extent.Text
-    ${Function:Get-LocalUsers}.Ast.Extent.Text
-    ${Function:Get-PUDAdminCenter}.Ast.Extent.Text
-    ${Function:Get-RemoteDesktop}.Ast.Extent.Text
-    ${Function:Get-ServerInventory}.Ast.Extent.Text
-    ${Function:New-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:New-Runspace}.Ast.Extent.Text
-    ${Function:Remove-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:Set-ComputerIdentification}.Ast.Extent.Text
-    ${Function:Set-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:Set-RemoteDesktop}.Ast.Extent.Text
-    ${Function:Start-DiskPerf}.Ast.Extent.Text
-    ${Function:Stop-DiskPerf}.Ast.Extent.Text
-)
+<#
+    
+    .SYNOPSIS
+        Get Plug and Play device instances by using CIM provider.
+    
+    .DESCRIPTION
+        Get Plug and Play device instances by using CIM provider.
+
+    .NOTES
+        This function is pulled directly from the real Microsoft Windows Admin Center
+
+        PowerShell scripts use rights (according to Microsoft):
+        We grant you a non-exclusive, royalty-free right to use, modify, reproduce, and distribute the scripts provided herein.
+
+        ANY SCRIPTS PROVIDED BY MICROSOFT ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
+        INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS OR A PARTICULAR PURPOSE.
+    
+    .ROLE
+        Readers
+    
+#>
+function Get-CimPnpEntity {
+    import-module CimCmdlets
+    
+    Get-CimInstance -Namespace root/cimv2 -ClassName Win32_PnPEntity   
+}
 
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUG5vOlwHXNABB6RTX23s0y7CT
-# UNWgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU1XBJgW3tmvEUDbtkE308N7Ti
+# ggmgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -98,11 +86,11 @@
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFNJSGw9su0IzZ9di
-# +f1Cv1354drGMA0GCSqGSIb3DQEBAQUABIIBAFWG94yAhQV6x+5rojRZcnoh7KDN
-# 5eSjm6cKS8MyiB8FL9sHu34Hj2tlBPe+pXbS6+gAizinLyCUeA/S9wNx7P2p1v4L
-# JWPYtHQjbOLnPo2valU2CzMolTHBUdcq6TLWAyEqMLtCtcFKyO+X+kOwQrq4w8iZ
-# syFAB4EYsYvoiWfduQuaE8USp13AsR+pjfny46W964VrApdZhgBVqXUVbGcb4r9W
-# f254F7azaZ7lkwxDfn7+5Dhcjt3wt2yL/Wkympa6ESOeaTgjCZA+Jx3uCeXa2NQU
-# E1UjjG9Z2eGkyLSW4ZZPHwc2LdF3Ty7C24qP+ulE2pJFgFYYR9EfOwg6P3w=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFBevjLvZQQxuXlqp
+# qvwd+tzL6FX5MA0GCSqGSIb3DQEBAQUABIIBALx84I9q7VzXwGAf2ztgCQVIdWwr
+# bcllLszPZDR03j+G3/oABUrWb1HV4XTnkqUB6wlaDdcS6iV8CtWVRtvvB63nc8Zb
+# 8Po0N87mU17s9wNe+SYmRyxGgUlBSYjtJc9Vj/nKr8aabgae+rehyrXfrbP/E1us
+# XvJLPttJ1pScnKz+qOWJpfcrGmubz5lTtGpGZwOGOYvII4jGX2kaJ3p2EYjUimZD
+# MJgmlTDzReUqf/YvIddPdeaCV2oOMqek+kg7c5DzpFPltlkQKRiEksnn4TNOqzCs
+# fBKbbmxhffo6v9g0VAXemCH7fAcIItlJCDIy1Q6JyAmcvvs3jkM3ZlkAFro=
 # SIG # End signature block

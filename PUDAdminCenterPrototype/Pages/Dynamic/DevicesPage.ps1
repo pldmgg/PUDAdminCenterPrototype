@@ -1,4 +1,4 @@
-$CertificatesPageContent = {
+$DevicesPageContent = {
     param($RemoteHost)
 
     $PUDRSSyncHT = $global:PUDRSSyncHT
@@ -43,10 +43,10 @@ $CertificatesPageContent = {
 
     New-UDRow -Columns {
         New-UDColumn -Endpoint {
-            $Session:CertificatesPageLoadingTracker = [System.Collections.ArrayList]::new()
+            $Session:DevicesPageLoadingTracker = [System.Collections.ArrayList]::new()
         }
         New-UDColumn -AutoRefresh -RefreshInterval 5 -Endpoint {
-            if ($Session:CertificatesPageLoadingTracker -notcontains "FinishedLoading") {
+            if ($Session:DevicesPageLoadingTracker -notcontains "FinishedLoading") {
                 New-UDHeading -Text "Loading...Please wait..." -Size 5
                 New-UDPreloader -Size small
             }
@@ -114,14 +114,14 @@ $CertificatesPageContent = {
                         }
 
                         # SUPER IMPORTANT NOTE: ALL Real-Time Enpoints on the Page reference LiveOutputClone!
-                        if ($PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo.LiveOutput.Count -gt 0) {
-                            if ($PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataTracker.Previous -eq $null) {
-                                $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataTracker.Previous = $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo.LiveOutput.Clone()
+                        if ($PUDRSSyncHT."$RemoteHost`Info".Devices.LiveDataRSInfo.LiveOutput.Count -gt 0) {
+                            if ($PUDRSSyncHT."$RemoteHost`Info".Devices.LiveDataTracker.Previous -eq $null) {
+                                $PUDRSSyncHT."$RemoteHost`Info".Devices.LiveDataTracker.Previous = $PUDRSSyncHT."$RemoteHost`Info".Devices.LiveDataRSInfo.LiveOutput.Clone()
                             }
-                            if ($PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataTracker.Current.Count -gt 0) {
-                                $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataTracker.Previous = $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataTracker.Current.Clone()
+                            if ($PUDRSSyncHT."$RemoteHost`Info".Devices.LiveDataTracker.Current.Count -gt 0) {
+                                $PUDRSSyncHT."$RemoteHost`Info".Devices.LiveDataTracker.Previous = $PUDRSSyncHT."$RemoteHost`Info".Devices.LiveDataTracker.Current.Clone()
                             }
-                            $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataTracker.Current = $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo.LiveOutput.Clone()
+                            $PUDRSSyncHT."$RemoteHost`Info".Devices.LiveDataTracker.Current = $PUDRSSyncHT."$RemoteHost`Info".Devices.LiveDataRSInfo.LiveOutput.Clone()
                         }
 
                         $TableData.Add("DateTime",$(Get-Date -Format MM-dd-yy_hh:mm:sstt))
@@ -139,33 +139,22 @@ $CertificatesPageContent = {
 
         #region >> Gather Some Initial Info From $RemoteHost
 
-        $GetCertificateOverviewFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-CertificateOverview" -and $_ -notmatch "function Get-PUDAdminCenter"}
-        $GetCertificatesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-Certificates" -and $_ -notmatch "function Get-PUDAdminCenter"}
+        $GetCimPnPFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-CimPnpEntity" -and $_ -notmatch "function Get-PUDAdminCenter"}
         $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-            Invoke-Expression $using:GetCertificateOverviewFunc
-            Invoke-Expression $using:GetCertificatesFunc
+            Invoke-Expression $using:GetCimPnPFunc
             
-            $CertificateSummary = Get-CertificateOverview -channel "Microsoft-Windows-CertificateServicesClient-Lifecycle-System*"
-            $AllCertificates = Get-Certificates
+            $DevicesInfo = Get-CimPnpEntity
 
             [pscustomobject]@{
-                CertificateSummary          = $CertificateSummary
-                AllCertificates             = [pscustomobject]$AllCertificates
+                AllDevices  = $DevicesInfo
             }
         }
-        $Session:CertSummaryStatic = $StaticInfo.CertificateSummary
-        $Session:AllCertsStatic = $StaticInfo.AllCertificates
-        if ($PUDRSSyncHT."$RemoteHost`Info".Certificates.Keys -notcontains "CertSummary") {
-            $PUDRSSyncHT."$RemoteHost`Info".Certificates.Add("CertSummary",$Session:CertSummaryStatic)
+        $Session:AllDevicesStatic = $StaticInfo.AllDevices
+        if ($PUDRSSyncHT."$RemoteHost`Info".Devices.Keys -notcontains "AllDevices") {
+            $PUDRSSyncHT."$RemoteHost`Info".Devices.Add("AllDevices",$Session:AllDevicesStatic)
         }
         else {
-            $PUDRSSyncHT."$RemoteHost`Info".Certificates.CertSummary = $Session:CertSummaryStatic
-        }
-        if ($PUDRSSyncHT."$RemoteHost`Info".Certificates.Keys -notcontains "AllCerts") {
-            $PUDRSSyncHT."$RemoteHost`Info".Certificates.Add("AllCerts",$Session:AllCertsStatic)
-        }
-        else {
-            $PUDRSSyncHT."$RemoteHost`Info".Certificates.AllCerts = $Session:AllCertsStatic
+            $PUDRSSyncHT."$RemoteHost`Info".Devices.AllDevices = $Session:AllDevicesStatic
         }
 
         #endregion >> Gather Some Initial Info From $RemoteHost
@@ -174,7 +163,7 @@ $CertificatesPageContent = {
 
         New-UDRow -Endpoint {
             New-UDColumn -Content {
-                New-UDHeading -Text "Certificates (In Progress)" -Size 3
+                New-UDHeading -Text "Devices (In Progress)" -Size 3
                 New-UDHeading -Text "NOTE: Domain Group Policy trumps controls with an asterisk (*)" -Size 6
             }
         }
@@ -199,6 +188,7 @@ $CertificatesPageContent = {
 
         #region >> Setup LiveData
 
+        <#
         New-UDColumn -Endpoint {
             $PUDRSSyncHT = $global:PUDRSSyncHT
 
@@ -207,11 +197,11 @@ $CertificatesPageContent = {
             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
 
             # Remove Existing Runspace for LiveDataRSInfo if it exists as well as the PSSession Runspace within
-            if ($PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo -ne $null) {
+            if ($PUDRSSyncHT."$RemoteHost`Info".Devices.LiveDataRSInfo -ne $null) {
                 $PSSessionRunspacePrep = @(
                     Get-Runspace | Where-Object {
                         $_.RunspaceIsRemote -and
-                        $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo.ThisRunspace.Id -and
+                        $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".Devices.LiveDataRSInfo.ThisRunspace.Id -and
                         $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
                     }
                 )
@@ -219,19 +209,18 @@ $CertificatesPageContent = {
                     $PSSessionRunspace = $($PSSessionRunspacePrep | Sort-Object -Property Id)[0]
                 }
                 $PSSessionRunspace.Dispose()
-                $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo.ThisRunspace.Dispose()
+                $PUDRSSyncHT."$RemoteHost`Info".Devices.LiveDataRSInfo.ThisRunspace.Dispose()
             }
 
             # Create a Runspace that creates a PSSession to $RemoteHost that is used once every second to re-gather data from $RemoteHost
-            $GetCertificateOverviewFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-CertificateOverview" -and $_ -notmatch "function Get-PUDAdminCenter"}
-            $GetCertificatesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-Certificates" -and $_ -notmatch "function Get-PUDAdminCenter"}
-            $LiveDataFunctionsToLoad = @($GetCertificateOverviewFunc,$GetCertificatesFunc)
+            $GetCimPnPFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-CimPnpEntity" -and $_ -notmatch "function Get-PUDAdminCenter"}
+            $LiveDataFunctionsToLoad = @($GetCimPnPFunc)
             
             # The New-Runspace function handles scope for you behind the scenes, so just pretend that everything within -ScriptBlock {} is in the current scope
-            New-Runspace -RunspaceName "Certificates$RemoteHost`LiveData" -ScriptBlock {
+            New-Runspace -RunspaceName "Devices$RemoteHost`LiveData" -ScriptBlock {
                 $PUDRSSyncHT = $global:PUDRSSyncHT
             
-                $LiveDataPSSession = New-PSSession -Name "Certificates$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
+                $LiveDataPSSession = New-PSSession -Name "Devices$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
 
                 # Load needed functions in the PSSession
                 Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
@@ -247,18 +236,18 @@ $CertificatesPageContent = {
                         $LiveOutput.RemoveRange(0,800)
                     }
 
-                    # Stream Results to $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo.LiveOutput
+                    # Stream Results to $PUDRSSyncHT."$RemoteHost`Info".Devices.LiveDataRSInfo.LiveOutput
                     Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
                         # Place most resource intensive operations first
 
                         # Operations that you only want running once every 30 seconds go within this 'if; block
                         # Adjust the timing as needed with deference to $RemoteHost resource efficiency.
                         if ($using:RSLoopCounter -eq 0 -or $($using:RSLoopCounter % 30) -eq 0) {
-                            #@{AllCerts = Get-Certificates}
+                            #@{AllDevices = Get-CimPnpEntity}
                         }
 
                         # Operations that you want to run once every second go here
-                        @{CertSummary = Get-CertificateOverview -channel "Microsoft-Windows-CertificateServicesClient-Lifecycle-System*"}
+                        #@{AllDevices = Get-CimPnpEntity}
 
                     } | foreach {$null = $LiveOutput.Add($_)}
 
@@ -268,12 +257,13 @@ $CertificatesPageContent = {
                 }
             }
             # The New-Runspace function outputs / continually updates a Global Scope variable called $global:RSSyncHash. The results of
-            # the Runspace we just created can be found in $global:RSSyncHash's "Certificates$RemoteHost`LiveDataResult" Property - which is just
-            # the -RunspaceName value plus the word 'Info'. By setting $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo equal to
-            # $RSSyncHash."Certificates$RemoteHost`LiveDataResult", we can now reference $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo.LiveOutput
+            # the Runspace we just created can be found in $global:RSSyncHash's "Devices$RemoteHost`LiveDataResult" Property - which is just
+            # the -RunspaceName value plus the word 'Info'. By setting $PUDRSSyncHT."$RemoteHost`Info".Devices.LiveDataRSInfo equal to
+            # $RSSyncHash."Devices$RemoteHost`LiveDataResult", we can now reference $PUDRSSyncHT."$RemoteHost`Info".Devices.LiveDataRSInfo.LiveOutput
             # to get the latest data from $RemoteHost.
-            $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo = $RSSyncHash."Certificates$RemoteHost`LiveDataResult"
+            $PUDRSSyncHT."$RemoteHost`Info".Devices.LiveDataRSInfo = $RSSyncHash."Devices$RemoteHost`LiveDataResult"
         }
+        #>
 
         #endregion >> Setup LiveData
 
@@ -281,60 +271,29 @@ $CertificatesPageContent = {
 
         # Static Data Element Example
 
-        $AllCertsProperties = @("CertificateName","FriendlyName","Subject","Issuer","Path","Status","PrivateKey","PublicKey","NotBefore","NotAfter")
-        $AllCertsUDTableSplatParams = @{
-            Headers         = $AllCertsProperties
-            Properties      = $AllCertsProperties
+        $AllDevicesProperties = @("Name","Status","InstallDate","PNPClass","PNPDeviceID","Service","Manufacturer","Present")
+        $AllDevicesUDTableSplatParams = @{
+            Headers         = $AllDevicesProperties
+            Properties      = $AllDevicesProperties
             PageSize        = 5
         }
-        New-UDGrid @AllCertsUDTableSplatParams -Endpoint {
+        New-UDGrid @AllDevicesUDTableSplatParams -Endpoint {
             $PUDRSSyncHT = $global:PUDRSSyncHT
 
             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
 
-            $AllCertsGridData = $PUDRSSyncHT."$RemoteHost`Info".Certificates.AllCerts | Out-UDGridData
+            $AllDevicesGridData = $PUDRSSyncHT."$RemoteHost`Info".Devices.AllDevices | Out-UDGridData
 
-            $AllCertsGridData
+            $AllDevicesGridData
         }
 
         # Live Data Element Example
-        $CertSummaryProperties = @("allCount","expiredCount","nearExpiredCount","eventCount")
-        $CertSummaryUDTableSplatParams = @{
-            Headers         = $CertSummaryProperties
-            AutoRefresh     = $True 
-            RefreshInterval = 5
-        }
-        New-UDTable @CertSummaryUDTableSplatParams -Endpoint {
-            $PUDRSSyncHT = $global:PUDRSSyncHT
-
-            $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
-
-            $CertSummaryLiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo.LiveOutput.Count
-            if ($CertSummaryLiveOutputCount -gt 0) {
-                $ArrayOfCertSummaryEntries = @(
-                    $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataTracker.Previous.CertSummary
-                ) | Where-Object {$_ -ne $null}
-                if ($ArrayOfCertSummaryEntries.Count -gt 0) {
-                    $CertSummaryTableData = $ArrayOfCertSummaryEntries[-1] | Out-UDTableData -Property $CertSummaryProperties
-                }
-            }
-            if (!$CertSummaryTableData) {
-                $CertSummaryTableData = [pscustomobject]@{
-                    allCount            = "Collecting Info"
-                    expiredCount        = "Collecting Info"
-                    nearExpiredcount    = "Collecting Info"
-                    eventCount          = "Collecting Info"
-                } | Out-UDTableData -Property $CertSummaryProperties
-            }
-
-            $CertSummaryTableData
-        }
 
         # Remove the Loading  Indicator
-        $null = $Session:CertificatesPageLoadingTracker.Add("FinishedLoading")
+        $null = $Session:DevicesPageLoadingTracker.Add("FinishedLoading")
 
         #endregion >> Controls
     }
 }
-$Page = New-UDPage -Url "/Certificates/:RemoteHost" -Endpoint $CertificatesPageContent
+$Page = New-UDPage -Url "/Devices/:RemoteHost" -Endpoint $DevicesPageContent
 $null = $Pages.Add($Page)
