@@ -167,7 +167,7 @@ function Get-PUDAdminCenter {
         $Key = $RHost.HostName + "Info"
         $Value = @{
             NetworkInfo                 = $RHost
-            #CredHT                      = $null
+            CredHT                      = $null
             ServerInventoryStatic       = $null
             RelevantNetworkInterfaces   = $null
             LiveDataRSInfo              = $null
@@ -371,7 +371,7 @@ function Get-PUDAdminCenter {
             New-UDRow -Endpoint {
                 New-UDColumn -Size 12 -Content {
                     New-UDCollapsible -Items {
-                        New-UDCollapsibleItem -Title "More Tools" -Icon laptop -Endpoint {
+                        New-UDCollapsibleItem -Title "More Tools" -Icon laptop -Active -Endpoint {
                             New-UDRow -Endpoint {
                                 foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
                                     New-UDColumn -Endpoint {
@@ -453,6 +453,8 @@ function Get-PUDAdminCenter {
                         } | foreach {$null = $LiveOutput.Add($_)}
     
                         $RSLoopCounter++
+    
+                        [GC]::Collect()
     
                         Start-Sleep -Seconds 1
                     }
@@ -701,7 +703,7 @@ function Get-PUDAdminCenter {
             New-UDRow -Endpoint {
                 New-UDColumn -Size 12 -Content {
                     New-UDCollapsible -Items {
-                        New-UDCollapsibleItem -Title "More Tools" -Icon laptop -Endpoint {
+                        New-UDCollapsibleItem -Title "More Tools" -Icon laptop -Active -Endpoint {
                             New-UDRow -Endpoint {
                                 foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
                                     New-UDColumn -Endpoint {
@@ -783,6 +785,8 @@ function Get-PUDAdminCenter {
                         } | foreach {$null = $LiveOutput.Add($_)}
     
                         $RSLoopCounter++
+    
+                        [GC]::Collect()
     
                         Start-Sleep -Seconds 1
                     }
@@ -1445,33 +1449,21 @@ function Get-PUDAdminCenter {
     
             #region >> Gather Some Initial Info From $RemoteHost
     
-            $GetCertificateOverviewFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-CertificateOverview" -and $_ -notmatch "function Get-PUDAdminCenter"}
-            $GetFilesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-Files" -and $_ -notmatch "function Get-PUDAdminCenter"}
-            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                Invoke-Expression $using:GetCertificateOverviewFunc
-                Invoke-Expression $using:GetFilesFunc
-                
-                $Filesummary = Get-CertificateOverview -channel "Microsoft-Windows-FileservicesClient-Lifecycle-System*"
-                $AllFiles = Get-Files
+            if (!$Session:RootDriveFilesStatic) {
+                $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                    $RootDriveFiles = Get-ChildItem -Path "$env:SystemDrive\"
     
-                [pscustomobject]@{
-                    Filesummary          = $Filesummary
-                    AllFiles             = [pscustomobject]$AllFiles
+                    [pscustomobject]@{
+                        RootDriveFiles      = $RootDriveFiles
+                    }
                 }
-            }
-            $Session:CertSummaryStatic = $StaticInfo.Filesummary
-            $Session:AllCertsStatic = $StaticInfo.AllFiles
-            if ($PUDRSSyncHT."$RemoteHost`Info".Files.Keys -notcontains "CertSummary") {
-                $PUDRSSyncHT."$RemoteHost`Info".Files.Add("CertSummary",$Session:CertSummaryStatic)
-            }
-            else {
-                $PUDRSSyncHT."$RemoteHost`Info".Files.CertSummary = $Session:CertSummaryStatic
-            }
-            if ($PUDRSSyncHT."$RemoteHost`Info".Files.Keys -notcontains "AllCerts") {
-                $PUDRSSyncHT."$RemoteHost`Info".Files.Add("AllCerts",$Session:AllCertsStatic)
-            }
-            else {
-                $PUDRSSyncHT."$RemoteHost`Info".Files.AllCerts = $Session:AllCertsStatic
+                $Session:RootDriveFilesStatic = $StaticInfo.RootDriveFiles
+                if ($PUDRSSyncHT."$RemoteHost`Info".Files.Keys -notcontains "RootDriveFiles") {
+                    $PUDRSSyncHT."$RemoteHost`Info".Files.Add("RootDriveFiles",$Session:RootDriveFilesStatic)
+                }
+                else {
+                    $PUDRSSyncHT."$RemoteHost`Info".Files.RootDriveFiles = $Session:RootDriveFilesStatic
+                }
             }
     
             #endregion >> Gather Some Initial Info From $RemoteHost
@@ -1487,7 +1479,7 @@ function Get-PUDAdminCenter {
             New-UDRow -Endpoint {
                 New-UDColumn -Size 12 -Content {
                     New-UDCollapsible -Items {
-                        New-UDCollapsibleItem -Title "More Tools" -Icon laptop -Endpoint {
+                        New-UDCollapsibleItem -Title "More Tools" -Icon laptop -Active -Endpoint {
                             New-UDRow -Endpoint {
                                 foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
                                     New-UDColumn -Endpoint {
@@ -1505,6 +1497,7 @@ function Get-PUDAdminCenter {
     
             #region >> Setup LiveData
     
+            <#
             New-UDColumn -Endpoint {
                 $PUDRSSyncHT = $global:PUDRSSyncHT
     
@@ -1529,10 +1522,7 @@ function Get-PUDAdminCenter {
                 }
     
                 # Create a Runspace that creates a PSSession to $RemoteHost that is used once every second to re-gather data from $RemoteHost
-                $GetCertificateOverviewFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-CertificateOverview" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                $GetFilesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-Files" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                $LiveDataFunctionsToLoad = @($GetCertificateOverviewFunc,$GetFilesFunc)
-                
+    
                 # The New-Runspace function handles scope for you behind the scenes, so just pretend that everything within -ScriptBlock {} is in the current scope
                 New-Runspace -RunspaceName "Files$RemoteHost`LiveData" -ScriptBlock {
                     $PUDRSSyncHT = $global:PUDRSSyncHT
@@ -1560,15 +1550,17 @@ function Get-PUDAdminCenter {
                             # Operations that you only want running once every 30 seconds go within this 'if; block
                             # Adjust the timing as needed with deference to $RemoteHost resource efficiency.
                             if ($using:RSLoopCounter -eq 0 -or $($using:RSLoopCounter % 30) -eq 0) {
-                                #@{AllCerts = Get-Files}
+                                #@{RootFiles = Get-ChildItem -Path "$env:SystemDrive\" }
                             }
     
                             # Operations that you want to run once every second go here
-                            @{CertSummary = Get-CertificateOverview -channel "Microsoft-Windows-FileservicesClient-Lifecycle-System*"}
+                            @{RootFiles = Get-ChildItem -Path "$env:SystemDrive\"}
     
                         } | foreach {$null = $LiveOutput.Add($_)}
     
                         $RSLoopCounter++
+    
+                        [GC]::Collect()
     
                         Start-Sleep -Seconds 1
                     }
@@ -1580,61 +1572,94 @@ function Get-PUDAdminCenter {
                 # to get the latest data from $RemoteHost.
                 $PUDRSSyncHT."$RemoteHost`Info".Files.LiveDataRSInfo = $RSSyncHash."Files$RemoteHost`LiveDataResult"
             }
+            #>
     
             #endregion >> Setup LiveData
     
             #region >> Controls
     
             # Static Data Element Example
+            New-UDCollapsible -Id $CollapsibleId -Items {
+                New-UDCollapsibleItem -Title "File System" -Icon laptop -Active -Endpoint {
+                    #region >> Main
     
-            $AllCertsProperties = @("CertificateName","FriendlyName","Subject","Issuer","Path","Status","PrivateKey","PublicKey","NotBefore","NotAfter")
-            $AllCertsUDTableSplatParams = @{
-                Headers         = $AllCertsProperties
-                Properties      = $AllCertsProperties
-                PageSize        = 5
-            }
-            New-UDGrid @AllCertsUDTableSplatParams -Endpoint {
-                $PUDRSSyncHT = $global:PUDRSSyncHT
+                    New-UDRow -Endpoint {
+                        New-UDColumn -Size 12 -Endpoint {
+                            $RootFilesProperties = @("Name","FullPath","DateModified","Type","Size")
+                            $RootFilesUDGridSplatParams = @{
+                                Headers         = $RootFilesProperties
+                                Properties      = $RootFilesProperties
+                                PageSize        = 20
+                            }
+                            New-UDGrid @RootFilesUDGridSplatParams -Endpoint {
+                                $PUDRSSyncHT = $global:PUDRSSyncHT
     
-                $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+                                $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
-                $AllCertsGridData = $PUDRSSyncHT."$RemoteHost`Info".Files.AllCerts | Out-UDGridData
+                                $PUDRSSyncHT."$RemoteHost`Info".Files.RootDriveFiles | foreach {
+                                    [pscustomobject]@{
+                                        Name            = $_.Name
+                                        FullPath        = $_.FullName
+                                        DateModified    = Get-Date $_.LastWriteTime -Format MM/dd/yy_hh:mm:ss
+                                        Type            = if ($_.PSIsContainer) {"Folder"} else {"File"}
+                                        Size            = if ($_.PSIsContainer) {'-'} else {[Math]::Round($($_.Length / 1KB),2).toString() + 'KB'}
+                                        #Inspect         = $Cache:InspectCell
+                                    }
+                                } | Out-UDGridData
+                            }
+                        }
+                    }
+                    
+                    New-UDRow -Endpoint {
+                        New-UDColumn -Size 4 -Endpoint {
+                            New-UDInput -Title "Explore Path" -SubmitText "Explore" -Content {
+                                New-UDInputField -Name "FullPathToExplore" -Type textbox
+                            } -Endpoint {
+                                param($FullPathToExplore)
     
-                $AllCertsGridData
+                                #region >> Check Connection
+    
+                                $PUDRSSyncHT = $global:PUDRSSyncHT
+    
+                                $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+    
+                                #endregion >> Check Connection
+    
+                                #region >> SubMain
+    
+                                if (!$FullPathToExplore) {
+                                    New-UDInputAction -Toast "You must fill out the 'FullPathToExplore' field!" -Duration 10000
+                                    return
+                                }
+    
+                                try {
+                                    $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                        $RootDriveFiles = Get-ChildItem -Path $using:FullPathToExplore
+                            
+                                        [pscustomobject]@{
+                                            RootDriveFiles      = $RootDriveFiles
+                                        }
+                                    }
+                                    $PUDRSSyncHT."$RemoteHost`Info".Files.RootDriveFiles = $NewPathInfo.RootDriveFiles
+    
+                                    Invoke-UDRedirect -Url "/Files/$RemoteHost"
+                                }
+                                catch {
+                                    New-UDInputAction -Toast $_.Exception.Message -Duration 2000
+                                
+                                    #Invoke-UDRedirect -Url "/Overview/$RemoteHost"
+                                }
+    
+                                #endregion >> SubMain
+                            }
+                        }
+                    }
+    
+                    #endregion >> Main
+                }
             }
     
             # Live Data Element Example
-            $CertSummaryProperties = @("allCount","expiredCount","nearExpiredCount","eventCount")
-            $CertSummaryUDTableSplatParams = @{
-                Headers         = $CertSummaryProperties
-                AutoRefresh     = $True 
-                RefreshInterval = 5
-            }
-            New-UDTable @CertSummaryUDTableSplatParams -Endpoint {
-                $PUDRSSyncHT = $global:PUDRSSyncHT
-    
-                $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
-    
-                $CertSummaryLiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".Files.LiveDataRSInfo.LiveOutput.Count
-                if ($CertSummaryLiveOutputCount -gt 0) {
-                    $ArrayOfCertSummaryEntries = @(
-                        $PUDRSSyncHT."$RemoteHost`Info".Files.LiveDataTracker.Previous.CertSummary
-                    ) | Where-Object {$_ -ne $null}
-                    if ($ArrayOfCertSummaryEntries.Count -gt 0) {
-                        $CertSummaryTableData = $ArrayOfCertSummaryEntries[-1] | Out-UDTableData -Property $CertSummaryProperties
-                    }
-                }
-                if (!$CertSummaryTableData) {
-                    $CertSummaryTableData = [pscustomobject]@{
-                        allCount            = "Collecting Info"
-                        expiredCount        = "Collecting Info"
-                        nearExpiredcount    = "Collecting Info"
-                        eventCount          = "Collecting Info"
-                    } | Out-UDTableData -Property $CertSummaryProperties
-                }
-    
-                $CertSummaryTableData
-            }
     
             # Remove the Loading  Indicator
             $null = $Session:FilesPageLoadingTracker.Add("FinishedLoading")
@@ -2033,6 +2058,8 @@ function Get-PUDAdminCenter {
     
                         $RSLoopCounter++
     
+                        [GC]::Collect()
+    
                         Start-Sleep -Seconds 1
                     }
                 }
@@ -2156,7 +2183,7 @@ function Get-PUDAdminCenter {
                 New-UDColumn -Size 3 -Endpoint {
                     $CollapsibleId = $RemoteHost + "EditComputerIDMenu"
                     New-UDCollapsible -Id $CollapsibleId -Items {
-                        New-UDCollapsibleItem -Title "Edit Computer ID" -Icon laptop -Endpoint {
+                        New-UDCollapsibleItem -Title "Edit Computer ID" -Icon laptop -Active -Endpoint {
                             New-UDInput -SubmitText "Edit Computer" -Id "ComputerIDForm" -Content {
                                 $HName = $PUDRSSyncHT."$RemoteHost`Info".Overview.ServerInventoryStatic.ComputerSystem.Name
                                 $DName = $PUDRSSyncHT."$RemoteHost`Info".Overview.ServerInventoryStatic.ComputerSystem.Domain
@@ -4770,8 +4797,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZUIfIGx8uKPidEzKAVAtiNP7
-# iSWgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUp4wtFQW1Up3X9x3qApwhtUhC
+# OUSgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -4828,11 +4855,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFPjcSZWXlJYKSbCz
-# egVbZIBr2A6zMA0GCSqGSIb3DQEBAQUABIIBAFgpZPY8hS1WBe5b/oMSW6XWUOTv
-# xHl4bk+rNM5rCP/Brw0tPXt9HfSqLnZPuZMSGCYzgTxPx9GFytfdZi2IlVChweqM
-# nZz1+dqkDCzoZ19+rgaYbMHBxVSHYA2cU7KyXxp4VYOwS6w82QngirCjMfOCE0kb
-# uWAoch5OCIWKDYBzcJCEUQ9CIoeJuXjxC8kdNXpRak2tYwwtpACLbqyHeNNNNdDn
-# jHFb/3XZD8A7Zxiit8SV9+SCM6fJceL78t37RRTgiGAjJfKvMBRiXYWiLo+r8/sA
-# rQn/NjY/S7ET0pingzbIvDm/iCi96Gq3eIkQN0BIdQERlaR+1CEuULJ5+5A=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFC4SQ0/9I4w5lm9K
+# j/ScXwlNMWDPMA0GCSqGSIb3DQEBAQUABIIBADoaXZgBQGnWy4mvg0IBJPTEMdLp
+# qVtuasyxLLtfxT3L/Htf9slgKf+T88a/L4KDBfOQd2O6GqoEmw/19IRm2tkeXwvt
+# lajqyhYPlbBurWjPjkxysFGbOFgmETwrzDX/kw4hDkCBHNiWYSZX+Wg9roSaI2+h
+# u8rWbIInkOYO/D+cnx9mNNUWAFRVMryLy6pvBP8M4ZrRNgRR3usGG+BIlPI37Avd
+# pzpH+Mc2MzqkAIuh3w39dS72HlleVGfnnWDcYvf+YctZeNWT23fiRczPKOE6YWUG
+# tLL39mVDGjGf0XjTLaDBZlgwx2fZOkVU8j9Gd73JZ0F8yxP4I4NO8AAfvsM=
 # SIG # End signature block

@@ -167,7 +167,7 @@ function Get-PUDAdminCenter {
         $Key = $RHost.HostName + "Info"
         $Value = @{
             NetworkInfo                 = $RHost
-            #CredHT                      = $null
+            CredHT                      = $null
             ServerInventoryStatic       = $null
             RelevantNetworkInterfaces   = $null
             LiveDataRSInfo              = $null
@@ -214,8 +214,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU9AdksX83KjKvwOb24H5XwWpq
-# Tmegggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU3+Pdxlp0u/P9BUU6jiC5U9jT
+# pbugggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -272,11 +272,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFMQqyBlUpmtTUs8A
-# ID9kyunaU0LmMA0GCSqGSIb3DQEBAQUABIIBAMR4uWli0FpzW1hAdTl4/78A5oqx
-# 9HqNoYpIQe//kInBRC2zGo2hO+IXDc/rnRsF+2/mYe4kdaHljX5iKKlKE0Jn+q3Q
-# rpb+ccxGw1K52VGxm/GZ8vVDvgfqWtNXv04Ou5DAJ7GUxZOixwhUqBvJ9mTIJbHn
-# tufRJMUmwywXGXN11KWH588f4qZWOvKzzeWtk7zEzPvjidZplTDYZaFnab9olX2I
-# rOuvi1wL257Hz9ecdBPa9BJB+stzJxu0DRhepIJXOjS6r/pq0+CwTbg2REEVJPvu
-# VSmEUBYYiIIsf5/4StJFWvaYQCD863eSu7SrcTLvN3E4Xfuhp9kXhOqJ4Yk=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFOByj2yfzTj2GRpY
+# +3BEMg3noVw4MA0GCSqGSIb3DQEBAQUABIIBADAjxP5Nr2KLSMbkspPROaLaO4Im
+# ubGhu/CHleZCg6JAWrs2FJqjk+jvEa5d264n/2vjydtiYRiyaqEAxTB+EBoS/bpT
+# i0E8FztcjntxO+Yh/w2phholnR5Yde1OgRwHRG66yqH19o7cLOXMiesU+JUVZK1S
+# Tc+u9CiTB4GsFDu7VA7l/vepfHget9TwOfYWhj+fF3xHB0PkkmD4+1Vw7G8ammMe
+# Ny39B9tuGw3lk60vrfTErCBOqbtOqgXFEWbzm6nesH+G72Hao2wIT6uiVy9hT33X
+# kIxyfs3Y9pvshcYZ+9bzKdRLF9ndYpd9V7O0IDC8T18VnAa6a0oKnVnI/fg=
 # SIG # End signature block

@@ -386,6 +386,8 @@ $OverviewPageContent = {
 
                     $RSLoopCounter++
 
+                    [GC]::Collect()
+
                     Start-Sleep -Seconds 1
                 }
             }
@@ -509,7 +511,7 @@ $OverviewPageContent = {
             New-UDColumn -Size 3 -Endpoint {
                 $CollapsibleId = $RemoteHost + "EditComputerIDMenu"
                 New-UDCollapsible -Id $CollapsibleId -Items {
-                    New-UDCollapsibleItem -Title "Edit Computer ID" -Icon laptop -Endpoint {
+                    New-UDCollapsibleItem -Title "Edit Computer ID" -Icon laptop -Active -Endpoint {
                         New-UDInput -SubmitText "Edit Computer" -Id "ComputerIDForm" -Content {
                             $HName = $PUDRSSyncHT."$RemoteHost`Info".Overview.ServerInventoryStatic.ComputerSystem.Name
                             $DName = $PUDRSSyncHT."$RemoteHost`Info".Overview.ServerInventoryStatic.ComputerSystem.Domain

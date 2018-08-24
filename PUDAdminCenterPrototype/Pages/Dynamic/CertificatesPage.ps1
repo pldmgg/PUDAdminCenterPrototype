@@ -181,7 +181,7 @@ $CertificatesPageContent = {
         New-UDRow -Endpoint {
             New-UDColumn -Size 12 -Content {
                 New-UDCollapsible -Items {
-                    New-UDCollapsibleItem -Title "More Tools" -Icon laptop -Endpoint {
+                    New-UDCollapsibleItem -Title "More Tools" -Icon laptop -Active -Endpoint {
                         New-UDRow -Endpoint {
                             foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
                                 New-UDColumn -Endpoint {
@@ -263,6 +263,8 @@ $CertificatesPageContent = {
                     } | foreach {$null = $LiveOutput.Add($_)}
 
                     $RSLoopCounter++
+
+                    [GC]::Collect()
 
                     Start-Sleep -Seconds 1
                 }

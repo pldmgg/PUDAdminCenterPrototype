@@ -1,49 +1,60 @@
-[System.Collections.ArrayList]$script:FunctionsForSBUse = @(
-    ${Function:AddWinRMTrustedHost}.Ast.Extent.Text
-    ${Function:AddWinRMTrustLocalHost}.Ast.Extent.Text
-    ${Function:EnableWinRMViaRPC}.Ast.Extent.Text
-    ${Function:GetComputerObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetDomainController}.Ast.Extent.Text
-    ${Function:GetElevation}.Ast.Extent.Text
-    ${Function:GetGroupObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetModuleDependencies}.Ast.Extent.Text
-    ${Function:GetNativePath}.Ast.Extent.Text
-    ${Function:GetUserObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetWorkingCredentials}.Ast.Extent.Text
-    ${Function:InstallFeatureDism}.Ast.Extent.Text
-    ${Function:InvokeModuleDependencies}.Ast.Extent.Text
-    ${Function:InvokePSCompatibility}.Ast.Extent.Text
-    ${Function:ManualPSGalleryModuleInstall}.Ast.Extent.Text
-    ${Function:NewUniqueString}.Ast.Extent.Text
-    ${Function:ResolveHost}.Ast.Extent.Text
-    ${Function:TestIsValidIPAddress}.Ast.Extent.Text
-    ${Function:TestLDAP}.Ast.Extent.Text
-    ${Function:TestPort}.Ast.Extent.Text
-    ${Function:UnzipFile}.Ast.Extent.Text
-    ${Function:Get-CertificateOverview}.Ast.Extent.Text
-    ${Function:Get-Certificates}.Ast.Extent.Text
-    ${Function:Get-CimPnpEntity}.Ast.Extent.Text
-    ${Function:Get-EnvironmentVariables}.Ast.Extent.Text
-    ${Function:Get-EventLogSummary}.Ast.Extent.Text
-    ${Function:Get-LocalUsers}.Ast.Extent.Text
-    ${Function:Get-PUDAdminCenter}.Ast.Extent.Text
-    ${Function:Get-RemoteDesktop}.Ast.Extent.Text
-    ${Function:Get-ServerInventory}.Ast.Extent.Text
-    ${Function:New-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:New-Runspace}.Ast.Extent.Text
-    ${Function:Remove-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:Set-ComputerIdentification}.Ast.Extent.Text
-    ${Function:Set-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:Set-RemoteDesktop}.Ast.Extent.Text
-    ${Function:Start-DiskPerf}.Ast.Extent.Text
-    ${Function:Stop-DiskPerf}.Ast.Extent.Text
-)
+function InstallFeatureDism {
+    [CmdletBinding()]
+    Param (
+        [Parameter(Mandatory=$True)]
+        [string]$Feature,   # Microsoft-Hyper-V, Containers, etc
+
+        [Parameter(Mandatory=$False)]
+        [switch]$AllowRestarts,
+
+        [Parameter(Mandatory=$False)]
+        [string]$ParentFunction
+    )
+
+    Import-Module "$env:SystemRoot\System32\WindowsPowerShell\v1.0\Modules\Dism\Dism.psd1"
+
+    # Check to see if the feature is already installed
+    $FeatureCheck = Get-WindowsOptionalFeature -FeatureName $Feature -Online
+    if ($FeatureCheck.State -ne "Enabled") {
+        if ($ParentFunction) {
+            Write-Warning "Please re-run $ParentFunction function AFTER this machine (i.e. $env:ComputerName) has restarted."
+        }
+
+        try {
+            # Don't allow restart unless -AllowRestarts is explictly provided to this function
+            Write-Host "Installing the Feature $Feature..."
+            $FeatureInstallResult = Enable-WindowsOptionalFeature -Online -FeatureName $Feature -All -NoRestart -WarningAction SilentlyContinue
+            # NOTE: $FeatureInstallResult contains properties [string]Path, [bool]Online, [string]WinPath,
+            # [string]SysDrivePath, [bool]RestartNeeded, [string]$LogPath, [string]ScratchDirectory,
+            # [string]LogLevel
+        }
+        catch {
+            Write-Error $_
+            $global:FunctionResult = "1"
+            return
+        }
+    }
+    else {
+        Write-Warning "The Feature $Feature is already installed! No action taken."
+    }
+
+    if ($FeatureInstallResult.RestartNeeded) {
+        if ($AllowRestarts) {
+            Restart-Computer -Confirm:$false -Force
+        }
+        else {
+            Write-Warning "You must restart in order to complete the Feature $Feature installation!"
+        }
+    }
+
+    $FeatureInstallResult
+}
 
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU0bJJL/Id+zHjTDnnX89aNHx1
-# LNqgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZt2JHegEHckFoRSwSbhDWfph
+# +Cagggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -100,11 +111,11 @@
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFHemKJ9QXyPYt/nn
-# qvRGSsPDATHaMA0GCSqGSIb3DQEBAQUABIIBAKc4ynnz3klTQypG3XXemlXl+3l8
-# iLhwcUOLQZu0OqI/RY0YcWqBOOxHVL+pMVWRZKXdrfZJWeXw5+blL4pyiV9WFuxb
-# 036RxbiC9b72XgVcvIVRgit7E3NWhdOgA7hG4e5GhQ1IyzZqYLKm2cXdq27G9GGr
-# 1GBUkbCuGfjqHDWrsFe7Wp+85eGgIYqVvKdK3KOFuET8UPU3clQGvM5rAW9VF3zm
-# 3ZRgeMEFmimQ3jCULINokGuSkd1ZxVu0kISj8wF96zwaUjeV2P3hyI1twV2A/cbM
-# RXh13IHgON6yMZAaYTOUhWwar9CttcljXvVkBcfx6A0h2QyBD6iV6f0R/6w=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFDNgpgjo9Biuqj/l
+# FW7u/D3KTyEjMA0GCSqGSIb3DQEBAQUABIIBAAA/A4/zJ67cqENQ7FSc4svxKF2x
+# 5Jjobm+pb9sO0y5dsgnh8PUue04spWsD+c1JT63+jo2xI+liFUZvwJUt3EQ7/Lae
+# m4SRs7EwFK3Zp6v3eTxCFmCMgaYLLQJ6A3M4LcJlgPo9iPnfx4AX2Put3Cp4hkfG
+# GBAauBylWQKvKuMbqE4uu1EwhIvkA/5n4fTkNhUjWxfSkKTv4kqZqkv6VtSptAn7
+# LWdFscRF4gsO3NNMr8OBAMXPuaGG6aOWEi6ERAeN6NI+8/m4HyWT1Ck3jLEhQaGz
+# 4qZDyM2Xto6XNWpvrZji69mBA6JH6dTjEfJuZmOZ91GfPWHQnJCT/BMtdYU=
 # SIG # End signature block
