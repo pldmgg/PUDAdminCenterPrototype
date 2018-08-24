@@ -1,4 +1,4 @@
-$EventsPageContent = {
+$FilesPageContent = {
     param($RemoteHost)
 
     $PUDRSSyncHT = $global:PUDRSSyncHT
@@ -43,10 +43,10 @@ $EventsPageContent = {
 
     New-UDRow -Columns {
         New-UDColumn -Endpoint {
-            $Session:EventsPageLoadingTracker = [System.Collections.ArrayList]::new()
+            $Session:FilesPageLoadingTracker = [System.Collections.ArrayList]::new()
         }
         New-UDColumn -AutoRefresh -RefreshInterval 5 -Endpoint {
-            if ($Session:EventsPageLoadingTracker -notcontains "FinishedLoading") {
+            if ($Session:FilesPageLoadingTracker -notcontains "FinishedLoading") {
                 New-UDHeading -Text "Loading...Please wait..." -Size 5
                 New-UDPreloader -Size small
             }
@@ -114,14 +114,14 @@ $EventsPageContent = {
                         }
 
                         # SUPER IMPORTANT NOTE: ALL Real-Time Enpoints on the Page reference LiveOutputClone!
-                        if ($PUDRSSyncHT."$RemoteHost`Info".Events.LiveDataRSInfo.LiveOutput.Count -gt 0) {
-                            if ($PUDRSSyncHT."$RemoteHost`Info".Events.LiveDataTracker.Previous -eq $null) {
-                                $PUDRSSyncHT."$RemoteHost`Info".Events.LiveDataTracker.Previous = $PUDRSSyncHT."$RemoteHost`Info".Events.LiveDataRSInfo.LiveOutput.Clone()
+                        if ($PUDRSSyncHT."$RemoteHost`Info".Files.LiveDataRSInfo.LiveOutput.Count -gt 0) {
+                            if ($PUDRSSyncHT."$RemoteHost`Info".Files.LiveDataTracker.Previous -eq $null) {
+                                $PUDRSSyncHT."$RemoteHost`Info".Files.LiveDataTracker.Previous = $PUDRSSyncHT."$RemoteHost`Info".Files.LiveDataRSInfo.LiveOutput.Clone()
                             }
-                            if ($PUDRSSyncHT."$RemoteHost`Info".Events.LiveDataTracker.Current.Count -gt 0) {
-                                $PUDRSSyncHT."$RemoteHost`Info".Events.LiveDataTracker.Previous = $PUDRSSyncHT."$RemoteHost`Info".Events.LiveDataTracker.Current.Clone()
+                            if ($PUDRSSyncHT."$RemoteHost`Info".Files.LiveDataTracker.Current.Count -gt 0) {
+                                $PUDRSSyncHT."$RemoteHost`Info".Files.LiveDataTracker.Previous = $PUDRSSyncHT."$RemoteHost`Info".Files.LiveDataTracker.Current.Clone()
                             }
-                            $PUDRSSyncHT."$RemoteHost`Info".Events.LiveDataTracker.Current = $PUDRSSyncHT."$RemoteHost`Info".Events.LiveDataRSInfo.LiveOutput.Clone()
+                            $PUDRSSyncHT."$RemoteHost`Info".Files.LiveDataTracker.Current = $PUDRSSyncHT."$RemoteHost`Info".Files.LiveDataRSInfo.LiveOutput.Clone()
                         }
 
                         $TableData.Add("DateTime",$(Get-Date -Format MM-dd-yy_hh:mm:sstt))
@@ -139,22 +139,33 @@ $EventsPageContent = {
 
         #region >> Gather Some Initial Info From $RemoteHost
 
-        $GetEventLogSummaryFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-EventLogSummary" -and $_ -notmatch "function Get-PUDAdminCenter"}
+        $GetCertificateOverviewFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-CertificateOverview" -and $_ -notmatch "function Get-PUDAdminCenter"}
+        $GetFilesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-Files" -and $_ -notmatch "function Get-PUDAdminCenter"}
         $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-            Invoke-Expression $using:GetEventLogSummaryFunc
+            Invoke-Expression $using:GetCertificateOverviewFunc
+            Invoke-Expression $using:GetFilesFunc
             
-            $EventLogChannelSummaries = Get-EventLogSummary -channel *
+            $Filesummary = Get-CertificateOverview -channel "Microsoft-Windows-FileservicesClient-Lifecycle-System*"
+            $AllFiles = Get-Files
 
             [pscustomobject]@{
-                EventLogChannelSummaries    = $EventLogChannelSummaries
+                Filesummary          = $Filesummary
+                AllFiles             = [pscustomobject]$AllFiles
             }
         }
-        $Session:EventLogChannelSummariesStatic = $StaticInfo.EventLogChannelSummaries
-        if ($PUDRSSyncHT."$RemoteHost`Info".Events.Keys -notcontains "EventLogChannelSummaries") {
-            $PUDRSSyncHT."$RemoteHost`Info".Events.Add("EventLogChannelSummaries",$Session:EventLogChannelSummariesStatic)
+        $Session:CertSummaryStatic = $StaticInfo.Filesummary
+        $Session:AllCertsStatic = $StaticInfo.AllFiles
+        if ($PUDRSSyncHT."$RemoteHost`Info".Files.Keys -notcontains "CertSummary") {
+            $PUDRSSyncHT."$RemoteHost`Info".Files.Add("CertSummary",$Session:CertSummaryStatic)
         }
         else {
-            $PUDRSSyncHT."$RemoteHost`Info".Events.EventLogChannelSummaries = $Session:EventLogChannelSummariesStatic
+            $PUDRSSyncHT."$RemoteHost`Info".Files.CertSummary = $Session:CertSummaryStatic
+        }
+        if ($PUDRSSyncHT."$RemoteHost`Info".Files.Keys -notcontains "AllCerts") {
+            $PUDRSSyncHT."$RemoteHost`Info".Files.Add("AllCerts",$Session:AllCertsStatic)
+        }
+        else {
+            $PUDRSSyncHT."$RemoteHost`Info".Files.AllCerts = $Session:AllCertsStatic
         }
 
         #endregion >> Gather Some Initial Info From $RemoteHost
@@ -163,7 +174,7 @@ $EventsPageContent = {
 
         New-UDRow -Endpoint {
             New-UDColumn -Content {
-                New-UDHeading -Text "Events (In Progress)" -Size 3
+                New-UDHeading -Text "Files (In Progress)" -Size 3
                 New-UDHeading -Text "NOTE: Domain Group Policy trumps controls with an asterisk (*)" -Size 6
             }
         }
@@ -196,11 +207,11 @@ $EventsPageContent = {
             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
 
             # Remove Existing Runspace for LiveDataRSInfo if it exists as well as the PSSession Runspace within
-            if ($PUDRSSyncHT."$RemoteHost`Info".Events.LiveDataRSInfo -ne $null) {
+            if ($PUDRSSyncHT."$RemoteHost`Info".Files.LiveDataRSInfo -ne $null) {
                 $PSSessionRunspacePrep = @(
                     Get-Runspace | Where-Object {
                         $_.RunspaceIsRemote -and
-                        $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".Events.LiveDataRSInfo.ThisRunspace.Id -and
+                        $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".Files.LiveDataRSInfo.ThisRunspace.Id -and
                         $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
                     }
                 )
@@ -208,18 +219,19 @@ $EventsPageContent = {
                     $PSSessionRunspace = $($PSSessionRunspacePrep | Sort-Object -Property Id)[0]
                 }
                 $PSSessionRunspace.Dispose()
-                $PUDRSSyncHT."$RemoteHost`Info".Events.LiveDataRSInfo.ThisRunspace.Dispose()
+                $PUDRSSyncHT."$RemoteHost`Info".Files.LiveDataRSInfo.ThisRunspace.Dispose()
             }
 
             # Create a Runspace that creates a PSSession to $RemoteHost that is used once every second to re-gather data from $RemoteHost
-            $GetEventLogSummaryFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-EventLogSummary" -and $_ -notmatch "function Get-PUDAdminCenter"}
-            $LiveDataFunctionsToLoad = @($GetEventLogSummaryFunc)
+            $GetCertificateOverviewFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-CertificateOverview" -and $_ -notmatch "function Get-PUDAdminCenter"}
+            $GetFilesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-Files" -and $_ -notmatch "function Get-PUDAdminCenter"}
+            $LiveDataFunctionsToLoad = @($GetCertificateOverviewFunc,$GetFilesFunc)
             
             # The New-Runspace function handles scope for you behind the scenes, so just pretend that everything within -ScriptBlock {} is in the current scope
-            New-Runspace -RunspaceName "Events$RemoteHost`LiveData" -ScriptBlock {
+            New-Runspace -RunspaceName "Files$RemoteHost`LiveData" -ScriptBlock {
                 $PUDRSSyncHT = $global:PUDRSSyncHT
             
-                $LiveDataPSSession = New-PSSession -Name "Events$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
+                $LiveDataPSSession = New-PSSession -Name "Files$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
 
                 # Load needed functions in the PSSession
                 Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
@@ -231,22 +243,22 @@ $EventsPageContent = {
                 while ($PUDRSSyncHT) {
                     # $LiveOutput is a special ArrayList created and used by the New-Runspace function that collects output as it occurs
                     # We need to limit the number of elements this ArrayList holds so we don't exhaust memory
-                    if ($LiveOutput.Count -gt 100) {
-                        $LiveOutput.RemoveRange(0,90)
+                    if ($LiveOutput.Count -gt 1000) {
+                        $LiveOutput.RemoveRange(0,800)
                     }
 
-                    # Stream Results to $PUDRSSyncHT."$RemoteHost`Info".Events.LiveDataRSInfo.LiveOutput
+                    # Stream Results to $PUDRSSyncHT."$RemoteHost`Info".Files.LiveDataRSInfo.LiveOutput
                     Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
                         # Place most resource intensive operations first
 
                         # Operations that you only want running once every 30 seconds go within this 'if; block
                         # Adjust the timing as needed with deference to $RemoteHost resource efficiency.
                         if ($using:RSLoopCounter -eq 0 -or $($using:RSLoopCounter % 30) -eq 0) {
-                            #@{EventLogChannelSummaries = Get-EventLogSummary -channel *}
+                            #@{AllCerts = Get-Files}
                         }
 
                         # Operations that you want to run once every second go here
-                        @{EventLogChannelSummaries = Get-EventLogSummary -channel *}
+                        @{CertSummary = Get-CertificateOverview -channel "Microsoft-Windows-FileservicesClient-Lifecycle-System*"}
 
                     } | foreach {$null = $LiveOutput.Add($_)}
 
@@ -256,11 +268,11 @@ $EventsPageContent = {
                 }
             }
             # The New-Runspace function outputs / continually updates a Global Scope variable called $global:RSSyncHash. The results of
-            # the Runspace we just created can be found in $global:RSSyncHash's "Events$RemoteHost`LiveDataResult" Property - which is just
-            # the -RunspaceName value plus the word 'Info'. By setting $PUDRSSyncHT."$RemoteHost`Info".Events.LiveDataRSInfo equal to
-            # $RSSyncHash."Events$RemoteHost`LiveDataResult", we can now reference $PUDRSSyncHT."$RemoteHost`Info".Events.LiveDataRSInfo.LiveOutput
+            # the Runspace we just created can be found in $global:RSSyncHash's "Files$RemoteHost`LiveDataResult" Property - which is just
+            # the -RunspaceName value plus the word 'Info'. By setting $PUDRSSyncHT."$RemoteHost`Info".Files.LiveDataRSInfo equal to
+            # $RSSyncHash."Files$RemoteHost`LiveDataResult", we can now reference $PUDRSSyncHT."$RemoteHost`Info".Files.LiveDataRSInfo.LiveOutput
             # to get the latest data from $RemoteHost.
-            $PUDRSSyncHT."$RemoteHost`Info".Events.LiveDataRSInfo = $RSSyncHash."Events$RemoteHost`LiveDataResult"
+            $PUDRSSyncHT."$RemoteHost`Info".Files.LiveDataRSInfo = $RSSyncHash."Files$RemoteHost`LiveDataResult"
         }
 
         #endregion >> Setup LiveData
@@ -269,29 +281,60 @@ $EventsPageContent = {
 
         # Static Data Element Example
 
-        $EventLogChannelSummaryProperties = @("LogName","LogMode","MaximumSizeInBytes","RecordCount")
-        $EventLogChannelSummaryUDTableSplatParams = @{
-            Headers         = $EventLogChannelSummaryProperties
-            Properties      = $EventLogChannelSummaryProperties
-            PageSize        = 10
+        $AllCertsProperties = @("CertificateName","FriendlyName","Subject","Issuer","Path","Status","PrivateKey","PublicKey","NotBefore","NotAfter")
+        $AllCertsUDTableSplatParams = @{
+            Headers         = $AllCertsProperties
+            Properties      = $AllCertsProperties
+            PageSize        = 5
         }
-        New-UDGrid @EventLogChannelSummaryUDTableSplatParams -Endpoint {
+        New-UDGrid @AllCertsUDTableSplatParams -Endpoint {
             $PUDRSSyncHT = $global:PUDRSSyncHT
 
             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
 
-            $EventLogChannelSummaryGridData = $PUDRSSyncHT."$RemoteHost`Info".Events.EventLogChannelSummaries | Out-UDGridData
+            $AllCertsGridData = $PUDRSSyncHT."$RemoteHost`Info".Files.AllCerts | Out-UDGridData
 
-            $EventLogChannelSummaryGridData
+            $AllCertsGridData
         }
 
         # Live Data Element Example
+        $CertSummaryProperties = @("allCount","expiredCount","nearExpiredCount","eventCount")
+        $CertSummaryUDTableSplatParams = @{
+            Headers         = $CertSummaryProperties
+            AutoRefresh     = $True 
+            RefreshInterval = 5
+        }
+        New-UDTable @CertSummaryUDTableSplatParams -Endpoint {
+            $PUDRSSyncHT = $global:PUDRSSyncHT
+
+            $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+
+            $CertSummaryLiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".Files.LiveDataRSInfo.LiveOutput.Count
+            if ($CertSummaryLiveOutputCount -gt 0) {
+                $ArrayOfCertSummaryEntries = @(
+                    $PUDRSSyncHT."$RemoteHost`Info".Files.LiveDataTracker.Previous.CertSummary
+                ) | Where-Object {$_ -ne $null}
+                if ($ArrayOfCertSummaryEntries.Count -gt 0) {
+                    $CertSummaryTableData = $ArrayOfCertSummaryEntries[-1] | Out-UDTableData -Property $CertSummaryProperties
+                }
+            }
+            if (!$CertSummaryTableData) {
+                $CertSummaryTableData = [pscustomobject]@{
+                    allCount            = "Collecting Info"
+                    expiredCount        = "Collecting Info"
+                    nearExpiredcount    = "Collecting Info"
+                    eventCount          = "Collecting Info"
+                } | Out-UDTableData -Property $CertSummaryProperties
+            }
+
+            $CertSummaryTableData
+        }
 
         # Remove the Loading  Indicator
-        $null = $Session:EventsPageLoadingTracker.Add("FinishedLoading")
+        $null = $Session:FilesPageLoadingTracker.Add("FinishedLoading")
 
         #endregion >> Controls
     }
 }
-$Page = New-UDPage -Url "/Events/:RemoteHost" -Endpoint $EventsPageContent
+$Page = New-UDPage -Url "/Files/:RemoteHost" -Endpoint $FilesPageContent
 $null = $Pages.Add($Page)
