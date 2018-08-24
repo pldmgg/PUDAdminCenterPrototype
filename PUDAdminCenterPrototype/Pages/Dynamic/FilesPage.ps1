@@ -139,20 +139,20 @@ $FilesPageContent = {
 
         #region >> Gather Some Initial Info From $RemoteHost
 
-        if (!$Session:RootDriveFilesStatic) {
+        if (!$Session:RootDirFilesStatic) {
             $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                $RootDriveFiles = Get-ChildItem -Path "$env:SystemDrive\"
+                $RootDirFiles = Get-ChildItem -Path "$env:SystemDrive\"
 
                 [pscustomobject]@{
-                    RootDriveFiles      = $RootDriveFiles
+                    RootDirFiles      = $RootDirFiles
                 }
             }
-            $Session:RootDriveFilesStatic = $StaticInfo.RootDriveFiles
-            if ($PUDRSSyncHT."$RemoteHost`Info".Files.Keys -notcontains "RootDriveFiles") {
-                $PUDRSSyncHT."$RemoteHost`Info".Files.Add("RootDriveFiles",$Session:RootDriveFilesStatic)
+            $Session:RootDirFilesStatic = $StaticInfo.RootDirFiles
+            if ($PUDRSSyncHT."$RemoteHost`Info".Files.Keys -notcontains "RootDirFiles") {
+                $PUDRSSyncHT."$RemoteHost`Info".Files.Add("RootDirFiles",$Session:RootDirFilesStatic)
             }
             else {
-                $PUDRSSyncHT."$RemoteHost`Info".Files.RootDriveFiles = $Session:RootDriveFilesStatic
+                $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirFiles = $Session:RootDirFilesStatic
             }
         }
 
@@ -267,7 +267,95 @@ $FilesPageContent = {
         #endregion >> Setup LiveData
 
         #region >> Controls
+        
+        $RootFilesProperties = @("Name","FullPath","DateModified","Type","Size")
+        $RootFilesUDGridSplatParams = @{
+            Id              = "RootDirFilesUDGrid"
+            Headers         = $RootFilesProperties
+            Properties      = $RootFilesProperties
+            PageSize        = 20
+        }
+        New-UDGrid @RootFilesUDGridSplatParams -Endpoint {
+            $PUDRSSyncHT = $global:PUDRSSyncHT
 
+            $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+
+            $Session:RootDirFilesStatic | foreach {
+                [pscustomobject]@{
+                    Name            = $_.Name
+                    FullPath        = $_.FullName
+                    DateModified    = Get-Date $_.LastWriteTime -Format MM/dd/yy_hh:mm:ss
+                    Type            = if ($_.PSIsContainer) {"Folder"} else {"File"}
+                    Size            = if ($_.PSIsContainer) {'-'} else {[Math]::Round($($_.Length / 1KB),2).toString() + 'KB'}
+                    #Inspect         = $Cache:InspectCell
+                }
+            } | Out-UDGridData
+        }
+        
+
+        New-UDTextbox -Id "NewRootDir" -Placeholder "Enter File Path"
+
+        New-UDButton -Text "Button" -Id "Button" -OnClick {
+            $NewRootDirTextBox = Get-UDElement -Id "NewRootDir" 
+            $FullPathToExplore = $NewRootDirTextBox.Attributes['value']
+
+            $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                $RootDirFiles = Get-ChildItem -Path $using:FullPathToExplore
+    
+                [pscustomobject]@{
+                    RootDirFiles      = $RootDirFiles
+                }
+            }
+            $Session:RootDirFilesStatic = $NewPathInfo.RootDirFiles
+            $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirFiles = $Session:RootDirFilesStatic
+            Sync-UDElement -Id "RootDirFilesUDGrid"
+        }
+
+        <#
+        New-UDInput -Title "Explore Path" -SubmitText "Explore" -Content {
+            New-UDInputField -Name "FullPathToExplore" -Type textbox
+        } -Endpoint {
+            param($FullPathToExplore)
+
+            #region >> Check Connection
+
+            $PUDRSSyncHT = $global:PUDRSSyncHT
+
+            $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+
+            #endregion >> Check Connection
+
+            #region >> SubMain
+
+            if (!$FullPathToExplore) {
+                New-UDInputAction -Toast "You must fill out the 'FullPathToExplore' field!" -Duration 10000
+                return
+            }
+
+            try {
+                $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                    $RootDirFiles = Get-ChildItem -Path $using:FullPathToExplore
+        
+                    [pscustomobject]@{
+                        RootDirFiles      = $RootDirFiles
+                    }
+                }
+                $Session:RootDirFilesStatic = $NewPathInfo.RootDirFiles
+                $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirFiles = $Session:RootDirFilesStatic
+
+                Sync-UDElement -Id "RootDirFilesUDGrid"
+
+                #Invoke-UDRedirect -Url "/Files/$RemoteHost"
+            }
+            catch {
+                New-UDInputAction -Toast $_.Exception.Message -Duration 2000
+            
+                #Invoke-UDRedirect -Url "/Overview/$RemoteHost"
+            }
+        }
+        #>
+
+        <#
         # Static Data Element Example
         New-UDCollapsible -Id $CollapsibleId -Items {
             New-UDCollapsibleItem -Title "File System" -Icon laptop -Active -Endpoint {
@@ -277,6 +365,7 @@ $FilesPageContent = {
                     New-UDColumn -Size 12 -Endpoint {
                         $RootFilesProperties = @("Name","FullPath","DateModified","Type","Size")
                         $RootFilesUDGridSplatParams = @{
+                            Id              = "RootDirFilesUDGrid"
                             Headers         = $RootFilesProperties
                             Properties      = $RootFilesProperties
                             PageSize        = 20
@@ -286,7 +375,7 @@ $FilesPageContent = {
 
                             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
 
-                            $PUDRSSyncHT."$RemoteHost`Info".Files.RootDriveFiles | foreach {
+                            $Session:RootDirFilesStatic | foreach {
                                 [pscustomobject]@{
                                     Name            = $_.Name
                                     FullPath        = $_.FullName
@@ -324,15 +413,18 @@ $FilesPageContent = {
 
                             try {
                                 $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                                    $RootDriveFiles = Get-ChildItem -Path $using:FullPathToExplore
+                                    $RootDirFiles = Get-ChildItem -Path $using:FullPathToExplore
                         
                                     [pscustomobject]@{
-                                        RootDriveFiles      = $RootDriveFiles
+                                        RootDirFiles      = $RootDirFiles
                                     }
                                 }
-                                $PUDRSSyncHT."$RemoteHost`Info".Files.RootDriveFiles = $NewPathInfo.RootDriveFiles
+                                $Session:RootDirFilesStatic = $NewPathInfo.RootDirFiles
+                                $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirFiles = $Session:RootDirFilesStatic
 
-                                Invoke-UDRedirect -Url "/Files/$RemoteHost"
+                                Sync-UDElement -Id "RootDirFilesUDGrid"
+
+                                #Invoke-UDRedirect -Url "/Files/$RemoteHost"
                             }
                             catch {
                                 New-UDInputAction -Toast $_.Exception.Message -Duration 2000
@@ -345,9 +437,14 @@ $FilesPageContent = {
                     }
                 }
 
+                New-UDButton -Text "SyncFileGrid" -Id "Button" -OnClick {
+                    Sync-UDElement -Id "RootDirFilesUDGrid"
+                }
+
                 #endregion >> Main
             }
         }
+        #>
 
         # Live Data Element Example
 
