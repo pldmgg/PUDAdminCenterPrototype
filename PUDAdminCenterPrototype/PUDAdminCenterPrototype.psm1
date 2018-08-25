@@ -2498,7 +2498,7 @@ function Get-PUDAdminCenter {
     
                     New-UDRow -Endpoint {
                         New-UDColumn -Endpoint {
-                            New-UDRow -Id "NewRootDirTB" -EndPoint {
+                            New-UDElement -Id "NewRootDirTB" -Tag div -EndPoint {
                                 New-UDTextbox -Label "Current Directory" -Placeholder "Directory to Explore" -Value $Session:RootDirItem.FullName
                             }
                             New-UDButton -Text "Explore" -Id "Button" -OnClick {
@@ -7342,8 +7342,8 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZyhRW0/xXo2VPF567JUTaErY
-# gMmgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUMX/EExZo22MgkIfRM7lkztxR
+# oU+gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -7400,11 +7400,11 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFLw0JDZ1h6XO6SPu
-# 7hUlIVg8m6XUMA0GCSqGSIb3DQEBAQUABIIBAGiBeh9rxsSWjmjC2nBJg6FkLARh
-# QH8/9qI8bwfePL8GDopeBRRWj2wcQQ9zdeNJGFV5h65UaCOHxZf501K781n6S+D5
-# FHo88xsqaO8XNuPnP6LNHk6vAmnzENXTnCnEf0Bpew1eclI1Tizh5ZmqEQ/Smjok
-# pWIcislI+EuLEKfWEiiMPelVTjfpjxOCfijjCj14UINb7tAoWwopH7YAaKI70shp
-# J7Cm5KWn0vYq7V0ly2SVCH98O8IeWgYGm31r0z34pbjlmURDnbtWh/rK2UJDYW/S
-# VV6e55UbQHSo6yzX7E11yuMkEnKbIbpqxrs92ZDqkrTpPp8U4OZHsiEUld0=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFMyW2HRSd9dlmbjO
+# vnaLednapAKLMA0GCSqGSIb3DQEBAQUABIIBAJ7vYCm41jLBouWhU7Ds1753D9el
+# 0zzIWZk+4GrjGj2MFEpAHx8tygSqxdfvL5PyPZp9pueu6sDI3mXbbd2AWq/Yw3QH
+# bUFx6E1gIlVFZv3IAK76rw87KGQXbKuZj2of2Zb6qtl3bVsQjppDDg1FNRgG9SUh
+# Q7jFjJ2BYP5J3uO7FBEleGGURwCdz6+CGSotiViyflJK93kYtjnUzetE9ldsrmLR
+# zm2ux30fzjUkJAYg7BoaIKem+gMPjfUZLQpNW9dB03DxjMzz5MFpUxzy+LGmo1Ti
+# 72wxkhmoCMJBrdLKw4Rx22H10VQsL6zN+c+pwVYkVCJLO3zfi8FxIJdgcwQ=
 # SIG # End signature block

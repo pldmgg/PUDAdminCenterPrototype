@@ -1619,7 +1619,7 @@ function Get-PUDAdminCenter {
     
                     New-UDRow -Endpoint {
                         New-UDColumn -Endpoint {
-                            New-UDRow -Id "NewRootDirTB" -EndPoint {
+                            New-UDElement -Id "NewRootDirTB" -Tag div -EndPoint {
                                 New-UDTextbox -Label "Current Directory" -Placeholder "Directory to Explore" -Value $Session:RootDirItem.FullName
                             }
                             New-UDButton -Text "Explore" -Id "Button" -OnClick {
@@ -4985,8 +4985,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUtLYPJCc1CoKDEbzr4r3YKUwh
-# mp6gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU8Qnk5RUxba1QEkNuBrbbmvWl
+# +v2gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -5043,11 +5043,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFL82E77NULUUsVuA
-# VZyVmDPDHd/lMA0GCSqGSIb3DQEBAQUABIIBAIUewwn9T7fcOzBJSe/NvupKadIk
-# xaJ214MUFew014A4U69W/ur5p/ORZqgt1V6roHcmfqoSUCZwirwLj64wBj2FJfXC
-# 9qLU1+bLRcw2hsZ18AeT8tsXs0/jZWwm8OdGs+O7r2R/0X5HAd10Hp431hjy8O8q
-# gsxhGz7d+QCwDHnWypUBwv1vTlTlZ5UH9AztkeMMKOtIzviR0FbiQ7WIqIRh2NBp
-# IBj1J6zwWShKorfLRoLMBLsPKi1k4R+IclNYEj5BMBuN+suhAxMISn2O7Mig89HX
-# FIiNLuNVYspdSLoGann9Ux1UaQLVIOAKQ+KCTjNG33wMqF0QeH76WCpXKjU=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFCvA9aY21ipVatax
+# 6V3Q1w024mF0MA0GCSqGSIb3DQEBAQUABIIBAF/wQlh9F6xMv/wpU5CKj5T5op81
+# vQpHEX51L/eFfyRx7GBHktDKsdlSLOFLG4UDt7L4+HfaTPk9zim2JaRwbFvPNHIW
+# euEKtvwOEGl/t/xGa0+SkwL2Hma9q9il8EkmApZgPO61lZTshpdvsRgIYhhyEASE
+# 49X1fVuL2GjNGdqTgPaWPwo098ABp/M9yKq/pcee9f9h+CDs4zCJWzmOSSBf4fpJ
+# KGhyVXac5OlYFHDtNcX9GCX6vDOoq5xNGSNlRcfl1HFObnncn3LwY1FyeDC/ZnR+
+# 2d9Z7KouwksT45bRWr49iv1jqAw80HwRCpbyBaOKUaeS6qm61nvxZk/VWSs=
 # SIG # End signature block

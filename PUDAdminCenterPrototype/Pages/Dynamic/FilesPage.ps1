@@ -309,7 +309,7 @@ $FilesPageContent = {
 
                 New-UDRow -Endpoint {
                     New-UDColumn -Endpoint {
-                        New-UDRow -Id "NewRootDirTB" -EndPoint {
+                        New-UDElement -Id "NewRootDirTB" -Tag div -EndPoint {
                             New-UDTextbox -Label "Current Directory" -Placeholder "Directory to Explore" -Value $Session:RootDirItem.FullName
                         }
                         New-UDButton -Text "Explore" -Id "Button" -OnClick {
