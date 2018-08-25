@@ -309,7 +309,9 @@ $FilesPageContent = {
 
                 New-UDRow -Endpoint {
                     New-UDColumn -Endpoint {
-                        New-UDTextbox -Label "Current Directory" -Id "NewRootDirTB" -Placeholder "Directory to Explore" -Value $Session:RootDirItem.FullName
+                        New-UDRow -Id "NewRootDirTB" -EndPoint {
+                            New-UDTextbox -Label "Current Directory" -Placeholder "Directory to Explore" -Value $Session:RootDirItem.FullName
+                        }
                         New-UDButton -Text "Explore" -Id "Button" -OnClick {
                             $NewRootDirTextBox = Get-UDElement -Id "NewRootDirTB"
                             $FullPathToExplore = $NewRootDirTextBox.Attributes['value']
@@ -332,7 +334,7 @@ $FilesPageContent = {
                         }
 
                         New-UDButton -Text "Parent Directory" -OnClick {
-                            $FullPathToExplore = $Session:RootDirItem.FullName
+                            $FullPathToExplore = $Session:RootDirItem.FullName | Split-Path -Parent
 
                             $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                 $RootDirChildItems = Get-ChildItem -Path $args[0]

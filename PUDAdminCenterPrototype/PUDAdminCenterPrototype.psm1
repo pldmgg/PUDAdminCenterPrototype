@@ -2498,7 +2498,9 @@ function Get-PUDAdminCenter {
     
                     New-UDRow -Endpoint {
                         New-UDColumn -Endpoint {
-                            New-UDTextbox -Label "Current Directory" -Id "NewRootDirTB" -Placeholder "Directory to Explore" -Value $Session:RootDirItem.FullName
+                            New-UDRow -Id "NewRootDirTB" -EndPoint {
+                                New-UDTextbox -Label "Current Directory" -Placeholder "Directory to Explore" -Value $Session:RootDirItem.FullName
+                            }
                             New-UDButton -Text "Explore" -Id "Button" -OnClick {
                                 $NewRootDirTextBox = Get-UDElement -Id "NewRootDirTB"
                                 $FullPathToExplore = $NewRootDirTextBox.Attributes['value']
@@ -2521,7 +2523,7 @@ function Get-PUDAdminCenter {
                             }
     
                             New-UDButton -Text "Parent Directory" -OnClick {
-                                $FullPathToExplore = $Session:RootDirItem.FullName
+                                $FullPathToExplore = $Session:RootDirItem.FullName | Split-Path -Parent
     
                                 $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                     $RootDirChildItems = Get-ChildItem -Path $args[0]
@@ -7340,8 +7342,8 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU9j9zxvSV15yybleGuyMbuYMw
-# wBWgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZyhRW0/xXo2VPF567JUTaErY
+# gMmgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -7398,11 +7400,11 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFCbzLVNLQtFvYQo9
-# NZWafCssL2lpMA0GCSqGSIb3DQEBAQUABIIBAL1Htt674SAZjoU/UAwmhti04deL
-# IECT+QOCEok5FySkwH5kPpR3SLss+oncFspHgUP61WEhPlCXG3QCtRQhFWkerKTD
-# ROuhG2+9CNVnUuS6kS3EgHr0TwonLBsz0mm7cPQ69RruQqE/RuW6kJEGfv4N9hWb
-# MI+hQg5n4wYGNJY79ltc4gx7Nkcz2Stv2iTiP5iloH27s+oUY9/jsA7NGt/ocPIS
-# I+N3ncCsC7k6ZTklq/m4ehwJyhkfR5dUnZs2/R/CBZv32CMbnvlFw+TOAtato2yy
-# 1LfRsq0+gVXsgso+0wNYsq3q0JfzrfbOZgtkcSltMisgtUXPbKBfWo9+6No=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFLw0JDZ1h6XO6SPu
+# 7hUlIVg8m6XUMA0GCSqGSIb3DQEBAQUABIIBAGiBeh9rxsSWjmjC2nBJg6FkLARh
+# QH8/9qI8bwfePL8GDopeBRRWj2wcQQ9zdeNJGFV5h65UaCOHxZf501K781n6S+D5
+# FHo88xsqaO8XNuPnP6LNHk6vAmnzENXTnCnEf0Bpew1eclI1Tizh5ZmqEQ/Smjok
+# pWIcislI+EuLEKfWEiiMPelVTjfpjxOCfijjCj14UINb7tAoWwopH7YAaKI70shp
+# J7Cm5KWn0vYq7V0ly2SVCH98O8IeWgYGm31r0z34pbjlmURDnbtWh/rK2UJDYW/S
+# VV6e55UbQHSo6yzX7E11yuMkEnKbIbpqxrs92ZDqkrTpPp8U4OZHsiEUld0=
 # SIG # End signature block
