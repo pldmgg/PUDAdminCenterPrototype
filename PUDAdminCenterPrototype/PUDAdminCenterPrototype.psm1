@@ -2456,48 +2456,62 @@ function Get-PUDAdminCenter {
             #endregion >> Setup LiveData
     
             #region >> Controls
-            
-            $RootFilesProperties = @("Name","FullPath","DateModified","Type","Size")
-            $RootFilesUDGridSplatParams = @{
-                Id              = "RootDirFilesUDGrid"
-                Headers         = $RootFilesProperties
-                Properties      = $RootFilesProperties
-                PageSize        = 20
-            }
-            New-UDGrid @RootFilesUDGridSplatParams -Endpoint {
-                $PUDRSSyncHT = $global:PUDRSSyncHT
     
-                $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
-                $Session:RootDirFilesStatic | foreach {
-                    [pscustomobject]@{
-                        Name            = $_.Name
-                        FullPath        = $_.FullName
-                        DateModified    = Get-Date $_.LastWriteTime -Format MM/dd/yy_hh:mm:ss
-                        Type            = if ($_.PSIsContainer) {"Folder"} else {"File"}
-                        Size            = if ($_.PSIsContainer) {'-'} else {[Math]::Round($($_.Length / 1KB),2).toString() + 'KB'}
-                        #Inspect         = $Cache:InspectCell
+            # Static Data Element Example
+    
+            New-UDCollapsible -Id $CollapsibleId -Items {
+                New-UDCollapsibleItem -Title "File System" -Icon laptop -Active -Endpoint {
+                    New-UDRow -Endpoint {
+                        New-UDColumn -Size 3 -Endpoint {}
+                        New-UDColumn -Size 6 -Endpoint {
+                            New-UDTextbox -Label "Full Path to Directory to Explore" -Id "NewRootDirTB" -Placeholder "Directory to Explore"
+                            New-UDButton -Text "Explore" -Id "Button" -OnClick {
+                                $NewRootDirTextBox = Get-UDElement -Id "NewRootDirTB"
+                                $FullPathToExplore = $NewRootDirTextBox.Attributes['value']
+    
+                                $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                    $RootDirFiles = Get-ChildItem -Path $using:FullPathToExplore
+                        
+                                    [pscustomobject]@{
+                                        RootDirFiles      = $RootDirFiles
+                                    }
+                                }
+                                $Session:RootDirFilesStatic = $NewPathInfo.RootDirFiles
+                                $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirFiles = $Session:RootDirFilesStatic
+                                Sync-UDElement -Id "RootDirFilesUDGrid"
+                            }
+                        }
+                        New-UDColumn -Size 3 -Endpoint {}
                     }
-                } | Out-UDGridData
-            }
-            
     
-            New-UDTextbox -Id "NewRootDir" -Placeholder "Enter File Path"
+                    New-UDRow -Endpoint {
+                        New-UDColumn -Size 12 -Endpoint {
+                            $RootFilesProperties = @("Name","FullPath","DateModified","Type","Size")
+                            $RootFilesUDGridSplatParams = @{
+                                Id              = "RootDirFilesUDGrid"
+                                Headers         = $RootFilesProperties
+                                Properties      = $RootFilesProperties
+                                PageSize        = 20
+                            }
+                            New-UDGrid @RootFilesUDGridSplatParams -Endpoint {
+                                $PUDRSSyncHT = $global:PUDRSSyncHT
     
-            New-UDButton -Text "Button" -Id "Button" -OnClick {
-                $NewRootDirTextBox = Get-UDElement -Id "NewRootDir" 
-                $FullPathToExplore = $NewRootDirTextBox.Attributes['value']
+                                $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
-                $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                    $RootDirFiles = Get-ChildItem -Path $using:FullPathToExplore
-        
-                    [pscustomobject]@{
-                        RootDirFiles      = $RootDirFiles
+                                $Session:RootDirFilesStatic | foreach {
+                                    [pscustomobject]@{
+                                        Name            = $_.Name
+                                        FullPath        = $_.FullName
+                                        DateModified    = Get-Date $_.LastWriteTime -Format MM/dd/yy_hh:mm:ss
+                                        Type            = if ($_.PSIsContainer) {"Folder"} else {"File"}
+                                        Size            = if ($_.PSIsContainer) {'-'} else {[Math]::Round($($_.Length / 1KB),2).toString() + 'KB'}
+                                    }
+                                } | Out-UDGridData
+                            }
+                        }
                     }
                 }
-                $Session:RootDirFilesStatic = $NewPathInfo.RootDirFiles
-                $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirFiles = $Session:RootDirFilesStatic
-                Sync-UDElement -Id "RootDirFilesUDGrid"
             }
     
             <#
@@ -7251,8 +7265,8 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUYfutG5XPAOnmNX0w7vR9U/nc
-# UBigggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUQ1KrJgv5K/Hd1eyexzHZ0r5C
+# 21Wgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -7309,11 +7323,11 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFLOvF/BCcI5DyszH
-# eVh/1/eKHtVyMA0GCSqGSIb3DQEBAQUABIIBALGJMUzlEQyVbNVLiJiJpGEyDf93
-# pc9Ra6V91cZUTEfNQwjaQZIMu64AWKFhkqs7MnvKkV79an7JiXOXTB2GhYuHQA3X
-# Txb4L91iJsopGKQL4hNsJfiYwQV9gqCV39DwKYI1lvd36B/cCkA7R438HGHs4nLs
-# WIv3EwctvepWKx09kqtdXsBqR0xw3CHPRbBYOTlh3Xaec5SdGyRQGw8sdGYn30DK
-# koM9cc+qpNe+4Zy9cU0wm+Ip0gMVzrtiO22AWyraOXwXNJ0BMWRJwAt5YkfUWXtQ
-# Sg3QG60EMC6s3pkriNsXEYxgtZp2g/7TwL3x/aJiqAIFXMwNj/uUWqn/Sv8=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFJcXXh6PklXYpByt
+# wvFeDBJS2hSxMA0GCSqGSIb3DQEBAQUABIIBADhkTwlM8+8s6yRROXJr+1Edx7cL
+# re77yNUFff+7K8q487YgYW1eJdDruj9oAOrrY4hirOvBPT++XQ5uKuw2LUfRRk1g
+# 18O8pBbaS0EDLXJKiUK2tuXzwtp91hwf2P9Jfqsp1UmAyVkljIhEfXsbeIQu74SW
+# iA22LAVZHDLnLc6n1s81MGOk8u8e23OLvGoCOE0EeOtYpITPYZGRJMYU4c21e5NO
+# XmymU30mGk1tq8RXROrown+kpic/APl4uJBijhlrLVFMt9j0ayX3joYDsz8m0DKV
+# 9DrEHsc0wh2pecAyyhOqpQb8hDCsrw1dp3Jm2cwNG0cvxA+gq6yNe09j1VY=
 # SIG # End signature block
