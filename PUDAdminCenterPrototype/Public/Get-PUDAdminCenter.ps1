@@ -1618,12 +1618,17 @@ function Get-PUDAdminCenter {
                     #>
     
                     New-UDRow -Endpoint {
-                        New-UDColumn -Endpoint {
+                        New-UDColumn -Size 3 -Endpoint {}
+                        New-UDColumn -Size 6 -Endpoint {
+                            New-UDElement -Id "CurrentRootDirTB" -Tag div -EndPoint {
+                                #New-UDTextbox -Label "Current Directory" -Placeholder "Directory to Explore" -Value $Session:RootDirItem.FullName
+                                New-UDHeading -Text "Current Directory: $($Session:RootDirItem.FullName)" -Size 5
+                            }
                             New-UDElement -Id "NewRootDirTB" -Tag div -EndPoint {
-                                New-UDTextbox -Label "Current Directory" -Placeholder "Directory to Explore" -Value $Session:RootDirItem.FullName
+                                New-UDTextbox -Id "NewRootDirTBProper" -Label "New Directory"
                             }
                             New-UDButton -Text "Explore" -Id "Button" -OnClick {
-                                $NewRootDirTextBox = Get-UDElement -Id "NewRootDirTB"
+                                $NewRootDirTextBox = Get-UDElement -Id "NewRootDirTBProper"
                                 $FullPathToExplore = $NewRootDirTextBox.Attributes['value']
     
                                 $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
@@ -1641,6 +1646,7 @@ function Get-PUDAdminCenter {
                                 $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirItem = $NewPathInfo.RootDirItem
                                 Sync-UDElement -Id "RootDirChildItemsUDGrid"
                                 Sync-UDElement -Id "NewRootDirTB"
+                                Sync-UDElement -Id "CurrentRootDirTB"
                             }
     
                             New-UDButton -Text "Parent Directory" -OnClick {
@@ -1661,8 +1667,13 @@ function Get-PUDAdminCenter {
                                 $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirItem = $NewPathInfo.RootDirItem
                                 Sync-UDElement -Id "RootDirChildItemsUDGrid"
                                 Sync-UDElement -Id "NewRootDirTB"
+                                Sync-UDElement -Id "CurrentRootDirTB"
                             }
-    
+                        }
+                        New-UDColumn -Size 3 -Endpoint {}
+                    }
+                    New-UDRow -Endpoint {
+                        New-UDColumn -Size 12 -Endpoint {
                             $RootFilesProperties = @("Name","FullPath","DateModified","Type","Size","Explore")
                             $RootFilesUDGridSplatParams = @{
                                 Id              = "RootDirChildItemsUDGrid"
@@ -1702,6 +1713,7 @@ function Get-PUDAdminCenter {
                                                 $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirItem = $NewPathInfo.RootDirItem
                                                 Sync-UDElement -Id "RootDirChildItemsUDGrid"
                                                 Sync-UDElement -Id "NewRootDirTB"
+                                                Sync-UDElement -Id "CurrentRootDirTB"
                                             }
                                         }
                                     }
@@ -4985,8 +4997,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU8Qnk5RUxba1QEkNuBrbbmvWl
-# +v2gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUaOh54OCQYau7qfzJL2E18GO3
+# S02gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -5043,11 +5055,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFCvA9aY21ipVatax
-# 6V3Q1w024mF0MA0GCSqGSIb3DQEBAQUABIIBAF/wQlh9F6xMv/wpU5CKj5T5op81
-# vQpHEX51L/eFfyRx7GBHktDKsdlSLOFLG4UDt7L4+HfaTPk9zim2JaRwbFvPNHIW
-# euEKtvwOEGl/t/xGa0+SkwL2Hma9q9il8EkmApZgPO61lZTshpdvsRgIYhhyEASE
-# 49X1fVuL2GjNGdqTgPaWPwo098ABp/M9yKq/pcee9f9h+CDs4zCJWzmOSSBf4fpJ
-# KGhyVXac5OlYFHDtNcX9GCX6vDOoq5xNGSNlRcfl1HFObnncn3LwY1FyeDC/ZnR+
-# 2d9Z7KouwksT45bRWr49iv1jqAw80HwRCpbyBaOKUaeS6qm61nvxZk/VWSs=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFANpEYGLQhNyYtxd
+# wGjXf4szy+AkMA0GCSqGSIb3DQEBAQUABIIBAJdPbU8Af/PYghN1rZB7YMeowzND
+# wGowdP5uPsrT0Kj6vxJ2U4wtFggNdtlNOPDiFEoHF7wJ4rf4VnLvTlBj2rWPWYCa
+# Wlx4HG+x16uyl2tds3avoivcOFVrj2CcWkpBdBwbyDoHiZqjgFPJtdF6oNVxin+/
+# ktvTVYfWn5833d41WQ9KChPU55Wwzu738q2v7dgI/iAynFFyo1FLmG1rNXVXSZqa
+# XnPbLHjvM9jetKSJxSrow37ZuwRDg/Wm9xoiOvqloPj9KMdIffsHbrmqQBKGVDvy
+# 76bNf1n1/GPyYaHqtFQl45UAjz9g70crrpuX/MHDDVj0eTp45b041tbFtJQ=
 # SIG # End signature block

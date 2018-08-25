@@ -308,12 +308,17 @@ $FilesPageContent = {
                 #>
 
                 New-UDRow -Endpoint {
-                    New-UDColumn -Endpoint {
+                    New-UDColumn -Size 3 -Endpoint {}
+                    New-UDColumn -Size 6 -Endpoint {
+                        New-UDElement -Id "CurrentRootDirTB" -Tag div -EndPoint {
+                            #New-UDTextbox -Label "Current Directory" -Placeholder "Directory to Explore" -Value $Session:RootDirItem.FullName
+                            New-UDHeading -Text "Current Directory: $($Session:RootDirItem.FullName)" -Size 5
+                        }
                         New-UDElement -Id "NewRootDirTB" -Tag div -EndPoint {
-                            New-UDTextbox -Label "Current Directory" -Placeholder "Directory to Explore" -Value $Session:RootDirItem.FullName
+                            New-UDTextbox -Id "NewRootDirTBProper" -Label "New Directory"
                         }
                         New-UDButton -Text "Explore" -Id "Button" -OnClick {
-                            $NewRootDirTextBox = Get-UDElement -Id "NewRootDirTB"
+                            $NewRootDirTextBox = Get-UDElement -Id "NewRootDirTBProper"
                             $FullPathToExplore = $NewRootDirTextBox.Attributes['value']
 
                             $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
@@ -331,6 +336,7 @@ $FilesPageContent = {
                             $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirItem = $NewPathInfo.RootDirItem
                             Sync-UDElement -Id "RootDirChildItemsUDGrid"
                             Sync-UDElement -Id "NewRootDirTB"
+                            Sync-UDElement -Id "CurrentRootDirTB"
                         }
 
                         New-UDButton -Text "Parent Directory" -OnClick {
@@ -351,8 +357,13 @@ $FilesPageContent = {
                             $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirItem = $NewPathInfo.RootDirItem
                             Sync-UDElement -Id "RootDirChildItemsUDGrid"
                             Sync-UDElement -Id "NewRootDirTB"
+                            Sync-UDElement -Id "CurrentRootDirTB"
                         }
-
+                    }
+                    New-UDColumn -Size 3 -Endpoint {}
+                }
+                New-UDRow -Endpoint {
+                    New-UDColumn -Size 12 -Endpoint {
                         $RootFilesProperties = @("Name","FullPath","DateModified","Type","Size","Explore")
                         $RootFilesUDGridSplatParams = @{
                             Id              = "RootDirChildItemsUDGrid"
@@ -392,6 +403,7 @@ $FilesPageContent = {
                                             $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirItem = $NewPathInfo.RootDirItem
                                             Sync-UDElement -Id "RootDirChildItemsUDGrid"
                                             Sync-UDElement -Id "NewRootDirTB"
+                                            Sync-UDElement -Id "CurrentRootDirTB"
                                         }
                                     }
                                 }

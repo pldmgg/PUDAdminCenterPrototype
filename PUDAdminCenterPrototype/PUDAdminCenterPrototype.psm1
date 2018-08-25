@@ -2497,12 +2497,17 @@ function Get-PUDAdminCenter {
                     #>
     
                     New-UDRow -Endpoint {
-                        New-UDColumn -Endpoint {
+                        New-UDColumn -Size 3 -Endpoint {}
+                        New-UDColumn -Size 6 -Endpoint {
+                            New-UDElement -Id "CurrentRootDirTB" -Tag div -EndPoint {
+                                #New-UDTextbox -Label "Current Directory" -Placeholder "Directory to Explore" -Value $Session:RootDirItem.FullName
+                                New-UDHeading -Text "Current Directory: $($Session:RootDirItem.FullName)" -Size 5
+                            }
                             New-UDElement -Id "NewRootDirTB" -Tag div -EndPoint {
-                                New-UDTextbox -Label "Current Directory" -Placeholder "Directory to Explore" -Value $Session:RootDirItem.FullName
+                                New-UDTextbox -Id "NewRootDirTBProper" -Label "New Directory"
                             }
                             New-UDButton -Text "Explore" -Id "Button" -OnClick {
-                                $NewRootDirTextBox = Get-UDElement -Id "NewRootDirTB"
+                                $NewRootDirTextBox = Get-UDElement -Id "NewRootDirTBProper"
                                 $FullPathToExplore = $NewRootDirTextBox.Attributes['value']
     
                                 $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
@@ -2520,6 +2525,7 @@ function Get-PUDAdminCenter {
                                 $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirItem = $NewPathInfo.RootDirItem
                                 Sync-UDElement -Id "RootDirChildItemsUDGrid"
                                 Sync-UDElement -Id "NewRootDirTB"
+                                Sync-UDElement -Id "CurrentRootDirTB"
                             }
     
                             New-UDButton -Text "Parent Directory" -OnClick {
@@ -2540,8 +2546,13 @@ function Get-PUDAdminCenter {
                                 $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirItem = $NewPathInfo.RootDirItem
                                 Sync-UDElement -Id "RootDirChildItemsUDGrid"
                                 Sync-UDElement -Id "NewRootDirTB"
+                                Sync-UDElement -Id "CurrentRootDirTB"
                             }
-    
+                        }
+                        New-UDColumn -Size 3 -Endpoint {}
+                    }
+                    New-UDRow -Endpoint {
+                        New-UDColumn -Size 12 -Endpoint {
                             $RootFilesProperties = @("Name","FullPath","DateModified","Type","Size","Explore")
                             $RootFilesUDGridSplatParams = @{
                                 Id              = "RootDirChildItemsUDGrid"
@@ -2581,6 +2592,7 @@ function Get-PUDAdminCenter {
                                                 $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirItem = $NewPathInfo.RootDirItem
                                                 Sync-UDElement -Id "RootDirChildItemsUDGrid"
                                                 Sync-UDElement -Id "NewRootDirTB"
+                                                Sync-UDElement -Id "CurrentRootDirTB"
                                             }
                                         }
                                     }
@@ -7342,8 +7354,8 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUMX/EExZo22MgkIfRM7lkztxR
-# oU+gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUiyXvqQGiOHGFocf/SsHJNpH6
+# 0T6gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -7400,11 +7412,11 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFMyW2HRSd9dlmbjO
-# vnaLednapAKLMA0GCSqGSIb3DQEBAQUABIIBAJ7vYCm41jLBouWhU7Ds1753D9el
-# 0zzIWZk+4GrjGj2MFEpAHx8tygSqxdfvL5PyPZp9pueu6sDI3mXbbd2AWq/Yw3QH
-# bUFx6E1gIlVFZv3IAK76rw87KGQXbKuZj2of2Zb6qtl3bVsQjppDDg1FNRgG9SUh
-# Q7jFjJ2BYP5J3uO7FBEleGGURwCdz6+CGSotiViyflJK93kYtjnUzetE9ldsrmLR
-# zm2ux30fzjUkJAYg7BoaIKem+gMPjfUZLQpNW9dB03DxjMzz5MFpUxzy+LGmo1Ti
-# 72wxkhmoCMJBrdLKw4Rx22H10VQsL6zN+c+pwVYkVCJLO3zfi8FxIJdgcwQ=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFAFQo+3pHn807POR
+# jHh3w+BiwpyoMA0GCSqGSIb3DQEBAQUABIIBAAmydCpmf6j+YqulXuptp5tBl0dz
+# XCqINWxP0f4rSRFhrJuRg5qfqH0HU6WJZ2rzt5pWssXSehI5Td1pO1q6De9OVdyJ
+# zFERn0eYLOnlw6M2ulHf81/EKeYS/fVDTYxFfvN0dPcZKsOzCsxplS3qGW7mpeI9
+# 4J2g5UXy6Az42snVM1GlZsurlmz8pthBApqLIIchX7KO3Vubxf3E6lOHo9wCVg9Y
+# asDfM/B3PYlez+VIqgdSKCAJMpNf4Mf/6UyZh/tOTdC/yQr3tCmtgVj2knC0ijPT
+# 8A+AsbvzrdBmVJGS1x2pg/KorpxtGSMMjhUuSFpsaIRYlMZtOUjfl/ta5zU=
 # SIG # End signature block
