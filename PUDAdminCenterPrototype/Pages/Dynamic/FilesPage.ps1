@@ -273,6 +273,7 @@ $FilesPageContent = {
 
         New-UDCollapsible -Id $CollapsibleId -Items {
             New-UDCollapsibleItem -Title "File System" -Icon laptop -Active -Endpoint {
+                <#
                 New-UDRow -Endpoint {
                     New-UDColumn -Size 3 -Endpoint {}
                     New-UDColumn -Size 6 -Endpoint {
@@ -295,10 +296,28 @@ $FilesPageContent = {
                     }
                     New-UDColumn -Size 3 -Endpoint {}
                 }
+                #>
 
                 New-UDRow -Endpoint {
+                    New-UDColumn -Size 4 -Endpoint {
+                        New-UDButton -Text "Parent Directory" -OnClick {
+                            #$NewRootDirTextBox = Get-UDElement -Id "NewRootDirTB"
+                            $FullPathToExplore = $Session:RootDirFilesStatic[0].FullName | Split-Path -Parent
+
+                            $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                $RootDirFiles = Get-ChildItem -Path $using:FullPathToExplore
+                    
+                                [pscustomobject]@{
+                                    RootDirFiles      = $RootDirFiles
+                                }
+                            }
+                            $Session:RootDirFilesStatic = $NewPathInfo.RootDirFiles
+                            $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirFiles = $Session:RootDirFilesStatic
+                            Sync-UDElement -Id "RootDirFilesUDGrid"
+                        }
+                    }
                     New-UDColumn -Size 12 -Endpoint {
-                        $RootFilesProperties = @("Name","FullPath","DateModified","Type","Size")
+                        $RootFilesProperties = @("Name","FullPath","DateModified","Type","Size","Explore")
                         $RootFilesUDGridSplatParams = @{
                             Id              = "RootDirFilesUDGrid"
                             Headers         = $RootFilesProperties
@@ -317,6 +336,23 @@ $FilesPageContent = {
                                     DateModified    = Get-Date $_.LastWriteTime -Format MM/dd/yy_hh:mm:ss
                                     Type            = if ($_.PSIsContainer) {"Folder"} else {"File"}
                                     Size            = if ($_.PSIsContainer) {'-'} else {[Math]::Round($($_.Length / 1KB),2).toString() + 'KB'}
+                                    Explore         = if (!$_.PSIsContainer) {'-'} else {
+                                        New-UDButton -Text "Explore" -OnClick {
+                                            #$NewRootDirTextBox = Get-UDElement -Id "NewRootDirTB"
+                                            $FullPathToExplore = $_.FullName
+                
+                                            $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                                $RootDirFiles = Get-ChildItem -Path $using:FullPathToExplore
+                                    
+                                                [pscustomobject]@{
+                                                    RootDirFiles      = $RootDirFiles
+                                                }
+                                            }
+                                            $Session:RootDirFilesStatic = $NewPathInfo.RootDirFiles
+                                            $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirFiles = $Session:RootDirFilesStatic
+                                            Sync-UDElement -Id "RootDirFilesUDGrid"
+                                        }
+                                    }
                                 }
                             } | Out-UDGridData
                         }

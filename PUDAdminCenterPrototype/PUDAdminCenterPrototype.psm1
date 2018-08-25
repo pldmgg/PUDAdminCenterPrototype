@@ -2462,6 +2462,7 @@ function Get-PUDAdminCenter {
     
             New-UDCollapsible -Id $CollapsibleId -Items {
                 New-UDCollapsibleItem -Title "File System" -Icon laptop -Active -Endpoint {
+                    <#
                     New-UDRow -Endpoint {
                         New-UDColumn -Size 3 -Endpoint {}
                         New-UDColumn -Size 6 -Endpoint {
@@ -2484,10 +2485,28 @@ function Get-PUDAdminCenter {
                         }
                         New-UDColumn -Size 3 -Endpoint {}
                     }
+                    #>
     
                     New-UDRow -Endpoint {
+                        New-UDColumn -Size 4 -Endpoint {
+                            New-UDButton -Text "Parent Directory" -OnClick {
+                                #$NewRootDirTextBox = Get-UDElement -Id "NewRootDirTB"
+                                $FullPathToExplore = $Session:RootDirFilesStatic[0].FullName | Split-Path -Parent
+    
+                                $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                    $RootDirFiles = Get-ChildItem -Path $using:FullPathToExplore
+                        
+                                    [pscustomobject]@{
+                                        RootDirFiles      = $RootDirFiles
+                                    }
+                                }
+                                $Session:RootDirFilesStatic = $NewPathInfo.RootDirFiles
+                                $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirFiles = $Session:RootDirFilesStatic
+                                Sync-UDElement -Id "RootDirFilesUDGrid"
+                            }
+                        }
                         New-UDColumn -Size 12 -Endpoint {
-                            $RootFilesProperties = @("Name","FullPath","DateModified","Type","Size")
+                            $RootFilesProperties = @("Name","FullPath","DateModified","Type","Size","Explore")
                             $RootFilesUDGridSplatParams = @{
                                 Id              = "RootDirFilesUDGrid"
                                 Headers         = $RootFilesProperties
@@ -2506,6 +2525,23 @@ function Get-PUDAdminCenter {
                                         DateModified    = Get-Date $_.LastWriteTime -Format MM/dd/yy_hh:mm:ss
                                         Type            = if ($_.PSIsContainer) {"Folder"} else {"File"}
                                         Size            = if ($_.PSIsContainer) {'-'} else {[Math]::Round($($_.Length / 1KB),2).toString() + 'KB'}
+                                        Explore         = if (!$_.PSIsContainer) {'-'} else {
+                                            New-UDButton -Text "Explore" -OnClick {
+                                                #$NewRootDirTextBox = Get-UDElement -Id "NewRootDirTB"
+                                                $FullPathToExplore = $_.FullName
+                    
+                                                $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                                    $RootDirFiles = Get-ChildItem -Path $using:FullPathToExplore
+                                        
+                                                    [pscustomobject]@{
+                                                        RootDirFiles      = $RootDirFiles
+                                                    }
+                                                }
+                                                $Session:RootDirFilesStatic = $NewPathInfo.RootDirFiles
+                                                $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirFiles = $Session:RootDirFilesStatic
+                                                Sync-UDElement -Id "RootDirFilesUDGrid"
+                                            }
+                                        }
                                     }
                                 } | Out-UDGridData
                             }
@@ -7265,8 +7301,8 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUQ1KrJgv5K/Hd1eyexzHZ0r5C
-# 21Wgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUy4N610O8mkYBdunsCz0ejrlu
+# 6Tygggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -7323,11 +7359,11 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFJcXXh6PklXYpByt
-# wvFeDBJS2hSxMA0GCSqGSIb3DQEBAQUABIIBADhkTwlM8+8s6yRROXJr+1Edx7cL
-# re77yNUFff+7K8q487YgYW1eJdDruj9oAOrrY4hirOvBPT++XQ5uKuw2LUfRRk1g
-# 18O8pBbaS0EDLXJKiUK2tuXzwtp91hwf2P9Jfqsp1UmAyVkljIhEfXsbeIQu74SW
-# iA22LAVZHDLnLc6n1s81MGOk8u8e23OLvGoCOE0EeOtYpITPYZGRJMYU4c21e5NO
-# XmymU30mGk1tq8RXROrown+kpic/APl4uJBijhlrLVFMt9j0ayX3joYDsz8m0DKV
-# 9DrEHsc0wh2pecAyyhOqpQb8hDCsrw1dp3Jm2cwNG0cvxA+gq6yNe09j1VY=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFMMtt0LL+ySxIRMm
+# pzXK3FgqBxigMA0GCSqGSIb3DQEBAQUABIIBAJ66aSwHUnMD3FVwp5vKMkA5Jr60
+# ygn3bKSoGcAih5R9vIRq1Fo/Rf0wI/yLV0SgfXhFj3TwyfKsvJ3qitCcbypY9xOn
+# dqbdWmuvyKt3ouEzd9u0GwIfhpV3y90tJzXuF9YRjgomJIO8ckqHXuMSw/TQLg+D
+# XZCa1NFK1sI3DYz58w41S9tLLDx+vY/UBtCmWXC3tv667/5Jb2ax+FYCnv/c58wx
+# s7sRw9RLiLx7+UhCROmgkebUGXleb+Rxaq0m/vDLx+YxZkYGWunm23v22tOSDmpi
+# fzSB9pWI81YAUmSfD8FsU46IogU9AtM44fFgTlfgqREt1+U1/ZUCt5KqFYI=
 # SIG # End signature block

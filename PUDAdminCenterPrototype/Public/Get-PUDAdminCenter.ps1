@@ -1583,6 +1583,7 @@ function Get-PUDAdminCenter {
     
             New-UDCollapsible -Id $CollapsibleId -Items {
                 New-UDCollapsibleItem -Title "File System" -Icon laptop -Active -Endpoint {
+                    <#
                     New-UDRow -Endpoint {
                         New-UDColumn -Size 3 -Endpoint {}
                         New-UDColumn -Size 6 -Endpoint {
@@ -1605,10 +1606,28 @@ function Get-PUDAdminCenter {
                         }
                         New-UDColumn -Size 3 -Endpoint {}
                     }
+                    #>
     
                     New-UDRow -Endpoint {
+                        New-UDColumn -Size 4 -Endpoint {
+                            New-UDButton -Text "Parent Directory" -OnClick {
+                                #$NewRootDirTextBox = Get-UDElement -Id "NewRootDirTB"
+                                $FullPathToExplore = $Session:RootDirFilesStatic[0].FullName | Split-Path -Parent
+    
+                                $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                    $RootDirFiles = Get-ChildItem -Path $using:FullPathToExplore
+                        
+                                    [pscustomobject]@{
+                                        RootDirFiles      = $RootDirFiles
+                                    }
+                                }
+                                $Session:RootDirFilesStatic = $NewPathInfo.RootDirFiles
+                                $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirFiles = $Session:RootDirFilesStatic
+                                Sync-UDElement -Id "RootDirFilesUDGrid"
+                            }
+                        }
                         New-UDColumn -Size 12 -Endpoint {
-                            $RootFilesProperties = @("Name","FullPath","DateModified","Type","Size")
+                            $RootFilesProperties = @("Name","FullPath","DateModified","Type","Size","Explore")
                             $RootFilesUDGridSplatParams = @{
                                 Id              = "RootDirFilesUDGrid"
                                 Headers         = $RootFilesProperties
@@ -1627,6 +1646,23 @@ function Get-PUDAdminCenter {
                                         DateModified    = Get-Date $_.LastWriteTime -Format MM/dd/yy_hh:mm:ss
                                         Type            = if ($_.PSIsContainer) {"Folder"} else {"File"}
                                         Size            = if ($_.PSIsContainer) {'-'} else {[Math]::Round($($_.Length / 1KB),2).toString() + 'KB'}
+                                        Explore         = if (!$_.PSIsContainer) {'-'} else {
+                                            New-UDButton -Text "Explore" -OnClick {
+                                                #$NewRootDirTextBox = Get-UDElement -Id "NewRootDirTB"
+                                                $FullPathToExplore = $_.FullName
+                    
+                                                $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                                    $RootDirFiles = Get-ChildItem -Path $using:FullPathToExplore
+                                        
+                                                    [pscustomobject]@{
+                                                        RootDirFiles      = $RootDirFiles
+                                                    }
+                                                }
+                                                $Session:RootDirFilesStatic = $NewPathInfo.RootDirFiles
+                                                $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirFiles = $Session:RootDirFilesStatic
+                                                Sync-UDElement -Id "RootDirFilesUDGrid"
+                                            }
+                                        }
                                     }
                                 } | Out-UDGridData
                             }
@@ -4908,8 +4944,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUknMz7ausKR2aHua9qKVfXcbJ
-# iCigggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUOTlwahdMIPVXG3MqmidvXnlN
+# Lvagggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -4966,11 +5002,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFAjn7m5/LKFsSAZm
-# fggZ0nfgWhPnMA0GCSqGSIb3DQEBAQUABIIBAJNoA9tS2BxS0oobvIuJolUh3l3j
-# G3IyAGHTijdPJ9kArPGH6962qLJjcj7hXfzbTUf74gmBvS8bE7gkTTuVnTl7ocAR
-# xUejKmcN/Xa+e5OTVkRxaD2s04snqjxEnoUiQo0q2vSSGaVHjX9VMdpSCpCYZxlK
-# QkyKogHaboeBCPwaO8IuOA3jDNhKILAycnCOrJRuIf54Rpn+rhExv+73xM6Eoqbj
-# kArkxeFziOjRqVQ9JPhgYEb7qZlWBWvNeIVo9zAgllHqYgMvtgffDwvLv4KKyN8L
-# d9685CZV52NFd+IQ91+frziDbmypukGpPH8tfv8rAEfGOOSlzaqhmmgjv+k=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFGU+9VKF77DaDu/l
+# payXym0Msk0HMA0GCSqGSIb3DQEBAQUABIIBAKLmBnLZRWk6tZSt3uqaHhBelRPg
+# r7M2Ch1wSGMUbEBO7AxNtjLJ+D8M3YnDQ2jD5o93ueWZJyv0E4d4pxm3SFSa1s0b
+# DpR0h+7hKvEKjcEc0MLKXCl4+rNAMdZwjkKc1Zg45etV3tgvJV9ZZ1KSU4oYONhI
+# 0KRoC0aMjJFxIfBJ9SHC60pYgd6ujZ73rARFsUFv8yujMvjHUprp4ipcS3CjSA1Y
+# Ly5XgpwGTFQrVtqDnCiwnKJcadKY9Bsx1vFXaCOnn4NZfTc8RtK2aawQuk7fSj39
+# 2lb+mYgrRcf6UAO6Y5QLkTysTH5af02CBd7JiNtPD9Mq3X/LRKVzYGCh6/I=
 # SIG # End signature block
