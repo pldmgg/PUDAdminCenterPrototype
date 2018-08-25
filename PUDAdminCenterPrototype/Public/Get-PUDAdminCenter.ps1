@@ -1627,7 +1627,7 @@ function Get-PUDAdminCenter {
                             New-UDElement -Id "NewRootDirTB" -Tag div -EndPoint {
                                 New-UDTextbox -Id "NewRootDirTBProper" -Label "New Directory"
                             }
-                            New-UDButton -Text "Explore" -Id "Button" -OnClick {
+                            New-UDButton -Text "Explore" -OnClick {
                                 $NewRootDirTextBox = Get-UDElement -Id "NewRootDirTBProper"
                                 $FullPathToExplore = $NewRootDirTextBox.Attributes['value']
     
@@ -2041,10 +2041,13 @@ function Get-PUDAdminCenter {
             #region >> Gather Some Initial Info From $RemoteHost
     
             $GetServerInventoryFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-ServerInventory" -and $_ -notmatch "function Get-PUDAdminCenter"}
+            #$GetEnvVarsFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-EnvironmentVariables" -and $_ -notmatch "function Get-PUDAdminCenter"}
             $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                 Invoke-Expression $using:GetServerInventoryFunc
+                #Invoke-Expression $using:GetEnvVarsFunc
                 
                 $SrvInv = Get-ServerInventory
+                #$EnvVars = Get-EnvironmentVariables
                 $RelevantNetworkInterfacesPrep = [System.Net.NetworkInformation.Networkinterface]::GetAllNetworkInterfaces() | Where-Object {
                     $_.NetworkInterfaceType -eq "Ethernet" -or $_.NetworkInterfaceType -match "Wireless" -and $_.OperationalStatus -eq "Up"
                 }
@@ -2061,10 +2064,12 @@ function Get-PUDAdminCenter {
                 [pscustomobject]@{
                     ServerInventoryStatic       = $SrvInv
                     RelevantNetworkInterfaces   = $RelevantNetworkInterfaces
+                    #EnvironmentVariables        = [pscustomobject]$EnvVars
                 }
             }
             $Session:ServerInventoryStatic = $StaticInfo.ServerInventoryStatic
             $Session:RelevantNetworkInterfacesStatic = $StaticInfo.RelevantNetworkInterfaces
+            #$Session:EnvironmentVariablesStatic = $StaticInfo.EnvironmentVariables
             if ($PUDRSSyncHT."$RemoteHost`Info".Overview.Keys -notcontains "ServerInventoryStatic") {
                 $PUDRSSyncHT."$RemoteHost`Info".Overview.Add("ServerInventoryStatic",$Session:ServerInventoryStatic)
             }
@@ -2077,6 +2082,14 @@ function Get-PUDAdminCenter {
             else {
                 $PUDRSSyncHT."$RemoteHost`Info".Overview.RelevantNetworkInterfaces = $Session:RelevantNetworkInterfacesStatic
             }
+            <#
+            if ($PUDRSSyncHT."$RemoteHost`Info".Overview.Keys -notcontains "EnvironmentVariablesStatic") {
+                $PUDRSSyncHT."$RemoteHost`Info".Overview.Add("EnvironmentVariablesStatic",$Session:EnvironmentVariablesStatic)
+            }
+            else {
+                $PUDRSSyncHT."$RemoteHost`Info".Overview.EnvironmentVariablesStatic = $Session:EnvironmentVariablesStatic
+            }
+            #>
     
             #endregion >> Gather Some Initial Info From $RemoteHost
     
@@ -2091,7 +2104,7 @@ function Get-PUDAdminCenter {
             New-UDRow -Endpoint {
                 New-UDColumn -Size 12 -Content {
                     New-UDCollapsible -Items {
-                        New-UDCollapsibleItem -Title "More Tools" -Icon laptop -Endpoint {
+                        New-UDCollapsibleItem -Title "More Tools" -Icon laptop -Active -Endpoint {
                             New-UDRow -Endpoint {
                                 foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
                                     New-UDColumn -Endpoint {
@@ -2116,6 +2129,7 @@ function Get-PUDAdminCenter {
     
                 $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
+                <#
                 if (!$Session:ServerInventoryStatic) {
                     # Gather Basic Info From $RemoteHost
                     $GetServerInventoryFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-ServerInventory" -and $_ -notmatch "function Get-PUDAdminCenter"}
@@ -2136,6 +2150,7 @@ function Get-PUDAdminCenter {
                         $PUDRSSyncHT."$RemoteHost`Info".Overview.ServerInventoryStatic = $Session:ServerInventoryStatic
                     }
                 }
+                #>
     
                 # Remove Existing Runspace for LiveDataRSInfo if it exists as well as the PSSession Runspace within
                 if ($PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo -ne $null) {
@@ -2202,7 +2217,7 @@ function Get-PUDAdminCenter {
                             @{ThreadsCount = $(Get-Counter "\Process(_total)\thread count").CounterSamples.CookedValue}
     
                             # Environment Variables
-                            @{EnvVars = [pscustomobject]@{EnvVarsCollection = Get-EnvironmentVariables}}
+                            #@{EnvVars = [pscustomobject]@{EnvVarsCollection = Get-EnvironmentVariables}}
     
                             # RAM Utilization
                             $OSInfo = Get-CimInstance Win32_OperatingSystem
@@ -2383,7 +2398,7 @@ function Get-PUDAdminCenter {
                 New-UDColumn -Size 3 -Endpoint {
                     $CollapsibleId = $RemoteHost + "EditComputerIDMenu"
                     New-UDCollapsible -Id $CollapsibleId -Items {
-                        New-UDCollapsibleItem -Title "Edit Computer ID" -Icon laptop -Active -Endpoint {
+                        New-UDCollapsibleItem -Title "Edit Computer ID" -Icon laptop -Endpoint {
                             New-UDInput -SubmitText "Edit Computer" -Id "ComputerIDForm" -Content {
                                 $HName = $PUDRSSyncHT."$RemoteHost`Info".Overview.ServerInventoryStatic.ComputerSystem.Name
                                 $DName = $PUDRSSyncHT."$RemoteHost`Info".Overview.ServerInventoryStatic.ComputerSystem.Domain
@@ -3033,48 +3048,142 @@ function Get-PUDAdminCenter {
                     $CollapsibleId = $RemoteHost + "Environment Variables"
                     New-UDCollapsible -Id $CollapsibleId -Items {
                         New-UDCollapsibleItem -Title "Environment Variables" -Icon laptop -Endpoint {
-                            #region >> Main
-    
                             New-UDRow -Endpoint {
                                 New-UDColumn -Size 12 -Endpoint {
-                                    $EnvVarGridEndpoint = {
+                                    $EnvVarsUdGridSplatParams = @{
+                                        Title           = "Environment Variables"
+                                        Id              = "EnvVarsGrid"
+                                        Headers         = @("Type","Name","Value")
+                                        Properties      = @("Type","Name","Value")
+                                        PageSize        = 10
+                                    }
+                                    New-UdGrid @EnvVarsUdGridSplatParams -Endpoint {
                                         $PUDRSSyncHT = $global:PUDRSSyncHT
     
                                         $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
-                                        $EnvVarsLiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Count
-                                        if ($EnvVarsLiveOutputCount -gt 0) {
-                                            # Clone the LiveOutput ArrayList Object because if we try to Enumerate (using Where-Object or other method) while elements are
-                                            # being added/removed from the ArrayList, things break
-                                            #$EnvVarsLiveOutputClone = $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.LiveOutput.Clone()
-    
-                                            $ArrayOfEnvVarsEntries = @(
-                                                $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataTracker.Previous.EnvVars
-                                            ) | Where-Object {$_ -ne $null}
-                                            if ($ArrayOfEnvVarsEntries.Count -gt 0) {
-                                                $EnvironmentVariables = $ArrayOfEnvVarsEntries[-1].EnvVarsCollection
-                                                $EnvVariableGridData = $EnvironmentVariables | foreach {[pscustomobject]$_} | Out-UDGridData
+                                        $GetEnvVarsFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-EnvironmentVariables" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                                        $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                            Invoke-Expression $using:GetEnvVarsFunc
+                                            
+                                            $EnvVars = Get-EnvironmentVariables
+                                            
+                                            [pscustomobject]@{
+                                                EnvironmentVariables        = [pscustomobject]$EnvVars
                                             }
                                         }
-                                        if (!$EnvVariableGridData) {
-                                            $EnvVariableGridData = [pscustomobject]@{Type = "Collecting Info";Name = "Collecting Info";Value = "Collecting Info"} | Out-UDGridData
+                                        $Session:EnvironmentVariablesStatic = $StaticInfo.EnvironmentVariables
+                                        if ($PUDRSSyncHT."$RemoteHost`Info".Overview.Keys -notcontains "EnvironmentVariablesStatic") {
+                                            $PUDRSSyncHT."$RemoteHost`Info".Overview.Add("EnvironmentVariablesStatic",$Session:EnvironmentVariablesStatic)
+                                        }
+                                        else {
+                                            $PUDRSSyncHT."$RemoteHost`Info".Overview.EnvironmentVariablesStatic = $Session:EnvironmentVariablesStatic
+                                        }
+    
+                                        $Session:EnvironmentVariablesStatic | Out-UDGridData
+                                    }
+                                }
+                            }
+    
+                            New-UDRow -Endpoint {
+                                New-UDColumn -Size 3 -Endpoint {}
+                                New-UDColumn -Size 6 -Endpoint {
+                                    New-UDHeading -Text "Modify Environment Variables" -Size 5
+                                    
+                                    New-UDTextbox -Id "EnvVarName" -Label "Current Name"
+                                    New-UDTextbox -Id "EnvVarNewName" -Label "New Name"
+                                    New-UDTextbox -Id "EnvVarValue" -Label "Value"
+                                    New-UDSelect -Id "EnvVarType" -Label "Type" -Option {
+                                        New-UDSelectOption -Name "User" -Value "User" -Selected
+                                        New-UDSelectOption -Name "Machine" -Value "Machine"
+                                    }
+                                    
+                                    
+                                    New-UDButton -Text "New" -OnClick {
+                                        $EnvVarNameTextBox = Get-UDElement -Id "EnvVarName"
+                                        $EnvVarValueTextBox = Get-UDElement -Id "EnvVarValue"
+                                        $EnvVarTypeSelection = Get-UDElement -Id "EnvVarType"
+    
+                                        $EnvVarName = $EnvVarNameTextBox.Attributes['value']
+                                        $EnvVarValue = $EnvVarValueTextBox.Attributes['value']
+                                        $EnvVarType = $($EnvVarTypeSelection.Content | foreach {
+                                            $_.ToString() | ConvertFrom-Json
+                                        } | Where-Object {$_.attributes.selected.isPresent}).attributes.value
+    
+                                        $PUDRSSyncHT."$RemoteHost`Info".Overview.Add("EnvVarInfo",@{})
+                                        $PUDRSSyncHT."$RemoteHost`Info".Overview.EnvVarInfo.Add("EnvVarTypeObject",$EnvVarTypeSelection)
+                                        $PUDRSSyncHT."$RemoteHost`Info".Overview.EnvVarInfo.Add("EnvVarName",$EnvVarName)
+                                        $PUDRSSyncHT."$RemoteHost`Info".Overview.EnvVarInfo.Add("EnvVarValue",$EnvVarValue)
+                                        $PUDRSSyncHT."$RemoteHost`Info".Overview.EnvVarInfo.Add("EnvVarType",$EnvVarType)
+                                        $PUDRSSyncHT."$RemoteHost`Info".Overview.EnvVarInfo.Add("RemoteHost",$RemoteHost)
+                                        $PUDRSSyncHT."$RemoteHost`Info".Overview.EnvVarInfo.Add("CredsUserName",$($Session:CredentialHT.$RemoteHost.PSRemotingCreds.UserName))
+                                        
+                                        $NewEnvVarFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function New-EnvironmentVariable" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                                        $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                            Invoke-Expression $using:NewEnvVarFunc
+                                            New-EnvironmentVariable -name $using:EnvVarName -value $using:EnvVarValue -type $using:EnvVarType
+                                        }
+    
+                                        Sync-UDElement -Id "EnvVarsGrid"
+                                    }
+    
+                                    New-UDButton -Text "Remove" -OnClick {
+                                        $EnvVarNameTextBox = Get-UDElement -Id "EnvVarName"
+                                        $EnvVarValueTextBox = Get-UDElement -Id "EnvVarValue"
+                                        $EnvVarTypeSelection = Get-UDElement -Id "EnvVarType"
+    
+                                        $EnvVarName = $EnvVarNameTextBox.Attributes['value']
+                                        $EnvVarValue = $EnvVarValueTextBox.Attributes['value']
+                                        $EnvVarType = $EnvVarTypeTextBox.Attributes['value']
+    
+                                        $RemoveEnvVarFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Remove-EnvironmentVariable" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                                        $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                            Invoke-Expression $using:RemoveEnvVarFunc
+                                            Remove-EnvironmentVariable -name $using:EnvVarName -type $using:EnvVarType
                                         }
                                         
-                                        $EnvVariableGridData
+                                        Sync-UDElement -Id "EnvVarsGrid"
                                     }
-                                    $EnvVarsUdGridSplatParams = @{
-                                        Title           = "Environment Variables"
-                                        Headers         = @("Type","Name","Value")
-                                        NoPaging        = $True
-                                        Properties      = @("Type","Name","Value")
-                                        AutoRefresh     = $True
-                                        RefreshInterval = 5
-                                        Endpoint        = $EnvVarGridEndpoint
+    
+                                    New-UDButton -Text "Edit" -OnClick {
+                                        $EnvVarNameTextBox = Get-UDElement -Id "EnvVarName"
+                                        $EnvVarNewNameTextBox = Get-UDElement -Id "EnvVarNewName"
+                                        $EnvVarValueTextBox = Get-UDElement -Id "EnvVarValue"
+                                        $EnvVarTypeSelection = Get-UDElement -Id "EnvVarType"
+    
+                                        $EnvVarName = $EnvVarNameTextBox.Attributes['value']
+                                        $EnvVarNewName = $EnvVarNewNameTextBox.Attributes['value']
+                                        $EnvVarValue = $EnvVarValueTextBox.Attributes['value']
+                                        $EnvVarType = $EnvVarTypeTextBox.Attributes['value']
+    
+                                        $SetEnvVarFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Set-EnvironmentVariable" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                                        $SetEnvVarSplatParams = @{
+                                            oldName     = $EnvVarName
+                                            type        = $EnvVarType
+                                        }
+                                        if ($EnvVarValue) {
+                                            $SetEnvVarSplatParams.Add("value",$EnvVarValue)
+                                        }
+                                        if ($EnvVarNewName) {
+                                            $SetEnvVarSplatParams.Add("newName",$EnvVarNewName)
+                                        }
+                                        else {
+                                            $SetEnvVarSplatParams.Add("newName",$EnvVarName)
+                                        }
+    
+                                        # NOTE: Set-EnvironmentVariable outputs @{Status = "Succcess"} otherwise, Error
+                                        $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                            Invoke-Expression $using:SetEnvVarFunc
+                                            $SplatParams = $args[0]
+                                            Set-EnvironmentVariable @SplatParams
+                                        } -ArgumentList $SetEnvVarSplatParams
+                                        
+                                        Sync-UDElement -Id "EnvVarsGrid"
                                     }
-                                    New-UdGrid @EnvVarsUdGridSplatParams
                                 }
                             }
                             
+                            <#
                             New-UDRow -Endpoint {
                                 New-UDColumn -Size 4 -Endpoint {
                                     New-UDInput -Title "New Environment Variable" -SubmitText "Add" -Content {
@@ -3117,13 +3226,6 @@ function Get-PUDAdminCenter {
                                         Start-Sleep -Seconds 2
     
                                         # Reload the page
-                                        <#
-                                        New-UDInputAction -Content @(
-                                            Add-UDElement -ParentId "RedirectParent" -Content {
-                                                New-UDHtml -Markup "<meta http-equiv=`"refresh`" content=`"0; URL='/Overview/$RemoteHost'`" />"
-                                            }
-                                        )
-                                        #>
                                         Invoke-UDRedirect -Url "/Overview/$RemoteHost"
     
                                         #endregion >> SubMain
@@ -3170,13 +3272,6 @@ function Get-PUDAdminCenter {
                                         Start-Sleep -Seconds 2
     
                                         # Reload the page
-                                        <#
-                                        New-UDInputAction -Content @(
-                                            Add-UDElement -ParentId "RedirectParent" -Content {
-                                                New-UDHtml -Markup "<meta http-equiv=`"refresh`" content=`"0; URL='/Overview/$RemoteHost'`" />"
-                                            }
-                                        )
-                                        #>
                                         Invoke-UDRedirect -Url "/Overview/$RemoteHost"
     
                                         #endregion >> SubMain
@@ -3241,20 +3336,13 @@ function Get-PUDAdminCenter {
                                         Start-Sleep -Seconds 2
     
                                         # Reload the page
-                                        <#
-                                        New-UDInputAction -Content @(
-                                            Add-UDElement -ParentId "RedirectParent" -Content {
-                                                New-UDHtml -Markup "<meta http-equiv=`"refresh`" content=`"0; URL='/Overview/$RemoteHost'`" />"
-                                            }
-                                        )
-                                        #>
                                         Invoke-UDRedirect -Url "/Overview/$RemoteHost"
     
                                         #endregion >> SubMain
                                     }
                                 }
                             }
-    
+                            #>
                             #endregion >> Main
                         }
                     }
@@ -4997,8 +5085,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUaOh54OCQYau7qfzJL2E18GO3
-# S02gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUIy5WlUW4m7gmYtVmzNjLTkOZ
+# pkKgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -5055,11 +5143,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFANpEYGLQhNyYtxd
-# wGjXf4szy+AkMA0GCSqGSIb3DQEBAQUABIIBAJdPbU8Af/PYghN1rZB7YMeowzND
-# wGowdP5uPsrT0Kj6vxJ2U4wtFggNdtlNOPDiFEoHF7wJ4rf4VnLvTlBj2rWPWYCa
-# Wlx4HG+x16uyl2tds3avoivcOFVrj2CcWkpBdBwbyDoHiZqjgFPJtdF6oNVxin+/
-# ktvTVYfWn5833d41WQ9KChPU55Wwzu738q2v7dgI/iAynFFyo1FLmG1rNXVXSZqa
-# XnPbLHjvM9jetKSJxSrow37ZuwRDg/Wm9xoiOvqloPj9KMdIffsHbrmqQBKGVDvy
-# 76bNf1n1/GPyYaHqtFQl45UAjz9g70crrpuX/MHDDVj0eTp45b041tbFtJQ=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFJOVXt3ISvACwgok
+# owT6ynT4I+GKMA0GCSqGSIb3DQEBAQUABIIBADwyJaVuIEaSIwXhuBj+Ca7C0dOl
+# e+5pBtVNaLRjIPXaF3ieEZ8lo2IKbxFi+ZQ1HWAGOvqlR0yvx33uCL0VQGaFdM8k
+# /wMXURfUAuBAeTogl7nPuWvMC3TGEtG1ml073rhU535aOTJZu8HspXiMDIhDcOvk
+# uQ/Pagij1IvcPgsWwiUHNQTQ7+2Pzo6S3kwB7ZN1RuwzouKBCeKtM3pMZBYcAwO1
+# 7ZxZIU9ULdLCFvC06FjYx0s211xjV6c9LsqmnQdi4otJpvJotz5vw5tMljphFruG
+# f5CH7E40lO6n2DJaUQun0FX//VR+4mL6MWCi+4zNxhAlhcg/x0K1Qxfbp4c=
 # SIG # End signature block

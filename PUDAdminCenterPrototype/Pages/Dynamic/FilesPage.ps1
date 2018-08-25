@@ -317,7 +317,7 @@ $FilesPageContent = {
                         New-UDElement -Id "NewRootDirTB" -Tag div -EndPoint {
                             New-UDTextbox -Id "NewRootDirTBProper" -Label "New Directory"
                         }
-                        New-UDButton -Text "Explore" -Id "Button" -OnClick {
+                        New-UDButton -Text "Explore" -OnClick {
                             $NewRootDirTextBox = Get-UDElement -Id "NewRootDirTBProper"
                             $FullPathToExplore = $NewRootDirTextBox.Attributes['value']
 
