@@ -2328,20 +2328,29 @@ function Get-PUDAdminCenter {
     
             #region >> Gather Some Initial Info From $RemoteHost
     
-            if (!$Session:RootDirFilesStatic) {
+            if (!$Session:RootDirChildItems) {
                 $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                    $RootDirFiles = Get-ChildItem -Path "$env:SystemDrive\"
+                    $RootDirChildItems = Get-ChildItem -Path "$env:SystemDrive\"
+                    $RootDirItem = Get-Item -Path "$env:SystemDrive\"
     
                     [pscustomobject]@{
-                        RootDirFiles      = $RootDirFiles
+                        RootDirItem             = $RootDirItem
+                        RootDirChildItems      = $RootDirChildItems
                     }
                 }
-                $Session:RootDirFilesStatic = $StaticInfo.RootDirFiles
-                if ($PUDRSSyncHT."$RemoteHost`Info".Files.Keys -notcontains "RootDirFiles") {
-                    $PUDRSSyncHT."$RemoteHost`Info".Files.Add("RootDirFiles",$Session:RootDirFilesStatic)
+                $Session:RootDirChildItems = $StaticInfo.RootDirChildItems
+                $Session:RootDirItem = $StaticInfo.RootDirItem
+                if ($PUDRSSyncHT."$RemoteHost`Info".Files.Keys -notcontains "RootDirChildItems") {
+                    $PUDRSSyncHT."$RemoteHost`Info".Files.Add("RootDirChildItems",$StaticInfo.RootDirChildItems)
                 }
                 else {
-                    $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirFiles = $Session:RootDirFilesStatic
+                    $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirChildItems = $StaticInfo.RootDirChildItems
+                }
+                if ($PUDRSSyncHT."$RemoteHost`Info".Files.Keys -notcontains "RootDirItem") {
+                    $PUDRSSyncHT."$RemoteHost`Info".Files.Add("RootDirItem",$StaticInfo.RootDirItem)
+                }
+                else {
+                    $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirChildItems = $StaticInfo.RootDirItem
                 }
             }
     
@@ -2472,15 +2481,15 @@ function Get-PUDAdminCenter {
                                 $FullPathToExplore = $NewRootDirTextBox.Attributes['value']
     
                                 $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                                    $RootDirFiles = Get-ChildItem -Path $using:FullPathToExplore
+                                    $RootDirChildItems = Get-ChildItem -Path $using:FullPathToExplore
                         
                                     [pscustomobject]@{
-                                        RootDirFiles      = $RootDirFiles
+                                        RootDirChildItems      = $RootDirChildItems
                                     }
                                 }
-                                $Session:RootDirFilesStatic = $NewPathInfo.RootDirFiles
-                                $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirFiles = $Session:RootDirFilesStatic
-                                Sync-UDElement -Id "RootDirFilesUDGrid"
+                                $Session:RootDirChildItems = $NewPathInfo.RootDirChildItems
+                                $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirChildItems = $Session:RootDirChildItems
+                                Sync-UDElement -Id "RootDirChildItemsUDGrid"
                             }
                         }
                         New-UDColumn -Size 3 -Endpoint {}
@@ -2488,27 +2497,52 @@ function Get-PUDAdminCenter {
                     #>
     
                     New-UDRow -Endpoint {
-                        New-UDColumn -Size 4 -Endpoint {
-                            New-UDButton -Text "Parent Directory" -OnClick {
-                                #$NewRootDirTextBox = Get-UDElement -Id "NewRootDirTB"
-                                $FullPathToExplore = $Session:RootDirFilesStatic[0].FullName | Split-Path -Parent
+                        New-UDColumn -Endpoint {
+                            New-UDTextbox -Label "Current Directory" -Id "NewRootDirTB" -Placeholder "Directory to Explore" -Value $Session:RootDirItem.FullName
+                            New-UDButton -Text "Explore" -Id "Button" -OnClick {
+                                $NewRootDirTextBox = Get-UDElement -Id "NewRootDirTB"
+                                $FullPathToExplore = $NewRootDirTextBox.Attributes['value']
     
                                 $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                                    $RootDirFiles = Get-ChildItem -Path $using:FullPathToExplore
-                        
+                                    $RootDirChildItems = Get-ChildItem -Path $args[0]
+                                    $RootDirItem = Get-Item -Path $args[0]
+    
                                     [pscustomobject]@{
-                                        RootDirFiles      = $RootDirFiles
+                                        RootDirItem            = $RootDirItem
+                                        RootDirChildItems      = $RootDirChildItems
                                     }
-                                }
-                                $Session:RootDirFilesStatic = $NewPathInfo.RootDirFiles
-                                $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirFiles = $Session:RootDirFilesStatic
-                                Sync-UDElement -Id "RootDirFilesUDGrid"
+                                } -ArgumentList $FullPathToExplore
+                                $Session:RootDirChildItems = $NewPathInfo.RootDirChildItems
+                                $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirChildItems = $NewPathInfo.RootDirChildItems
+                                $Session:RootDirItem = $NewPathInfo.RootDirItem
+                                $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirItem = $NewPathInfo.RootDirItem
+                                Sync-UDElement -Id "RootDirChildItemsUDGrid"
+                                Sync-UDElement -Id "NewRootDirTB"
                             }
-                        }
-                        New-UDColumn -Size 12 -Endpoint {
+    
+                            New-UDButton -Text "Parent Directory" -OnClick {
+                                $FullPathToExplore = $Session:RootDirItem.FullName
+    
+                                $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                    $RootDirChildItems = Get-ChildItem -Path $args[0]
+                                    $RootDirItem = Get-Item -Path $args[0]
+    
+                                    [pscustomobject]@{
+                                        RootDirItem            = $RootDirItem
+                                        RootDirChildItems      = $RootDirChildItems
+                                    }
+                                } -ArgumentList $FullPathToExplore
+                                $Session:RootDirChildItems = $NewPathInfo.RootDirChildItems
+                                $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirChildItems = $NewPathInfo.RootDirChildItems
+                                $Session:RootDirItem = $NewPathInfo.RootDirItem
+                                $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirItem = $NewPathInfo.RootDirItem
+                                Sync-UDElement -Id "RootDirChildItemsUDGrid"
+                                Sync-UDElement -Id "NewRootDirTB"
+                            }
+    
                             $RootFilesProperties = @("Name","FullPath","DateModified","Type","Size","Explore")
                             $RootFilesUDGridSplatParams = @{
-                                Id              = "RootDirFilesUDGrid"
+                                Id              = "RootDirChildItemsUDGrid"
                                 Headers         = $RootFilesProperties
                                 Properties      = $RootFilesProperties
                                 PageSize        = 20
@@ -2518,7 +2552,7 @@ function Get-PUDAdminCenter {
     
                                 $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
-                                $Session:RootDirFilesStatic | foreach {
+                                $Session:RootDirChildItems | foreach {
                                     [pscustomobject]@{
                                         Name            = $_.Name
                                         FullPath        = $_.FullName
@@ -2531,15 +2565,20 @@ function Get-PUDAdminCenter {
                                                 $FullPathToExplore = $_.FullName
                     
                                                 $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                                                    $RootDirFiles = Get-ChildItem -Path $using:FullPathToExplore
-                                        
+                                                    $RootDirChildItems = Get-ChildItem -Path $args[0]
+                                                    $RootDirItem = Get-Item -Path $args[0]
+    
                                                     [pscustomobject]@{
-                                                        RootDirFiles      = $RootDirFiles
+                                                        RootDirItem            = $RootDirItem
+                                                        RootDirChildItems      = $RootDirChildItems
                                                     }
-                                                }
-                                                $Session:RootDirFilesStatic = $NewPathInfo.RootDirFiles
-                                                $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirFiles = $Session:RootDirFilesStatic
-                                                Sync-UDElement -Id "RootDirFilesUDGrid"
+                                                } -ArgumentList $FullPathToExplore
+                                                $Session:RootDirChildItems = $NewPathInfo.RootDirChildItems
+                                                $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirChildItems = $NewPathInfo.RootDirChildItems
+                                                $Session:RootDirItem = $NewPathInfo.RootDirItem
+                                                $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirItem = $NewPathInfo.RootDirItem
+                                                Sync-UDElement -Id "RootDirChildItemsUDGrid"
+                                                Sync-UDElement -Id "NewRootDirTB"
                                             }
                                         }
                                     }
@@ -2573,16 +2612,16 @@ function Get-PUDAdminCenter {
     
                 try {
                     $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                        $RootDirFiles = Get-ChildItem -Path $using:FullPathToExplore
+                        $RootDirChildItems = Get-ChildItem -Path $using:FullPathToExplore
             
                         [pscustomobject]@{
-                            RootDirFiles      = $RootDirFiles
+                            RootDirChildItems      = $RootDirChildItems
                         }
                     }
-                    $Session:RootDirFilesStatic = $NewPathInfo.RootDirFiles
-                    $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirFiles = $Session:RootDirFilesStatic
+                    $Session:RootDirChildItems = $NewPathInfo.RootDirChildItems
+                    $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirChildItems = $Session:RootDirChildItems
     
-                    Sync-UDElement -Id "RootDirFilesUDGrid"
+                    Sync-UDElement -Id "RootDirChildItemsUDGrid"
     
                     #Invoke-UDRedirect -Url "/Files/$RemoteHost"
                 }
@@ -2604,7 +2643,7 @@ function Get-PUDAdminCenter {
                         New-UDColumn -Size 12 -Endpoint {
                             $RootFilesProperties = @("Name","FullPath","DateModified","Type","Size")
                             $RootFilesUDGridSplatParams = @{
-                                Id              = "RootDirFilesUDGrid"
+                                Id              = "RootDirChildItemsUDGrid"
                                 Headers         = $RootFilesProperties
                                 Properties      = $RootFilesProperties
                                 PageSize        = 20
@@ -2614,7 +2653,7 @@ function Get-PUDAdminCenter {
     
                                 $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
-                                $Session:RootDirFilesStatic | foreach {
+                                $Session:RootDirChildItems | foreach {
                                     [pscustomobject]@{
                                         Name            = $_.Name
                                         FullPath        = $_.FullName
@@ -2652,16 +2691,16 @@ function Get-PUDAdminCenter {
     
                                 try {
                                     $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                                        $RootDirFiles = Get-ChildItem -Path $using:FullPathToExplore
+                                        $RootDirChildItems = Get-ChildItem -Path $using:FullPathToExplore
                             
                                         [pscustomobject]@{
-                                            RootDirFiles      = $RootDirFiles
+                                            RootDirChildItems      = $RootDirChildItems
                                         }
                                     }
-                                    $Session:RootDirFilesStatic = $NewPathInfo.RootDirFiles
-                                    $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirFiles = $Session:RootDirFilesStatic
+                                    $Session:RootDirChildItems = $NewPathInfo.RootDirChildItems
+                                    $PUDRSSyncHT."$RemoteHost`Info".Files.RootDirChildItems = $Session:RootDirChildItems
     
-                                    Sync-UDElement -Id "RootDirFilesUDGrid"
+                                    Sync-UDElement -Id "RootDirChildItemsUDGrid"
     
                                     #Invoke-UDRedirect -Url "/Files/$RemoteHost"
                                 }
@@ -2677,7 +2716,7 @@ function Get-PUDAdminCenter {
                     }
     
                     New-UDButton -Text "SyncFileGrid" -Id "Button" -OnClick {
-                        Sync-UDElement -Id "RootDirFilesUDGrid"
+                        Sync-UDElement -Id "RootDirChildItemsUDGrid"
                     }
     
                     #endregion >> Main
@@ -7301,8 +7340,8 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUy4N610O8mkYBdunsCz0ejrlu
-# 6Tygggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU9j9zxvSV15yybleGuyMbuYMw
+# wBWgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -7359,11 +7398,11 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFMMtt0LL+ySxIRMm
-# pzXK3FgqBxigMA0GCSqGSIb3DQEBAQUABIIBAJ66aSwHUnMD3FVwp5vKMkA5Jr60
-# ygn3bKSoGcAih5R9vIRq1Fo/Rf0wI/yLV0SgfXhFj3TwyfKsvJ3qitCcbypY9xOn
-# dqbdWmuvyKt3ouEzd9u0GwIfhpV3y90tJzXuF9YRjgomJIO8ckqHXuMSw/TQLg+D
-# XZCa1NFK1sI3DYz58w41S9tLLDx+vY/UBtCmWXC3tv667/5Jb2ax+FYCnv/c58wx
-# s7sRw9RLiLx7+UhCROmgkebUGXleb+Rxaq0m/vDLx+YxZkYGWunm23v22tOSDmpi
-# fzSB9pWI81YAUmSfD8FsU46IogU9AtM44fFgTlfgqREt1+U1/ZUCt5KqFYI=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFCbzLVNLQtFvYQo9
+# NZWafCssL2lpMA0GCSqGSIb3DQEBAQUABIIBAL1Htt674SAZjoU/UAwmhti04deL
+# IECT+QOCEok5FySkwH5kPpR3SLss+oncFspHgUP61WEhPlCXG3QCtRQhFWkerKTD
+# ROuhG2+9CNVnUuS6kS3EgHr0TwonLBsz0mm7cPQ69RruQqE/RuW6kJEGfv4N9hWb
+# MI+hQg5n4wYGNJY79ltc4gx7Nkcz2Stv2iTiP5iloH27s+oUY9/jsA7NGt/ocPIS
+# I+N3ncCsC7k6ZTklq/m4ehwJyhkfR5dUnZs2/R/CBZv32CMbnvlFw+TOAtato2yy
+# 1LfRsq0+gVXsgso+0wNYsq3q0JfzrfbOZgtkcSltMisgtUXPbKBfWo9+6No=
 # SIG # End signature block
