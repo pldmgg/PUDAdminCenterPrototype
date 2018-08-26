@@ -143,46 +143,48 @@ $UsersAndGroupsPageContent = {
         $GetLocalGroupsFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-LocalGroups" -and $_ -notmatch "function Get-PUDAdminCenter"}
         $GetLocalGroupUsersFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-LocalGroupUsers" -and $_ -notmatch "function Get-PUDAdminCenter"}
         $GetLocalUserBelongGroupsFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-LocalUserBelongGroups" -and $_ -notmatch "function Get-PUDAdminCenter"}
-        $using:FunctionsToLoad = @($GetLocalUsersFunc,$GetLocalGroupsFunc,$GetLocalGroupUsersFunc,$GetLocalUserBelongGroupsFunc)
+        $FunctionsToLoad = @($GetLocalUsersFunc,$GetLocalGroupsFunc,$GetLocalGroupUsersFunc,$GetLocalUserBelongGroupsFunc)
         $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
             $using:FunctionsToLoad | foreach {Invoke-Expression $_}
 
-            $LocalUsersInfo = Get-LocalUsers
-            $LocalGroupsInfo = Get-LocalGroups
-
-            AccountExpires         :
-            Description            :
-            Enabled                : True
-            FullName               : pdadmin
-            LastLogon              : 1/23/2018 3:18:03 PM
-            Name                   : pdadmin
-            ObjectClass            : User
-            PasswordChangeableDate : 1/23/2018 3:31:28 PM
-            PasswordExpires        : 3/24/2018 4:31:28 PM
-            PasswordLastSet        : 1/23/2018 3:31:28 PM
-            PasswordRequired       : True
-            SID                    : S-1-5-21-1449244872-1203980509-2053278225-1000
-            UserMayChangePassword  : True
-            
+            $LocalUsersInfo = Get-LocalUsers | foreach {
+                [pscustomobject]@{
+                    AccountExpires          = if ($_.AccountExpires) {$_.AccountExpires.ToString()} else {$null}
+                    Description             = $_.Description
+                    Enabled                 = $_.Enabled
+                    FullName                = $_.FullName
+                    LastLogon               = if ($_.LastLogon) {$_.LastLogon.ToString()} else {$null}
+                    Name                    = $_.Name
+                    GroupMembership         = $_.GroupMembership
+                    ObjectClass             = $_.ObjectClass
+                    PasswordChangeableDate  = if ($_.PasswordChangeableDate) {$_.PasswordChangeableDate.ToString()} else {$null}
+                    PasswordExpires         = if ($_.PasswordExpires) {$_.PasswordExpires.ToString()} else {$null}
+                    PasswordLastSet         = if ($_.PasswordLastSet) {$_.PasswordLastSet.ToString()} else {$null}
+                    PasswordRequired        = $_.PasswordRequired
+                    SID                     = $_.SID.Value
+                    UserMayChangePassword   = $_.UserMayChangePassword
+                }
+            }
+            $LocalGroupsInfo = Get-LocalGroups 
 
             [pscustomobject]@{
-                UsersAndGroupsummary          = $UsersAndGroupsummary
-                AllUsersAndGroups             = [pscustomobject]$AllUsersAndGroups
+                LocalUsers      = $LocalUsersInfo
+                LocalGroups     = $LocalGroupsInfo
             }
         }
-        $Session:UsersAndGroupsSummaryStatic = $StaticInfo.UsersAndGroupsummary
-        $Session:AllUsersAndGroupssStatic = $StaticInfo.AllUsersAndGroups
-        if ($PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.Keys -notcontains "UsersAndGroupsSummary") {
-            $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.Add("UsersAndGroupsSummary",$Session:UsersAndGroupsSummaryStatic)
+        $Session:LocalUsersStatic = $StaticInfo.LocalUsers
+        $Session:LocalGroupsStatic = $StaticInfo.LocalGroups
+        if ($PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.Keys -notcontains "LocalUsers") {
+            $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.Add("LocalUsers",$Session:LocalUsersStatic)
         }
         else {
-            $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.UsersAndGroupsSummary = $Session:UsersAndGroupsSummaryStatic
+            $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LocalUsers = $Session:LocalUsersStatic
         }
-        if ($PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.Keys -notcontains "AllUsersAndGroupss") {
-            $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.Add("AllUsersAndGroupss",$Session:AllUsersAndGroupssStatic)
+        if ($PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.Keys -notcontains "LocalGroups") {
+            $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.Add("LocalGroups",$Session:LocalGroupsStatic)
         }
         else {
-            $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.AllUsersAndGroupss = $Session:AllUsersAndGroupssStatic
+            $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LocalGroups = $Session:LocalGroupsStatic
         }
 
         #endregion >> Gather Some Initial Info From $RemoteHost
@@ -216,6 +218,7 @@ $UsersAndGroupsPageContent = {
 
         #region >> Setup LiveData
 
+        <#
         New-UDColumn -Endpoint {
             $PUDRSSyncHT = $global:PUDRSSyncHT
 
@@ -293,6 +296,7 @@ $UsersAndGroupsPageContent = {
             # to get the latest data from $RemoteHost.
             $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LiveDataRSInfo = $RSSyncHash."UsersAndGroups$RemoteHost`LiveDataResult"
         }
+        #>
 
         #endregion >> Setup LiveData
 
@@ -300,54 +304,102 @@ $UsersAndGroupsPageContent = {
 
         # Static Data Element Example
 
-        $AllUsersAndGroupssProperties = @("UsersAndGroupsificateName","FriendlyName","Subject","Issuer","Path","Status","PrivateKey","PublicKey","NotBefore","NotAfter")
-        $AllUsersAndGroupssUDTableSplatParams = @{
-            Headers         = $AllUsersAndGroupssProperties
-            Properties      = $AllUsersAndGroupssProperties
-            PageSize        = 5
+        #$LocalUsersProperties = @("Name","FullName","SID","Enabled","GroupMembership","LastLogon","PasswordChangeableDate","PasswordExpires","PasswordLastSet","PasswordRequired","UserMayChangePassword")
+        $LocalUsersProperties = @("Name","Enabled","GroupMembership","LastLogon","AccountExpires","PasswordChangeableDate","PasswordExpires","UserMayChangePassword")
+        $LocalUsersUDGridSplatParams = @{
+            Title           = "Local Users"
+            Headers         = $LocalUsersProperties
+            Properties      = $LocalUsersProperties
+            PageSize        = 10
         }
-        New-UDGrid @AllUsersAndGroupssUDTableSplatParams -Endpoint {
+        New-UDGrid @LocalUsersUDGridSplatParams -Endpoint {
             $PUDRSSyncHT = $global:PUDRSSyncHT
 
             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
 
-            $AllUsersAndGroupssGridData = $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.AllUsersAndGroupss | Out-UDGridData
+            $GetLocalUsersFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-LocalUsers" -and $_ -notmatch "function Get-PUDAdminCenter"}
+            $GetLocalUserBelongGroupsFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-LocalUserBelongGroups" -and $_ -notmatch "function Get-PUDAdminCenter"}
+            $FunctionsToLoad = @($GetLocalUsersFunc,$GetLocalUserBelongGroupsFunc)
+            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                $using:FunctionsToLoad | foreach {Invoke-Expression $_}
 
-            $AllUsersAndGroupssGridData
-        }
+                $LocalUsersInfo = Get-LocalUsers | foreach {
+                    [pscustomobject]@{
+                        AccountExpires          = if ($_.AccountExpires) {$_.AccountExpires.ToString()} else {$null}
+                        Description             = $_.Description
+                        Enabled                 = $_.Enabled.ToString()
+                        FullName                = $_.FullName
+                        LastLogon               = if ($_.LastLogon) {$_.LastLogon.ToString()} else {$null}
+                        Name                    = $_.Name
+                        GroupMembership         = $_.GroupMembership -join ", "
+                        PasswordChangeableDate  = if ($_.PasswordChangeableDate) {$_.PasswordChangeableDate.ToString()} else {$null}
+                        PasswordExpires         = if ($_.PasswordExpires) {$_.PasswordExpires.ToString()} else {$null}
+                        PasswordLastSet         = if ($_.PasswordLastSet) {$_.PasswordLastSet.ToString()} else {$null}
+                        PasswordRequired        = $_.PasswordRequired.ToString()
+                        SID                     = $_.SID.Value
+                        UserMayChangePassword   = $_.UserMayChangePassword.ToString()
+                    }
+                }
 
-        # Live Data Element Example
-        $UsersAndGroupsSummaryProperties = @("allCount","expiredCount","nearExpiredCount","eventCount")
-        $UsersAndGroupsSummaryUDTableSplatParams = @{
-            Headers         = $UsersAndGroupsSummaryProperties
-            AutoRefresh     = $True 
-            RefreshInterval = 5
-        }
-        New-UDTable @UsersAndGroupsSummaryUDTableSplatParams -Endpoint {
-            $PUDRSSyncHT = $global:PUDRSSyncHT
-
-            $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
-
-            $UsersAndGroupsSummaryLiveOutputCount = $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LiveDataRSInfo.LiveOutput.Count
-            if ($UsersAndGroupsSummaryLiveOutputCount -gt 0) {
-                $ArrayOfUsersAndGroupsSummaryEntries = @(
-                    $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LiveDataTracker.Previous.UsersAndGroupsSummary
-                ) | Where-Object {$_ -ne $null}
-                if ($ArrayOfUsersAndGroupsSummaryEntries.Count -gt 0) {
-                    $UsersAndGroupsSummaryTableData = $ArrayOfUsersAndGroupsSummaryEntries[-1] | Out-UDTableData -Property $UsersAndGroupsSummaryProperties
+                [pscustomobject]@{
+                    LocalUsers      = $LocalUsersInfo
                 }
             }
-            if (!$UsersAndGroupsSummaryTableData) {
-                $UsersAndGroupsSummaryTableData = [pscustomobject]@{
-                    allCount            = "Collecting Info"
-                    expiredCount        = "Collecting Info"
-                    nearExpiredcount    = "Collecting Info"
-                    eventCount          = "Collecting Info"
-                } | Out-UDTableData -Property $UsersAndGroupsSummaryProperties
+            $Session:LocalUsersStatic = $StaticInfo.LocalUsers
+            if ($PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.Keys -notcontains "LocalUsers") {
+                $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.Add("LocalUsers",$Session:LocalUsersStatic)
+            }
+            else {
+                $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LocalUsers = $Session:LocalUsersStatic
             }
 
-            $UsersAndGroupsSummaryTableData
+            $Session:LocalUsersStatic | Out-UDGridData
         }
+
+        $LocalGroupsProperties = @("Name","Description","SID","Members")
+        $LocalGroupsUDGridSplatParams = @{
+            Title           = "Local Groups"
+            Headers         = $LocalGroupsProperties
+            Properties      = $LocalGroupsProperties
+            PageSize        = 10
+        }
+        New-UDGrid @LocalGroupsUDGridSplatParams -Endpoint {
+            $PUDRSSyncHT = $global:PUDRSSyncHT
+
+            $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+
+            $GetLocalGroupsFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-LocalGroups" -and $_ -notmatch "function Get-PUDAdminCenter"}
+            $GetLocalGroupUsersFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-LocalGroupUsers" -and $_ -notmatch "function Get-PUDAdminCenter"}
+            $FunctionsToLoad = @($GetLocalGroupsFunc,$GetLocalGroupUsersFunc)
+            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                $using:FunctionsToLoad | foreach {Invoke-Expression $_}
+
+                $LocalGroupsInfo = Get-LocalGroups | foreach {
+                    [pscustomobject]@{
+                        Description         = $_.Description
+                        Name                = $_.Name
+                        SID                 = $_.SID
+                        Members             = $_.Members -join ", "
+                    }
+                }
+
+                [pscustomobject]@{
+                    LocalGroups     = $LocalGroupsInfo
+                }
+            }
+            $Session:LocalGroupsStatic = $StaticInfo.LocalGroups
+            if ($PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.Keys -notcontains "LocalGroups") {
+                $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.Add("LocalGroups",$Session:LocalGroupsStatic)
+            }
+            else {
+                $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LocalGroups = $Session:LocalGroupsStatic
+            }
+
+            $Session:LocalGroupsStatic | Out-UDGridData
+        }
+
+
+        # Live Data Element Example
 
         # Remove the Loading  Indicator
         $null = $Session:UsersAndGroupsPageLoadingTracker.Add("FinishedLoading")

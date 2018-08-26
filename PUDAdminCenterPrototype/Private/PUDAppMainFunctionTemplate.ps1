@@ -178,7 +178,7 @@ function Get-PUDAdminCenter {
                 LiveDataRSInfo      = $null
                 LiveDataTracker     = @{Current = $null; Previous = $null}
             }
-            $Value.Add($DynPage,$DynPageHT)
+            $Value.Add($($DynPage -replace "[\s]",""),$DynPageHT)
         }
         $PUDRSSyncHT.Add($Key,$Value)
     }
@@ -214,8 +214,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU3+Pdxlp0u/P9BUU6jiC5U9jT
-# pbugggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUYwPY9MdLiDG9p/PYBAdydE8S
+# E5Sgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -272,11 +272,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFOByj2yfzTj2GRpY
-# +3BEMg3noVw4MA0GCSqGSIb3DQEBAQUABIIBADAjxP5Nr2KLSMbkspPROaLaO4Im
-# ubGhu/CHleZCg6JAWrs2FJqjk+jvEa5d264n/2vjydtiYRiyaqEAxTB+EBoS/bpT
-# i0E8FztcjntxO+Yh/w2phholnR5Yde1OgRwHRG66yqH19o7cLOXMiesU+JUVZK1S
-# Tc+u9CiTB4GsFDu7VA7l/vepfHget9TwOfYWhj+fF3xHB0PkkmD4+1Vw7G8ammMe
-# Ny39B9tuGw3lk60vrfTErCBOqbtOqgXFEWbzm6nesH+G72Hao2wIT6uiVy9hT33X
-# kIxyfs3Y9pvshcYZ+9bzKdRLF9ndYpd9V7O0IDC8T18VnAa6a0oKnVnI/fg=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFBYwEbt3a7d1VAcK
+# 2k9kalycz+34MA0GCSqGSIb3DQEBAQUABIIBABhvxvmhjmvufi6yeZ9rJGkvHCQO
+# Zgepl3F2uu91fQZhu7llji4f3bqWjC4X+GvV7m38K75hoTjg5lpx/WPqFpZ9SfKp
+# jcf3xQdzR8rCg3m1rCCIfS3vtUXb42sxI9FixZrDVpgv0K7fQ/h34ukm9b1KW2KX
+# R3C/2evo8DVyskkxZONGMgqk2x9MFo7xGmjIMVTySvCE+LkBuQBwiDUQaup/6EAj
+# MZKUBqzy1ta7eZirHhDB04vRjbKMHSaYJYq5zRwLhkIM81Ns+bnftGruQLugvlYW
+# tD92bXtrkA5qSKsatcMFvr18gWpdmqSLngXNvaXZ68Ejrbu5uSBmg086LVU=
 # SIG # End signature block

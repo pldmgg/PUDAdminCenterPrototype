@@ -1034,6 +1034,245 @@ function Get-FirewallRules {
 <#
     
     .SYNOPSIS
+        Gets the local groups.
+    
+    .DESCRIPTION
+        Gets the local groups. The supported Operating Systems are Window Server 2012,
+        Windows Server 2012R2, Windows Server 2016.
+
+    .NOTES
+        This function is pulled directly from the real Microsoft Windows Admin Center
+
+        PowerShell scripts use rights (according to Microsoft):
+        We grant you a non-exclusive, royalty-free right to use, modify, reproduce, and distribute the scripts provided herein.
+
+        ANY SCRIPTS PROVIDED BY MICROSOFT ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
+        INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS OR A PARTICULAR PURPOSE.
+    
+    .ROLE
+        Readers
+    
+#>
+function Get-LocalGroups {
+    param (
+        [Parameter(Mandatory = $false)]
+        [String]
+        $SID
+    )
+    
+    Import-Module Microsoft.PowerShell.LocalAccounts -ErrorAction SilentlyContinue
+    
+    $isWinServer2016OrNewer = [Environment]::OSVersion.Version.Major -ge 10;
+    # ADSI does NOT support 2016 Nano, meanwhile New-LocalUser, Get-LocalUser, Set-LocalUser do NOT support downlevel
+    if ($SID)
+    {
+        if ($isWinServer2016OrNewer)
+        {
+            Get-LocalGroup -SID $SID | Select-Object Description,Name,SID,ObjectClass | foreach {
+                [pscustomobject]@{
+                    Description         = $_.Description
+                    Name                = $_.Name
+                    SID                 = $_.SID.Value
+                    ObjectClass         = $_.ObjectClass
+                    Members             = Get-LocalGroupUsers -group $_.Name
+                }
+            }
+        }
+        else
+        {
+            Get-WmiObject -Class Win32_Group -Filter "LocalAccount='True' AND SID='$SID'" | Select-Object Description,Name,SID,ObjectClass | foreach {
+                [pscustomobject]@{
+                    Description         = $_.Description
+                    Name                = $_.Name
+                    SID                 = $_.SID
+                    ObjectClass         = $_.ObjectClass
+                    Members             = Get-LocalGroupUsers -group $_.Name
+                }
+            }
+        }
+    }
+    else
+    {
+        if ($isWinServer2016OrNewer)
+        {
+            Get-LocalGroup | Microsoft.PowerShell.Utility\Select-Object Description,Name,SID,ObjectClass | foreach {
+                [pscustomobject]@{
+                    Description         = $_.Description
+                    Name                = $_.Name
+                    SID                 = $_.SID.Value
+                    ObjectClass         = $_.ObjectClass
+                    Members             = Get-LocalGroupUsers -group $_.Name
+                }
+            }
+        }
+        else
+        {
+            Get-WmiObject -Class Win32_Group -Filter "LocalAccount='True'" | Microsoft.PowerShell.Utility\Select-Object Description,Name,SID,ObjectClass | foreach {
+                [pscustomobject]@{
+                    Description         = $_.Description
+                    Name                = $_.Name
+                    SID                 = $_.SID
+                    ObjectClass         = $_.ObjectClass
+                    Members             = Get-LocalGroupUsers -group $_.Name
+                }
+            }
+        }
+    }    
+}
+
+
+<#
+    
+    .SYNOPSIS
+        Get users belong to group.
+    
+    .DESCRIPTION
+        Get users belong to group. The supported Operating Systems are Window Server 2012,
+        Windows Server 2012R2, Windows Server 2016.
+
+    .NOTES
+        This function is pulled directly from the real Microsoft Windows Admin Center
+
+        PowerShell scripts use rights (according to Microsoft):
+        We grant you a non-exclusive, royalty-free right to use, modify, reproduce, and distribute the scripts provided herein.
+
+        ANY SCRIPTS PROVIDED BY MICROSOFT ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
+        INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS OR A PARTICULAR PURPOSE.
+    
+    .ROLE
+        Readers
+    
+#>
+function Get-LocalGroupUsers {
+    param (
+        [Parameter(Mandatory = $true)]
+        [String]
+        $group
+    )
+    
+    # ADSI does NOT support 2016 Nano, meanwhile Get-LocalGroupMember does NOT support downlevel and also has bug
+    $ComputerName = $env:COMPUTERNAME
+    try {
+        $groupconnection = [ADSI]("WinNT://localhost/$group,group")
+        $contents = $groupconnection.Members() | ForEach-Object {
+            $path=$_.GetType().InvokeMember("ADsPath", "GetProperty", $NULL, $_, $NULL)
+            # $path will looks like:
+            #   WinNT://ComputerName/Administrator
+            #   WinNT://DomainName/Domain Admins
+            # Find out if this is a local or domain object and trim it accordingly
+            if ($path -like "*/$ComputerName/*"){
+                $start = 'WinNT://' + $ComputerName + '/'
+            }
+            else {
+                $start = 'WinNT://'
+            }
+            $name = $path.Substring($start.length)
+            $name.Replace('/', '\') #return name here
+        }
+        return $contents
+    }
+    catch { # if above block failed (say in 2016Nano), use another cmdlet
+        # clear existing error info from try block
+        $Error.Clear()
+        #There is a known issue, in some situation Get-LocalGroupMember return: Failed to compare two elements in the array.
+        $contents = Get-LocalGroupMember -group $group
+        $names = $contents.Name | ForEach-Object {
+            $name = $_
+            if ($name -like "$ComputerName\*") {
+                $name = $name.Substring($ComputerName.length+1)
+            }
+            $name
+        }
+        return $names
+    }
+    
+}
+
+
+<#
+    
+    .SYNOPSIS
+        Get a local user belong to group list.
+    
+    .DESCRIPTION
+        Get a local user belong to group list. The supported Operating Systems are
+        Window Server 2012, Windows Server 2012R2, Windows Server 2016.
+
+    .NOTES
+        This function is pulled directly from the real Microsoft Windows Admin Center
+
+        PowerShell scripts use rights (according to Microsoft):
+        We grant you a non-exclusive, royalty-free right to use, modify, reproduce, and distribute the scripts provided herein.
+
+        ANY SCRIPTS PROVIDED BY MICROSOFT ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
+        INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS OR A PARTICULAR PURPOSE.
+    
+    .ROLE
+        Readers
+    
+#>
+function Get-LocalUserBelongGroups {
+    param (
+        [Parameter(Mandatory = $true)]
+        [String]
+        $UserName
+    )
+    
+    Import-Module CimCmdlets -ErrorAction SilentlyContinue
+    
+    $operatingSystem = Get-CimInstance Win32_OperatingSystem
+    $version = [version]$operatingSystem.Version
+    # product type 3 is server, version number ge 10 is server 2016
+    $isWinServer2016OrNewer = ($operatingSystem.ProductType -eq 3) -and ($version -ge '10.0')
+    
+    # ADSI does NOT support 2016 Nano, meanwhile net localgroup do NOT support downlevel "net : System error 1312 has occurred."
+    
+    # Step 1: get the list of local groups
+    if ($isWinServer2016OrNewer) {
+        $grps = net localgroup | Where-Object {$_ -AND $_ -match "^[*]"}  # group member list as "*%Fws\r\n"
+        $groups = $grps.trim('*')
+    }
+    else {
+        $grps = Get-WmiObject -Class Win32_Group -Filter "LocalAccount='True'" | Microsoft.PowerShell.Utility\Select-Object Name
+        $groups = $grps.Name
+    }
+    
+    # Step 2: in each group, list members and find match to target $UserName
+    $groupNames = @()
+    $regex = '^' + $UserName + '\b'
+    foreach ($group in $groups) {
+        $found = $false
+        #find group members
+        if ($isWinServer2016OrNewer) {
+            $members = net localgroup $group | Where-Object {$_ -AND $_ -notmatch "command completed successfully"} | Microsoft.PowerShell.Utility\Select-Object -skip 4
+            if ($members -AND $members.contains($UserName)) {
+                $found = $true
+            }
+        }
+        else {
+            $groupconnection = [ADSI]("WinNT://localhost/$group,group")
+            $members = $groupconnection.Members()
+            ForEach ($member in $members) {
+                $name = $member.GetType().InvokeMember("Name", "GetProperty", $NULL, $member, $NULL)
+                if ($name -AND ($name -match $regex)) {
+                    $found = $true
+                    break
+                }
+            }
+        }
+        #if members contains $UserName, add group name to list
+        if ($found) {
+            $groupNames = $groupNames + $group
+        }
+    }
+    return $groupNames
+    
+}
+
+
+<#
+    
+    .SYNOPSIS
         Gets the local users.
     
     .DESCRIPTION
@@ -1066,70 +1305,146 @@ function Get-LocalUsers {
     {
         if ($isWinServer2016OrNewer)
         {
-            Get-LocalUser -SID $SID | Sort-Object -Property Name | Microsoft.PowerShell.Utility\Select-Object AccountExpires,
-                                                Description,
-                                                Enabled,
-                                                FullName,
-                                                LastLogon,
-                                                Name,
-                                                ObjectClass,
-                                                PasswordChangeableDate,
-                                                PasswordExpires,
-                                                PasswordLastSet,
-                                                PasswordRequired,
-                                                @{Name="SID"; Expression={$_.SID.Value}},
-                                                UserMayChangePassword;
+            Get-LocalUser -SID $SID | Microsoft.PowerShell.Utility\Select-Object @(
+                "AccountExpires",
+                "Description",
+                "Enabled",
+                "FullName",
+                "LastLogon",
+                "Name",
+                "ObjectClass",
+                "PasswordChangeableDate",
+                "PasswordExpires",
+                "PasswordLastSet",
+                "PasswordRequired",
+                "SID",
+                "UserMayChangePassword"
+            ) | foreach {
+                [pscustomobject]@{
+                    AccountExpires          = $_.AccountExpires
+                    Description             = $_.Description
+                    Enabled                 = $_.Enabled
+                    FullName                = $_.FullName
+                    LastLogon               = $_.LastLogon
+                    Name                    = $_.Name
+                    GroupMembership         = Get-LocalUserBelongGroups -UserName $_.Name
+                    ObjectClass             = $_.ObjectClass
+                    PasswordChangeableDate  = $_.PasswordChangeableDate
+                    PasswordExpires         = $_.PasswordExpires
+                    PasswordLastSet         = $_.PasswordLastSet
+                    PasswordRequired        = $_.PasswordRequired
+                    SID                     = $_.SID.Value
+                    UserMayChangePassword   = $_.UserMayChangePassword
+                }
+            }
         }
         else
         {
-            Get-WmiObject -Class Win32_UserAccount -Filter "LocalAccount='True' AND SID='$SID'" | Sort-Object -Property Name | Microsoft.PowerShell.Utility\Select-Object AccountExpirationDate,
-                                                                                            Description,
-                                                                                            @{Name="Enabled"; Expression={-not $_.Disabled}},
-                                                                                            FullName,
-                                                                                            LastLogon,
-                                                                                            Name,
-                                                                                            ObjectClass,
-                                                                                            PasswordChangeableDate,
-                                                                                            PasswordExpires,
-                                                                                            PasswordLastSet,
-                                                                                            PasswordRequired,
-                                                                                            SID,
-                                                                                            @{Name="UserMayChangePassword"; Expression={$_.PasswordChangeable}}
+            Get-WmiObject -Class Win32_UserAccount -Filter "LocalAccount='True' AND SID='$SID'" | Microsoft.PowerShell.Utility\Select-Object @(
+                "AccountExpirationDate",
+                "Description",
+                "Disabled"
+                "FullName",
+                "LastLogon",
+                "Name",
+                "ObjectClass",
+                "PasswordChangeableDate",
+                "PasswordExpires",
+                "PasswordLastSet",
+                "PasswordRequired",
+                "SID",
+                "PasswordChangeable"
+            ) | foreach {
+                [pscustomobject]@{
+                    AccountExpires          = $_.AccountExpirationDate
+                    Description             = $_.Description
+                    Enabled                 = !$_.Disabled
+                    FullName                = $_.FullName
+                    LastLogon               = $_.LastLogon
+                    Name                    = $_.Name
+                    GroupMembership         = Get-LocalUserBelongGroups -UserName $_.Name
+                    ObjectClass             = $_.ObjectClass
+                    PasswordChangeableDate  = $_.PasswordChangeableDate
+                    PasswordExpires         = $_.PasswordExpires
+                    PasswordLastSet         = $_.PasswordLastSet
+                    PasswordRequired        = $_.PasswordRequired
+                    SID                     = $_.SID.Value
+                    UserMayChangePassword   = $_.PasswordChangeable
+                }
+            }
         }
     }
     else
     {
         if ($isWinServer2016OrNewer)
         {
-            Get-LocalUser | Sort-Object -Property Name | Microsoft.PowerShell.Utility\Select-Object AccountExpires,
-                                    Description,
-                                    Enabled,
-                                    FullName,
-                                    LastLogon,
-                                    Name,
-                                    ObjectClass,
-                                    PasswordChangeableDate,
-                                    PasswordExpires,
-                                    PasswordLastSet,
-                                    PasswordRequired,
-                                    @{Name="SID"; Expression={$_.SID.Value}},
-                                    UserMayChangePassword;
+            Get-LocalUser | Microsoft.PowerShell.Utility\Select-Object @(
+                "AccountExpires",
+                "Description",
+                "Enabled",
+                "FullName",
+                "LastLogon",
+                "Name",
+                "ObjectClass",
+                "PasswordChangeableDate",
+                "PasswordExpires",
+                "PasswordLastSet",
+                "PasswordRequired",
+                "SID",
+                "UserMayChangePassword"
+            ) | foreach {
+                [pscustomobject]@{
+                    AccountExpires          = $_.AccountExpires
+                    Description             = $_.Description
+                    Enabled                 = $_.Enabled
+                    FullName                = $_.FullName
+                    LastLogon               = $_.LastLogon
+                    Name                    = $_.Name
+                    GroupMembership         = Get-LocalUserBelongGroups -UserName $_.Name
+                    ObjectClass             = $_.ObjectClass
+                    PasswordChangeableDate  = $_.PasswordChangeableDate
+                    PasswordExpires         = $_.PasswordExpires
+                    PasswordLastSet         = $_.PasswordLastSet
+                    PasswordRequired        = $_.PasswordRequired
+                    SID                     = $_.SID.Value
+                    UserMayChangePassword   = $_.UserMayChangePassword
+                }
+            }
         }
         else
         {
-            Get-WmiObject -Class Win32_UserAccount -Filter "LocalAccount='True'" | Sort-Object -Property Name | Microsoft.PowerShell.Utility\Select-Object AccountExpirationDate,
-                                                                                            Description,
-                                                                                            @{Name="Enabled"; Expression={-not $_.Disabled}},
-                                                                                            FullName,
-                                                                                            LastLogon,
-                                                                                            Name,
-                                                                                            ObjectClass,
-                                                                                            PasswordChangeableDate,
-                                                                                            PasswordExpires,
-                                                                                            PasswordLastSet,
-                                                                                            PasswordRequired,
-                                                                                            SID,
-                                                                                            @{Name="UserMayChangePassword"; Expression={$_.PasswordChangeable}}
+            Get-WmiObject -Class Win32_UserAccount -Filter "LocalAccount='True'" | Microsoft.PowerShell.Utility\Select-Object @(
+                "AccountExpirationDate",
+                "Description",
+                "Disabled"
+                "FullName",
+                "LastLogon",
+                "Name",
+                "ObjectClass",
+                "PasswordChangeableDate",
+                "PasswordExpires",
+                "PasswordLastSet",
+                "PasswordRequired",
+                "SID",
+                "PasswordChangeable"
+            ) | foreach {
+                [pscustomobject]@{
+                    AccountExpires          = $_.AccountExpirationDate
+                    Description             = $_.Description
+                    Enabled                 = !$_.Disabled
+                    FullName                = $_.FullName
+                    LastLogon               = $_.LastLogon
+                    Name                    = $_.Name
+                    GroupMembership         = Get-LocalUserBelongGroups -UserName $_.Name
+                    ObjectClass             = $_.ObjectClass
+                    PasswordChangeableDate  = $_.PasswordChangeableDate
+                    PasswordExpires         = $_.PasswordExpires
+                    PasswordLastSet         = $_.PasswordLastSet
+                    PasswordRequired        = $_.PasswordRequired
+                    SID                     = $_.SID.Value
+                    UserMayChangePassword   = $_.PasswordChangeable
+                }
+            }
         }
     }    
 }
@@ -1315,7 +1630,7 @@ function Get-PUDAdminCenter {
                 LiveDataRSInfo      = $null
                 LiveDataTracker     = @{Current = $null; Previous = $null}
             }
-            $Value.Add($DynPage,$DynPageHT)
+            $Value.Add($($DynPage -replace "[\s]",""),$DynPageHT)
         }
         $PUDRSSyncHT.Add($Key,$Value)
     }
@@ -6401,6 +6716,418 @@ function Get-PUDAdminCenter {
     
     #endregion >> Tool Select Page
     
+    $UsersAndGroupsPageContent = {
+        param($RemoteHost)
+    
+        $PUDRSSyncHT = $global:PUDRSSyncHT
+    
+        # Load PUDAdminCenter Module Functions Within ScriptBlock
+        $ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
+    
+        # For some reason, scriptblocks defined earlier can't be used directly here. They need to be a different objects before
+        # they actually behave as expected. Not sure why.
+        #$RecreatedDisconnectedPageContent = [scriptblock]::Create($DisconnectedPageContentString)
+    
+        $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+    
+        #region >> Ensure $RemoteHost is Valid
+    
+        if ($PUDRSSyncHT.RemoteHostList.HostName -notcontains $RemoteHost) {
+            $ErrorText = "The Remote Host $($RemoteHost.ToUpper()) is not a valid Host Name!"
+        }
+    
+        if ($ErrorText) {
+            New-UDRow -Columns {
+                New-UDColumn -Size 4 -Content {
+                    New-UDHeading -Text ""
+                }
+                New-UDColumn -Size 4 -Content {
+                    New-UDHeading -Text $ErrorText -Size 6
+                }
+                New-UDColumn -Size 4 -Content {
+                    New-UDHeading -Text ""
+                }
+            }
+        }
+    
+        # If $RemoteHost isn't valid, don't load anything else
+        if ($ErrorText) {
+            return
+        }
+    
+        #endregion >> Ensure $RemoteHost is Valid
+    
+        #region >> Loading Indicator
+    
+        New-UDRow -Columns {
+            New-UDColumn -Endpoint {
+                $Session:UsersAndGroupsPageLoadingTracker = [System.Collections.ArrayList]::new()
+            }
+            New-UDColumn -AutoRefresh -RefreshInterval 5 -Endpoint {
+                if ($Session:UsersAndGroupsPageLoadingTracker -notcontains "FinishedLoading") {
+                    New-UDHeading -Text "Loading...Please wait..." -Size 5
+                    New-UDPreloader -Size small
+                }
+            }
+        }
+    
+        #endregion >> Loading Indicator
+    
+        # Master Endpoint - All content will be within this Endpoint so that we can reference $Cache: and $Session: scope variables
+        New-UDColumn -Size 12 -Endpoint {
+            #region >> Ensure We Are Connected / Can Connect to $RemoteHost
+    
+            $PUDRSSyncHT = $global:PUDRSSyncHT
+    
+            # Load PUDAdminCenter Module Functions Within ScriptBlock
+            $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
+    
+            # For some reason, scriptblocks defined earlier can't be used directly here. They need to be a different objects before
+            # they actually behave as expected. Not sure why.
+            #$RecreatedDisconnectedPageContent = [scriptblock]::Create($DisconnectedPageContentString)
+    
+            $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+    
+            if ($Session:CredentialHT.$RemoteHost.PSRemotingCreds -eq $null) {
+                Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
+            }
+    
+            try {
+                $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+            }
+            catch {
+                $ConnectionStatus = "Disconnected"
+            }
+    
+            # If we're not connected to $RemoteHost, don't load anything else
+            if ($ConnectionStatus -ne "Connected") {
+                #Invoke-Command -ScriptBlock $RecreatedDisconnectedPageContent -ArgumentList $RemoteHost
+                Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
+            }
+            else {
+                New-UDRow -EndPoint {
+                    New-UDColumn -Size 3 -Content {
+                        New-UDHeading -Text ""
+                    }
+                    New-UDColumn -Size 6 -Endpoint {
+                        New-UDTable -Id "TrackingTable" -Headers @("RemoteHost","Status","DateTime") -AutoRefresh -RefreshInterval 2 -Endpoint {
+                            $PUDRSSyncHT = $global:PUDRSSyncHT
+    
+                            # Load PUDAdminCenter Module Functions Within ScriptBlock
+                            $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
+                            
+                            $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+    
+                            $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
+                            $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
+    
+                            if ($WSMan5985Available -or $WSMan5986Available) {
+                                $TableData = @{
+                                    RemoteHost      = $RemoteHost.ToUpper()
+                                    Status          = "Connected"
+                                }
+                            }
+                            else {
+                                Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
+                            }
+    
+                            # SUPER IMPORTANT NOTE: ALL Real-Time Enpoints on the Page reference LiveOutputClone!
+                            if ($PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LiveDataRSInfo.LiveOutput.Count -gt 0) {
+                                if ($PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LiveDataTracker.Previous -eq $null) {
+                                    $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LiveDataTracker.Previous = $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LiveDataRSInfo.LiveOutput.Clone()
+                                }
+                                if ($PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LiveDataTracker.Current.Count -gt 0) {
+                                    $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LiveDataTracker.Previous = $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LiveDataTracker.Current.Clone()
+                                }
+                                $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LiveDataTracker.Current = $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LiveDataRSInfo.LiveOutput.Clone()
+                            }
+    
+                            $TableData.Add("DateTime",$(Get-Date -Format MM-dd-yy_hh:mm:sstt))
+    
+                            [PSCustomObject]$TableData | Out-UDTableData -Property @("RemoteHost","Status","DateTime")
+                        }
+                    }
+                    New-UDColumn -Size 3 -Content {
+                        New-UDHeading -Text ""
+                    }
+                }
+            }
+    
+            #endregion >> Ensure We Are Connected / Can Connect to $RemoteHost
+    
+            #region >> Gather Some Initial Info From $RemoteHost
+    
+            $GetLocalUsersFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-LocalUsers" -and $_ -notmatch "function Get-PUDAdminCenter"}
+            $GetLocalGroupsFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-LocalGroups" -and $_ -notmatch "function Get-PUDAdminCenter"}
+            $GetLocalGroupUsersFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-LocalGroupUsers" -and $_ -notmatch "function Get-PUDAdminCenter"}
+            $GetLocalUserBelongGroupsFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-LocalUserBelongGroups" -and $_ -notmatch "function Get-PUDAdminCenter"}
+            $FunctionsToLoad = @($GetLocalUsersFunc,$GetLocalGroupsFunc,$GetLocalGroupUsersFunc,$GetLocalUserBelongGroupsFunc)
+            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                $using:FunctionsToLoad | foreach {Invoke-Expression $_}
+    
+                $LocalUsersInfo = Get-LocalUsers | foreach {
+                    [pscustomobject]@{
+                        AccountExpires          = if ($_.AccountExpires) {$_.AccountExpires.ToString()} else {$null}
+                        Description             = $_.Description
+                        Enabled                 = $_.Enabled
+                        FullName                = $_.FullName
+                        LastLogon               = if ($_.LastLogon) {$_.LastLogon.ToString()} else {$null}
+                        Name                    = $_.Name
+                        GroupMembership         = $_.GroupMembership
+                        ObjectClass             = $_.ObjectClass
+                        PasswordChangeableDate  = if ($_.PasswordChangeableDate) {$_.PasswordChangeableDate.ToString()} else {$null}
+                        PasswordExpires         = if ($_.PasswordExpires) {$_.PasswordExpires.ToString()} else {$null}
+                        PasswordLastSet         = if ($_.PasswordLastSet) {$_.PasswordLastSet.ToString()} else {$null}
+                        PasswordRequired        = $_.PasswordRequired
+                        SID                     = $_.SID.Value
+                        UserMayChangePassword   = $_.UserMayChangePassword
+                    }
+                }
+                $LocalGroupsInfo = Get-LocalGroups 
+    
+                [pscustomobject]@{
+                    LocalUsers      = $LocalUsersInfo
+                    LocalGroups     = $LocalGroupsInfo
+                }
+            }
+            $Session:LocalUsersStatic = $StaticInfo.LocalUsers
+            $Session:LocalGroupsStatic = $StaticInfo.LocalGroups
+            if ($PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.Keys -notcontains "LocalUsers") {
+                $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.Add("LocalUsers",$Session:LocalUsersStatic)
+            }
+            else {
+                $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LocalUsers = $Session:LocalUsersStatic
+            }
+            if ($PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.Keys -notcontains "LocalGroups") {
+                $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.Add("LocalGroups",$Session:LocalGroupsStatic)
+            }
+            else {
+                $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LocalGroups = $Session:LocalGroupsStatic
+            }
+    
+            #endregion >> Gather Some Initial Info From $RemoteHost
+    
+            #region >> Page Name and Horizontal Nav
+    
+            New-UDRow -Endpoint {
+                New-UDColumn -Content {
+                    New-UDHeading -Text "UsersAndGroups (In Progress)" -Size 3
+                    New-UDHeading -Text "NOTE: Domain Group Policy trumps controls with an asterisk (*)" -Size 6
+                }
+            }
+            New-UDRow -Endpoint {
+                New-UDColumn -Size 12 -Content {
+                    New-UDCollapsible -Items {
+                        New-UDCollapsibleItem -Title "More Tools" -Icon laptop -Active -Endpoint {
+                            New-UDRow -Endpoint {
+                                foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
+                                    New-UDColumn -Endpoint {
+                                        New-UDLink -Text $ToolName -Url "/$ToolName/$RemoteHost" -Icon dashboard
+                                    }
+                                }
+                                #New-UDCard -Links $Links
+                            }
+                        }
+                    }
+                }
+            }
+    
+            #endregion >> Page Name and Horizontal Nav
+    
+            #region >> Setup LiveData
+    
+            <#
+            New-UDColumn -Endpoint {
+                $PUDRSSyncHT = $global:PUDRSSyncHT
+    
+                $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
+    
+                $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+    
+                # Remove Existing Runspace for LiveDataRSInfo if it exists as well as the PSSession Runspace within
+                if ($PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LiveDataRSInfo -ne $null) {
+                    $PSSessionRunspacePrep = @(
+                        Get-Runspace | Where-Object {
+                            $_.RunspaceIsRemote -and
+                            $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LiveDataRSInfo.ThisRunspace.Id -and
+                            $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
+                        }
+                    )
+                    if ($PSSessionRunspacePrep.Count -gt 0) {
+                        $PSSessionRunspace = $($PSSessionRunspacePrep | Sort-Object -Property Id)[0]
+                    }
+                    $PSSessionRunspace.Dispose()
+                    $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LiveDataRSInfo.ThisRunspace.Dispose()
+                }
+    
+                # Create a Runspace that creates a PSSession to $RemoteHost that is used once every second to re-gather data from $RemoteHost
+                $GetUsersAndGroupsificateOverviewFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-UsersAndGroupsificateOverview" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                $GetUsersAndGroupsFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-UsersAndGroups" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                $LiveDataFunctionsToLoad = @($GetUsersAndGroupsificateOverviewFunc,$GetUsersAndGroupsFunc)
+                
+                # The New-Runspace function handles scope for you behind the scenes, so just pretend that everything within -ScriptBlock {} is in the current scope
+                New-Runspace -RunspaceName "UsersAndGroups$RemoteHost`LiveData" -ScriptBlock {
+                    $PUDRSSyncHT = $global:PUDRSSyncHT
+                
+                    $LiveDataPSSession = New-PSSession -Name "UsersAndGroups$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
+    
+                    # Load needed functions in the PSSession
+                    Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
+                        $using:LiveDataFunctionsToLoad | foreach {Invoke-Expression $_}
+                    }
+    
+                    $RSLoopCounter = 0
+    
+                    while ($PUDRSSyncHT) {
+                        # $LiveOutput is a special ArrayList created and used by the New-Runspace function that collects output as it occurs
+                        # We need to limit the number of elements this ArrayList holds so we don't exhaust memory
+                        if ($LiveOutput.Count -gt 1000) {
+                            $LiveOutput.RemoveRange(0,800)
+                        }
+    
+                        # Stream Results to $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LiveDataRSInfo.LiveOutput
+                        Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
+                            # Place most resource intensive operations first
+    
+                            # Operations that you only want running once every 30 seconds go within this 'if; block
+                            # Adjust the timing as needed with deference to $RemoteHost resource efficiency.
+                            if ($using:RSLoopCounter -eq 0 -or $($using:RSLoopCounter % 30) -eq 0) {
+                                #@{AllUsersAndGroupss = Get-UsersAndGroups}
+                            }
+    
+                            # Operations that you want to run once every second go here
+                            @{UsersAndGroupsSummary = Get-UsersAndGroupsificateOverview -channel "Microsoft-Windows-UsersAndGroupservicesClient-Lifecycle-System*"}
+    
+                        } | foreach {$null = $LiveOutput.Add($_)}
+    
+                        $RSLoopCounter++
+    
+                        [GC]::Collect()
+    
+                        Start-Sleep -Seconds 1
+                    }
+                }
+                # The New-Runspace function outputs / continually updates a Global Scope variable called $global:RSSyncHash. The results of
+                # the Runspace we just created can be found in $global:RSSyncHash's "UsersAndGroups$RemoteHost`LiveDataResult" Property - which is just
+                # the -RunspaceName value plus the word 'Info'. By setting $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LiveDataRSInfo equal to
+                # $RSSyncHash."UsersAndGroups$RemoteHost`LiveDataResult", we can now reference $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LiveDataRSInfo.LiveOutput
+                # to get the latest data from $RemoteHost.
+                $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LiveDataRSInfo = $RSSyncHash."UsersAndGroups$RemoteHost`LiveDataResult"
+            }
+            #>
+    
+            #endregion >> Setup LiveData
+    
+            #region >> Controls
+    
+            # Static Data Element Example
+    
+            #$LocalUsersProperties = @("Name","FullName","SID","Enabled","GroupMembership","LastLogon","PasswordChangeableDate","PasswordExpires","PasswordLastSet","PasswordRequired","UserMayChangePassword")
+            $LocalUsersProperties = @("Name","Enabled","GroupMembership","LastLogon","AccountExpires","PasswordChangeableDate","PasswordExpires","UserMayChangePassword")
+            $LocalUsersUDGridSplatParams = @{
+                Title           = "Local Users"
+                Headers         = $LocalUsersProperties
+                Properties      = $LocalUsersProperties
+                PageSize        = 10
+            }
+            New-UDGrid @LocalUsersUDGridSplatParams -Endpoint {
+                $PUDRSSyncHT = $global:PUDRSSyncHT
+    
+                $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+    
+                $GetLocalUsersFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-LocalUsers" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                $GetLocalUserBelongGroupsFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-LocalUserBelongGroups" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                $FunctionsToLoad = @($GetLocalUsersFunc,$GetLocalUserBelongGroupsFunc)
+                $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                    $using:FunctionsToLoad | foreach {Invoke-Expression $_}
+    
+                    $LocalUsersInfo = Get-LocalUsers | foreach {
+                        [pscustomobject]@{
+                            AccountExpires          = if ($_.AccountExpires) {$_.AccountExpires.ToString()} else {$null}
+                            Description             = $_.Description
+                            Enabled                 = $_.Enabled.ToString()
+                            FullName                = $_.FullName
+                            LastLogon               = if ($_.LastLogon) {$_.LastLogon.ToString()} else {$null}
+                            Name                    = $_.Name
+                            GroupMembership         = $_.GroupMembership -join ", "
+                            PasswordChangeableDate  = if ($_.PasswordChangeableDate) {$_.PasswordChangeableDate.ToString()} else {$null}
+                            PasswordExpires         = if ($_.PasswordExpires) {$_.PasswordExpires.ToString()} else {$null}
+                            PasswordLastSet         = if ($_.PasswordLastSet) {$_.PasswordLastSet.ToString()} else {$null}
+                            PasswordRequired        = $_.PasswordRequired.ToString()
+                            SID                     = $_.SID.Value
+                            UserMayChangePassword   = $_.UserMayChangePassword.ToString()
+                        }
+                    }
+    
+                    [pscustomobject]@{
+                        LocalUsers      = $LocalUsersInfo
+                    }
+                }
+                $Session:LocalUsersStatic = $StaticInfo.LocalUsers
+                if ($PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.Keys -notcontains "LocalUsers") {
+                    $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.Add("LocalUsers",$Session:LocalUsersStatic)
+                }
+                else {
+                    $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LocalUsers = $Session:LocalUsersStatic
+                }
+    
+                $Session:LocalUsersStatic | Out-UDGridData
+            }
+    
+            $LocalGroupsProperties = @("Name","Description","SID","Members")
+            $LocalGroupsUDGridSplatParams = @{
+                Title           = "Local Groups"
+                Headers         = $LocalGroupsProperties
+                Properties      = $LocalGroupsProperties
+                PageSize        = 10
+            }
+            New-UDGrid @LocalGroupsUDGridSplatParams -Endpoint {
+                $PUDRSSyncHT = $global:PUDRSSyncHT
+    
+                $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+    
+                $GetLocalGroupsFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-LocalGroups" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                $GetLocalGroupUsersFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-LocalGroupUsers" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                $FunctionsToLoad = @($GetLocalGroupsFunc,$GetLocalGroupUsersFunc)
+                $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                    $using:FunctionsToLoad | foreach {Invoke-Expression $_}
+    
+                    $LocalGroupsInfo = Get-LocalGroups | foreach {
+                        [pscustomobject]@{
+                            Description         = $_.Description
+                            Name                = $_.Name
+                            SID                 = $_.SID
+                            Members             = $_.Members -join ", "
+                        }
+                    }
+    
+                    [pscustomobject]@{
+                        LocalGroups     = $LocalGroupsInfo
+                    }
+                }
+                $Session:LocalGroupsStatic = $StaticInfo.LocalGroups
+                if ($PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.Keys -notcontains "LocalGroups") {
+                    $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.Add("LocalGroups",$Session:LocalGroupsStatic)
+                }
+                else {
+                    $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LocalGroups = $Session:LocalGroupsStatic
+                }
+    
+                $Session:LocalGroupsStatic | Out-UDGridData
+            }
+    
+    
+            # Live Data Element Example
+    
+            # Remove the Loading  Indicator
+            $null = $Session:UsersAndGroupsPageLoadingTracker.Add("FinishedLoading")
+    
+            #endregion >> Controls
+        }
+    }
+    $Page = New-UDPage -Url "/UsersAndGroups/:RemoteHost" -Endpoint $UsersAndGroupsPageContent
+    $null = $Pages.Add($Page)
+    
 
     #endregion >> Dynamic Pages
 
@@ -8132,6 +8859,9 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
     ${Function:Get-EventLogSummary}.Ast.Extent.Text
     ${Function:Get-FirewallProfile}.Ast.Extent.Text
     ${Function:Get-FirewallRules}.Ast.Extent.Text
+    ${Function:Get-LocalGroups}.Ast.Extent.Text
+    ${Function:Get-LocalGroupUsers}.Ast.Extent.Text
+    ${Function:Get-LocalUserBelongGroups}.Ast.Extent.Text
     ${Function:Get-LocalUsers}.Ast.Extent.Text
     ${Function:Get-PUDAdminCenter}.Ast.Extent.Text
     ${Function:Get-RemoteDesktop}.Ast.Extent.Text
@@ -8149,8 +8879,8 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUcQVSnuZiORQHmt8US2loMNjN
-# B/Sgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUlNv+YCBHdxdSof6djCQk0zlI
+# Qxegggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -8207,11 +8937,11 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFI5CMIWreO/UnRoJ
-# aMtKZ4CX5ARPMA0GCSqGSIb3DQEBAQUABIIBAIvU/JFNjbgrrNFSbH+acRMpBAmn
-# 6wgYMhHpxi3+oDZNf6XLzIut48AwSeedex3FLq1rvLXXH6SMEt5sHB8wgP2ofahJ
-# sCiVCnN/yFc/dZi1qZtLdOJULw0dWSAm42QvVddjgXcqflm7qYDrjPcYHF18VH/3
-# MR30MBR2Vpmv4zxNmCmU/R1Rdib5sDEsPBjxpmiwVEjeFMBkESu/6ZlYGqnrPOCm
-# qVDJ0SEzgENyqDpXVqrq8+8N70NHv+fV9InxdUA7kpE/YSL8flQ+4f6Qyx9O6stL
-# vXrwrZ2BNkfBd9kT4Q/WoW6O9wgNHeo0sPSw+QpmC6xtXfEEZRacNcDYeyc=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFPw9reKn80NikxBM
+# eHiicEeGM2i4MA0GCSqGSIb3DQEBAQUABIIBABAO/4y3/1/q3F9thGHARbcuKyv2
+# mCrrh/bF2D2UYLoaYz7GYQm7SR6tu+64BmVXBIuW+3+dja5U2d5ZX7TkpOm1QxRC
+# p4WJwacoeRiqH11pTbt4guzSDqX6PNvttW+EEZaGQzU+7yQqi2AtiLMERKEsYHsD
+# SSUB8XXe6U2Q6umC7FZnJJJWCCLnNbgt3XyInRRnydtByzUgHCNWUrFw9D+w3r/q
+# tq+3KOTqCirtOlhlzAMzHmkkePgTlDBpW4BXwELIFQzKetr75yD0IhByy6+9fF8+
+# 31IyuFqZ1eAmQ7N8VXxZsXilJiWfl6smexLw3nLVZceXb2+dRZlX6dL9pbY=
 # SIG # End signature block

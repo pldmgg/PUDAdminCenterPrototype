@@ -27,6 +27,9 @@
     ${Function:Get-EventLogSummary}.Ast.Extent.Text
     ${Function:Get-FirewallProfile}.Ast.Extent.Text
     ${Function:Get-FirewallRules}.Ast.Extent.Text
+    ${Function:Get-LocalGroups}.Ast.Extent.Text
+    ${Function:Get-LocalGroupUsers}.Ast.Extent.Text
+    ${Function:Get-LocalUserBelongGroups}.Ast.Extent.Text
     ${Function:Get-LocalUsers}.Ast.Extent.Text
     ${Function:Get-PUDAdminCenter}.Ast.Extent.Text
     ${Function:Get-RemoteDesktop}.Ast.Extent.Text
@@ -44,8 +47,8 @@
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUtQjZ6LVVjgQv7ZDX/44ZVtZn
-# oZygggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUY6DO3oLiH4jz4qvTyJw4+cSg
+# ttugggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -102,11 +105,11 @@
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFOUkmer9CE1JgHZp
-# P78BrIKQl8iaMA0GCSqGSIb3DQEBAQUABIIBACzYkz4B042s22rHWiRFYPOpz+nY
-# 1VpDNITkKnNYpViDZkAjxSknIMqSLLJiIgt8W0HVPr3ZmZeSDGMEIm3f6qre4nNJ
-# Ta39N4qKYuxuRok8CKkaWOIecMDr5r4uuGAv1LdiMdQzWZjnxZ/8VonL4vWzAdLz
-# GwuIRGtW0yFNCJrvgsG27l04Q2+yBGyfnyAE/fH9DqoleHFc9bNkCijwoHpN0/+W
-# dyUQaN73G9WbOzHqL/UVvrY9AmjCGsJ+Vtd4WR/TXe+nCGD092obiMLkfpKp5954
-# o6z29YztS3mAao7VV82rOrGVP9XaZQ2hoh4utyvfnXD0wRx6cbMHP9mZkjU=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFGDYBhNSRJO9z2hb
+# +9XFZ4hhWJuQMA0GCSqGSIb3DQEBAQUABIIBAI78Czg2EPoxayHq0FWR6gnnEpce
+# Oelu65nSGWjeHXtPcpWKdvt7Qk5IaFHUxCZ7s4oSrlGPIh4Nb7cHYvBX4u0qWXH/
+# IOMYMdg4auZiHhVC0prZT2aKiPd8aI7zsnkLfv1EuLEKmlpeLbT8Q14pguiHvv5C
+# H4nHKfCzh/Df0uMwJ1TQ8H1KOVteokX2kPUUn2RuFMmxY2ZxuJ3yGuvpGvgrsqWg
+# d70FV5nLOoHAfMrWvM1sv3fIY9whtuaQCxEwujOl9s7XWwv6qyPTRWlgG82GGHmC
+# 5sQeEFskTSXtzd43xzqYQkciW+irriFxgmSzlesxpqozqqiY/SaOu/B42WM=
 # SIG # End signature block

@@ -33,70 +33,146 @@ function Get-LocalUsers {
     {
         if ($isWinServer2016OrNewer)
         {
-            Get-LocalUser -SID $SID | Sort-Object -Property Name | Microsoft.PowerShell.Utility\Select-Object AccountExpires,
-                                                Description,
-                                                Enabled,
-                                                FullName,
-                                                LastLogon,
-                                                Name,
-                                                ObjectClass,
-                                                PasswordChangeableDate,
-                                                PasswordExpires,
-                                                PasswordLastSet,
-                                                PasswordRequired,
-                                                @{Name="SID"; Expression={$_.SID.Value}},
-                                                UserMayChangePassword;
+            Get-LocalUser -SID $SID | Microsoft.PowerShell.Utility\Select-Object @(
+                "AccountExpires",
+                "Description",
+                "Enabled",
+                "FullName",
+                "LastLogon",
+                "Name",
+                "ObjectClass",
+                "PasswordChangeableDate",
+                "PasswordExpires",
+                "PasswordLastSet",
+                "PasswordRequired",
+                "SID",
+                "UserMayChangePassword"
+            ) | foreach {
+                [pscustomobject]@{
+                    AccountExpires          = $_.AccountExpires
+                    Description             = $_.Description
+                    Enabled                 = $_.Enabled
+                    FullName                = $_.FullName
+                    LastLogon               = $_.LastLogon
+                    Name                    = $_.Name
+                    GroupMembership         = Get-LocalUserBelongGroups -UserName $_.Name
+                    ObjectClass             = $_.ObjectClass
+                    PasswordChangeableDate  = $_.PasswordChangeableDate
+                    PasswordExpires         = $_.PasswordExpires
+                    PasswordLastSet         = $_.PasswordLastSet
+                    PasswordRequired        = $_.PasswordRequired
+                    SID                     = $_.SID.Value
+                    UserMayChangePassword   = $_.UserMayChangePassword
+                }
+            }
         }
         else
         {
-            Get-WmiObject -Class Win32_UserAccount -Filter "LocalAccount='True' AND SID='$SID'" | Sort-Object -Property Name | Microsoft.PowerShell.Utility\Select-Object AccountExpirationDate,
-                                                                                            Description,
-                                                                                            @{Name="Enabled"; Expression={-not $_.Disabled}},
-                                                                                            FullName,
-                                                                                            LastLogon,
-                                                                                            Name,
-                                                                                            ObjectClass,
-                                                                                            PasswordChangeableDate,
-                                                                                            PasswordExpires,
-                                                                                            PasswordLastSet,
-                                                                                            PasswordRequired,
-                                                                                            SID,
-                                                                                            @{Name="UserMayChangePassword"; Expression={$_.PasswordChangeable}}
+            Get-WmiObject -Class Win32_UserAccount -Filter "LocalAccount='True' AND SID='$SID'" | Microsoft.PowerShell.Utility\Select-Object @(
+                "AccountExpirationDate",
+                "Description",
+                "Disabled"
+                "FullName",
+                "LastLogon",
+                "Name",
+                "ObjectClass",
+                "PasswordChangeableDate",
+                "PasswordExpires",
+                "PasswordLastSet",
+                "PasswordRequired",
+                "SID",
+                "PasswordChangeable"
+            ) | foreach {
+                [pscustomobject]@{
+                    AccountExpires          = $_.AccountExpirationDate
+                    Description             = $_.Description
+                    Enabled                 = !$_.Disabled
+                    FullName                = $_.FullName
+                    LastLogon               = $_.LastLogon
+                    Name                    = $_.Name
+                    GroupMembership         = Get-LocalUserBelongGroups -UserName $_.Name
+                    ObjectClass             = $_.ObjectClass
+                    PasswordChangeableDate  = $_.PasswordChangeableDate
+                    PasswordExpires         = $_.PasswordExpires
+                    PasswordLastSet         = $_.PasswordLastSet
+                    PasswordRequired        = $_.PasswordRequired
+                    SID                     = $_.SID.Value
+                    UserMayChangePassword   = $_.PasswordChangeable
+                }
+            }
         }
     }
     else
     {
         if ($isWinServer2016OrNewer)
         {
-            Get-LocalUser | Sort-Object -Property Name | Microsoft.PowerShell.Utility\Select-Object AccountExpires,
-                                    Description,
-                                    Enabled,
-                                    FullName,
-                                    LastLogon,
-                                    Name,
-                                    ObjectClass,
-                                    PasswordChangeableDate,
-                                    PasswordExpires,
-                                    PasswordLastSet,
-                                    PasswordRequired,
-                                    @{Name="SID"; Expression={$_.SID.Value}},
-                                    UserMayChangePassword;
+            Get-LocalUser | Microsoft.PowerShell.Utility\Select-Object @(
+                "AccountExpires",
+                "Description",
+                "Enabled",
+                "FullName",
+                "LastLogon",
+                "Name",
+                "ObjectClass",
+                "PasswordChangeableDate",
+                "PasswordExpires",
+                "PasswordLastSet",
+                "PasswordRequired",
+                "SID",
+                "UserMayChangePassword"
+            ) | foreach {
+                [pscustomobject]@{
+                    AccountExpires          = $_.AccountExpires
+                    Description             = $_.Description
+                    Enabled                 = $_.Enabled
+                    FullName                = $_.FullName
+                    LastLogon               = $_.LastLogon
+                    Name                    = $_.Name
+                    GroupMembership         = Get-LocalUserBelongGroups -UserName $_.Name
+                    ObjectClass             = $_.ObjectClass
+                    PasswordChangeableDate  = $_.PasswordChangeableDate
+                    PasswordExpires         = $_.PasswordExpires
+                    PasswordLastSet         = $_.PasswordLastSet
+                    PasswordRequired        = $_.PasswordRequired
+                    SID                     = $_.SID.Value
+                    UserMayChangePassword   = $_.UserMayChangePassword
+                }
+            }
         }
         else
         {
-            Get-WmiObject -Class Win32_UserAccount -Filter "LocalAccount='True'" | Sort-Object -Property Name | Microsoft.PowerShell.Utility\Select-Object AccountExpirationDate,
-                                                                                            Description,
-                                                                                            @{Name="Enabled"; Expression={-not $_.Disabled}},
-                                                                                            FullName,
-                                                                                            LastLogon,
-                                                                                            Name,
-                                                                                            ObjectClass,
-                                                                                            PasswordChangeableDate,
-                                                                                            PasswordExpires,
-                                                                                            PasswordLastSet,
-                                                                                            PasswordRequired,
-                                                                                            SID,
-                                                                                            @{Name="UserMayChangePassword"; Expression={$_.PasswordChangeable}}
+            Get-WmiObject -Class Win32_UserAccount -Filter "LocalAccount='True'" | Microsoft.PowerShell.Utility\Select-Object @(
+                "AccountExpirationDate",
+                "Description",
+                "Disabled"
+                "FullName",
+                "LastLogon",
+                "Name",
+                "ObjectClass",
+                "PasswordChangeableDate",
+                "PasswordExpires",
+                "PasswordLastSet",
+                "PasswordRequired",
+                "SID",
+                "PasswordChangeable"
+            ) | foreach {
+                [pscustomobject]@{
+                    AccountExpires          = $_.AccountExpirationDate
+                    Description             = $_.Description
+                    Enabled                 = !$_.Disabled
+                    FullName                = $_.FullName
+                    LastLogon               = $_.LastLogon
+                    Name                    = $_.Name
+                    GroupMembership         = Get-LocalUserBelongGroups -UserName $_.Name
+                    ObjectClass             = $_.ObjectClass
+                    PasswordChangeableDate  = $_.PasswordChangeableDate
+                    PasswordExpires         = $_.PasswordExpires
+                    PasswordLastSet         = $_.PasswordLastSet
+                    PasswordRequired        = $_.PasswordRequired
+                    SID                     = $_.SID.Value
+                    UserMayChangePassword   = $_.PasswordChangeable
+                }
+            }
         }
     }    
 }
@@ -104,8 +180,8 @@ function Get-LocalUsers {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUfF7cJnVxfBkp9yeKk0jD4v72
-# k+Ogggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU3EZPfDDXVisuuNV0hFski5R3
+# nySgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -162,11 +238,11 @@ function Get-LocalUsers {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFAVufklGHOQY3iDP
-# Zrwx9LKBfrGLMA0GCSqGSIb3DQEBAQUABIIBAEuh+XY7jPFTjCKV0lHd7vHfrQY+
-# k9iWeOoEJL/i6THuK2r43z4mLEDb1Xm71i05CZg2vfeqDwRhPRDfYtBngpVxlrlv
-# pEPfiidViWQH/iXZMA8y7xdEp6adEvsQugXZPmXrDK5wun2SEJE3mGbZj0+cFcYv
-# DUJGJacsm2pJd4HNwWconmGPQpM3Ih3KBubWc9G90VhJVQAmwt+whmhs+KP5ldFi
-# 15KD4MtA9J9ufHTUE1BhrtBfpw6lLNKx8BEAvWXbLnMVhMvVEowhVkXdITuirl5/
-# u8reEOTJxtMClpnj+UhjxSbqnSmsoggcAcu44Mn2Mqb4OH5d3V7ZOVKKbCQ=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFJTMcaGSWIsRLPr1
+# QJtlDlFWN10yMA0GCSqGSIb3DQEBAQUABIIBACxUR6CdEZwo48atC7l2aEXBo8F5
+# 5EkZ5bPBqn0XE8ddd7tiHYPcaC2xQ3um/wf+o2V5BMKfFYAbf6rQ0lLZk2zKoI8h
+# ysiOZH+ETPJ1qVUoAoToxarIzhqEecEfCN8ykcL38whyHyjXLWv+jRkvQBFAWnZV
+# 5W+dKQlv7rHiyIPVfEGqR1eQdtFLdO+Gl+R0xdDBsOt7Kuno5lgUJWNvYbSX480e
+# Xj6hrunqUFAg1+p8UKeTd+K97vzItfGjGXvIFx5VYbszXEbcxLY+UjbfjlozJn0Y
+# avM1M76qT2/EuZYvCCUqNYaCUzfkH3RVsh0LWUoU103YQU5qNEaRFNXH2qw=
 # SIG # End signature block
