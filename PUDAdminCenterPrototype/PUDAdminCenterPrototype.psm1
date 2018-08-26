@@ -3154,9 +3154,16 @@ function Get-PUDAdminCenter {
             $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                 $using:FunctionsToLoad | foreach {Invoke-Expression $_}
                 
-                $FirewallSummary = Get-FirewallProfile -ErrorAction SilentlyContinue
-                $FirewallRulesPrep = Get-FirewallRules -ErrorAction SilentlyContinue
+                $FirewallSummary = Get-FirewallProfile -ErrorAction SilentlyContinue | foreach {
+                    [pscustomobject]@{
+                        Name                    = $_.Name
+                        Status                  = if ($_.Enabled) {"Enabled"} else {"Disabled"}
+                        DefaultInboundAction    = $_.DefaultInboundAction.ToString()
+                        DefaultOutboundAction   = $_.DefaultOutboundAction.ToString()
+                    }
+                }
     
+                $FirewallRulesPrep = Get-FirewallRules -ErrorAction SilentlyContinue
                 $FirewallRules = foreach ($Rule in $FirewallRulesPrep) {
                     $Profiles = switch (@($Rule.profiles)) {
                         0 {"All"}
@@ -3170,8 +3177,8 @@ function Get-PUDAdminCenter {
     
                     [pscustomobject]@{
                         DisplayName         = $Rule.DisplayName
-                        Direction           = $Rule.Direction
-                        Action              = $Rule.Action
+                        Direction           = $Rule.Direction.ToString()
+                        Action              = $Rule.Action.ToString()
                         DisplayGroup        = $Rule.DisplayGroup
                         Status              = if ($Rule.enabled) {"Enabled"} else {"Disabled"}
                         Profile             = $Profiles
@@ -3333,7 +3340,14 @@ function Get-PUDAdminCenter {
                 $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                     Invoke-Expression $using:GetFirewallProfileFunc
                     
-                    $FirewallSummary = Get-FirewallProfile -ErrorAction SilentlyContinue
+                    $FirewallSummary = Get-FirewallProfile -ErrorAction SilentlyContinue | foreach {
+                        [pscustomobject]@{
+                            Name                    = $_.Name
+                            Status                  = if ($_.Enabled) {"Enabled"} else {"Disabled"}
+                            DefaultInboundAction    = $_.DefaultInboundAction.ToString()
+                            DefaultOutboundAction   = $_.DefaultOutboundAction.ToString()
+                        }
+                    }
     
                     [pscustomobject]@{
                         FirewallSummary     = $FirewallSummary
@@ -3380,8 +3394,8 @@ function Get-PUDAdminCenter {
     
                         [pscustomobject]@{
                             DisplayName         = $Rule.DisplayName
-                            Direction           = $Rule.Direction
-                            Action              = $Rule.Action
+                            Direction           = $Rule.Direction.ToString()
+                            Action              = $Rule.Action.ToString()
                             DisplayGroup        = $Rule.DisplayGroup
                             Status              = if ($Rule.enabled) {"Enabled"} else {"Disabled"}
                             Profile             = $Profiles
@@ -8135,8 +8149,8 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU0nmH5OMoCMF9FyxYHSpF4o1c
-# lbmgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUcQVSnuZiORQHmt8US2loMNjN
+# B/Sgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -8193,11 +8207,11 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFC7zRKLxdeG30H2g
-# nNEP/I1Kr8LLMA0GCSqGSIb3DQEBAQUABIIBAFy42lZpaEizQclqHPoBbRZgg5mp
-# 8lXTr+StFvuHlvWML9iM9fVG3GTsHdEqFza7o9erZtgpPiFRNHz1Y61LqPopIz+4
-# kUmzIlIkNLNCJ68C/smsHWlyOBOAuhRIH9o6ieiK8Me8FTU2XXIhRKKYdnbm0pbq
-# qwJW+LP6odXUsWqT+svx2++bQW7A+vga8GAHCNvhicKRZ8bkNykz7a27vdfea2M1
-# MawtwLAetjgKM8GL/b5rWwnyb5Gme8pgWZQmM3vN0wcmdrGM5nbA6t2w40hcn1EE
-# yAjmlOLnqu3pGcdMQ5Yswrv1hu51tDnV9h+uAR6q4jx+LDfKwV8GekQzyYI=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFI5CMIWreO/UnRoJ
+# aMtKZ4CX5ARPMA0GCSqGSIb3DQEBAQUABIIBAIvU/JFNjbgrrNFSbH+acRMpBAmn
+# 6wgYMhHpxi3+oDZNf6XLzIut48AwSeedex3FLq1rvLXXH6SMEt5sHB8wgP2ofahJ
+# sCiVCnN/yFc/dZi1qZtLdOJULw0dWSAm42QvVddjgXcqflm7qYDrjPcYHF18VH/3
+# MR30MBR2Vpmv4zxNmCmU/R1Rdib5sDEsPBjxpmiwVEjeFMBkESu/6ZlYGqnrPOCm
+# qVDJ0SEzgENyqDpXVqrq8+8N70NHv+fV9InxdUA7kpE/YSL8flQ+4f6Qyx9O6stL
+# vXrwrZ2BNkfBd9kT4Q/WoW6O9wgNHeo0sPSw+QpmC6xtXfEEZRacNcDYeyc=
 # SIG # End signature block

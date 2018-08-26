@@ -145,9 +145,16 @@ $FirewallPageContent = {
         $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
             $using:FunctionsToLoad | foreach {Invoke-Expression $_}
             
-            $FirewallSummary = Get-FirewallProfile -ErrorAction SilentlyContinue
-            $FirewallRulesPrep = Get-FirewallRules -ErrorAction SilentlyContinue
+            $FirewallSummary = Get-FirewallProfile -ErrorAction SilentlyContinue | foreach {
+                [pscustomobject]@{
+                    Name                    = $_.Name
+                    Status                  = if ($_.Enabled) {"Enabled"} else {"Disabled"}
+                    DefaultInboundAction    = $_.DefaultInboundAction.ToString()
+                    DefaultOutboundAction   = $_.DefaultOutboundAction.ToString()
+                }
+            }
 
+            $FirewallRulesPrep = Get-FirewallRules -ErrorAction SilentlyContinue
             $FirewallRules = foreach ($Rule in $FirewallRulesPrep) {
                 $Profiles = switch (@($Rule.profiles)) {
                     0 {"All"}
@@ -161,8 +168,8 @@ $FirewallPageContent = {
 
                 [pscustomobject]@{
                     DisplayName         = $Rule.DisplayName
-                    Direction           = $Rule.Direction
-                    Action              = $Rule.Action
+                    Direction           = $Rule.Direction.ToString()
+                    Action              = $Rule.Action.ToString()
                     DisplayGroup        = $Rule.DisplayGroup
                     Status              = if ($Rule.enabled) {"Enabled"} else {"Disabled"}
                     Profile             = $Profiles
@@ -324,7 +331,14 @@ $FirewallPageContent = {
             $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                 Invoke-Expression $using:GetFirewallProfileFunc
                 
-                $FirewallSummary = Get-FirewallProfile -ErrorAction SilentlyContinue
+                $FirewallSummary = Get-FirewallProfile -ErrorAction SilentlyContinue | foreach {
+                    [pscustomobject]@{
+                        Name                    = $_.Name
+                        Status                  = if ($_.Enabled) {"Enabled"} else {"Disabled"}
+                        DefaultInboundAction    = $_.DefaultInboundAction.ToString()
+                        DefaultOutboundAction   = $_.DefaultOutboundAction.ToString()
+                    }
+                }
 
                 [pscustomobject]@{
                     FirewallSummary     = $FirewallSummary
@@ -371,8 +385,8 @@ $FirewallPageContent = {
 
                     [pscustomobject]@{
                         DisplayName         = $Rule.DisplayName
-                        Direction           = $Rule.Direction
-                        Action              = $Rule.Action
+                        Direction           = $Rule.Direction.ToString()
+                        Action              = $Rule.Action.ToString()
                         DisplayGroup        = $Rule.DisplayGroup
                         Status              = if ($Rule.enabled) {"Enabled"} else {"Disabled"}
                         Profile             = $Profiles
