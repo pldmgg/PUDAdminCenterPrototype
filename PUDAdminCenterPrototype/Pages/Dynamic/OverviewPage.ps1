@@ -1012,7 +1012,7 @@ $OverviewPageContent = {
                 $CollapsibleId = $RemoteHost + "DisableCredSSP"
                 New-UDCollapsible -Id $CollapsibleId -Items {
                     New-UDCollapsibleItem -Title "Disable CredSSP*" -Icon laptop -Endpoint {
-                        New-UDInput -SubmitText "DisableCredSSP" -Id "DisableCredSSPForm" -Content {
+                        New-UDInput -SubmitText "Disable CredSSP" -Id "DisableCredSSPForm" -Content {
                             $HName = $PUDRSSyncHT."$RemoteHost`Info".Overview.ServerInventoryStatic.ComputerSystem.Name
                             New-UDInputField -Name "Disable_CredSSP" -Type select -Values @($HName) -DefaultValue $HName
                         } -Endpoint {
@@ -1214,23 +1214,20 @@ $OverviewPageContent = {
                         }
 
                         New-UDRow -Endpoint {
-                            New-UDColumn -Size 3 -Endpoint {}
-                            New-UDColumn -Size 6 -Endpoint {
-                                New-UDHeading -Text "Modify Environment Variables" -Size 5
+                            New-UDColumn -Size 4 -Endpoint {
+                                New-UDHeading -Text "New Environment Variable" -Size 5
                                 
-                                New-UDTextbox -Id "EnvVarName" -Label "Current Name"
-                                New-UDTextbox -Id "EnvVarNewName" -Label "New Name"
-                                New-UDTextbox -Id "EnvVarValue" -Label "Value"
-                                New-UDSelect -Id "EnvVarType" -Label "Type" -Option {
+                                New-UDTextbox -Id "EnvVarNameA" -Label "Name"
+                                New-UDTextbox -Id "EnvVarValueA" -Label "Value"
+                                New-UDSelect -Id "EnvVarTypeA" -Label "Type" -Option {
                                     New-UDSelectOption -Name "User" -Value "User" -Selected
                                     New-UDSelectOption -Name "Machine" -Value "Machine"
                                 }
                                 
-                                
                                 New-UDButton -Text "New" -OnClick {
-                                    $EnvVarNameTextBox = Get-UDElement -Id "EnvVarName"
-                                    $EnvVarValueTextBox = Get-UDElement -Id "EnvVarValue"
-                                    $EnvVarTypeSelection = Get-UDElement -Id "EnvVarType"
+                                    $EnvVarNameTextBox = Get-UDElement -Id "EnvVarNameA"
+                                    $EnvVarValueTextBox = Get-UDElement -Id "EnvVarValueA"
+                                    $EnvVarTypeSelection = Get-UDElement -Id "EnvVarTypeA"
 
                                     $EnvVarName = $EnvVarNameTextBox.Attributes['value']
                                     $EnvVarValue = $EnvVarValueTextBox.Attributes['value']
@@ -1238,14 +1235,17 @@ $OverviewPageContent = {
                                         $_.ToString() | ConvertFrom-Json
                                     } | Where-Object {$_.attributes.selected.isPresent}).attributes.value
 
+                                    <#
                                     $PUDRSSyncHT."$RemoteHost`Info".Overview.Add("EnvVarInfo",@{})
                                     $PUDRSSyncHT."$RemoteHost`Info".Overview.EnvVarInfo.Add("EnvVarTypeObject",$EnvVarTypeSelection)
                                     $PUDRSSyncHT."$RemoteHost`Info".Overview.EnvVarInfo.Add("EnvVarName",$EnvVarName)
+                                    $PUDRSSyncHT."$RemoteHost`Info".Overview.EnvVarInfo.Add("EnvVarNewName",$EnvVarNewName)
                                     $PUDRSSyncHT."$RemoteHost`Info".Overview.EnvVarInfo.Add("EnvVarValue",$EnvVarValue)
                                     $PUDRSSyncHT."$RemoteHost`Info".Overview.EnvVarInfo.Add("EnvVarType",$EnvVarType)
                                     $PUDRSSyncHT."$RemoteHost`Info".Overview.EnvVarInfo.Add("RemoteHost",$RemoteHost)
                                     $PUDRSSyncHT."$RemoteHost`Info".Overview.EnvVarInfo.Add("CredsUserName",$($Session:CredentialHT.$RemoteHost.PSRemotingCreds.UserName))
-                                    
+                                    #>
+
                                     $NewEnvVarFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function New-EnvironmentVariable" -and $_ -notmatch "function Get-PUDAdminCenter"}
                                     $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                         Invoke-Expression $using:NewEnvVarFunc
@@ -1254,35 +1254,30 @@ $OverviewPageContent = {
 
                                     Sync-UDElement -Id "EnvVarsGrid"
                                 }
-
-                                New-UDButton -Text "Remove" -OnClick {
-                                    $EnvVarNameTextBox = Get-UDElement -Id "EnvVarName"
-                                    $EnvVarValueTextBox = Get-UDElement -Id "EnvVarValue"
-                                    $EnvVarTypeSelection = Get-UDElement -Id "EnvVarType"
-
-                                    $EnvVarName = $EnvVarNameTextBox.Attributes['value']
-                                    $EnvVarValue = $EnvVarValueTextBox.Attributes['value']
-                                    $EnvVarType = $EnvVarTypeTextBox.Attributes['value']
-
-                                    $RemoveEnvVarFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Remove-EnvironmentVariable" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                    $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                                        Invoke-Expression $using:RemoveEnvVarFunc
-                                        Remove-EnvironmentVariable -name $using:EnvVarName -type $using:EnvVarType
-                                    }
-                                    
-                                    Sync-UDElement -Id "EnvVarsGrid"
+                            }
+                            New-UDColumn -Size 4 -Endpoint {
+                                New-UDHeading -Text "Edit Environment Variable" -Size 5
+                                
+                                New-UDTextbox -Id "EnvVarNameB" -Label "Name"
+                                New-UDTextbox -Id "EnvVarNewNameB" -Label "New Name"
+                                New-UDTextbox -Id "EnvVarValueB" -Label "Value"
+                                New-UDSelect -Id "EnvVarTypeB" -Label "Type" -Option {
+                                    New-UDSelectOption -Name "User" -Value "User" -Selected
+                                    New-UDSelectOption -Name "Machine" -Value "Machine"
                                 }
 
                                 New-UDButton -Text "Edit" -OnClick {
-                                    $EnvVarNameTextBox = Get-UDElement -Id "EnvVarName"
-                                    $EnvVarNewNameTextBox = Get-UDElement -Id "EnvVarNewName"
-                                    $EnvVarValueTextBox = Get-UDElement -Id "EnvVarValue"
-                                    $EnvVarTypeSelection = Get-UDElement -Id "EnvVarType"
+                                    $EnvVarNameTextBox = Get-UDElement -Id "EnvVarNameB"
+                                    $EnvVarNewNameTextBox = Get-UDElement -Id "EnvVarNewNameB"
+                                    $EnvVarValueTextBox = Get-UDElement -Id "EnvVarValueB"
+                                    $EnvVarTypeSelection = Get-UDElement -Id "EnvVarTypeB"
 
                                     $EnvVarName = $EnvVarNameTextBox.Attributes['value']
                                     $EnvVarNewName = $EnvVarNewNameTextBox.Attributes['value']
                                     $EnvVarValue = $EnvVarValueTextBox.Attributes['value']
-                                    $EnvVarType = $EnvVarTypeTextBox.Attributes['value']
+                                    $EnvVarType = $($EnvVarTypeSelection.Content | foreach {
+                                        $_.ToString() | ConvertFrom-Json
+                                    } | Where-Object {$_.attributes.selected.isPresent}).attributes.value
 
                                     $SetEnvVarFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Set-EnvironmentVariable" -and $_ -notmatch "function Get-PUDAdminCenter"}
                                     $SetEnvVarSplatParams = @{
@@ -1305,6 +1300,33 @@ $OverviewPageContent = {
                                         $SplatParams = $args[0]
                                         Set-EnvironmentVariable @SplatParams
                                     } -ArgumentList $SetEnvVarSplatParams
+                                    
+                                    Sync-UDElement -Id "EnvVarsGrid"
+                                }
+                            }
+                            New-UDColumn -Size 4 -Endpoint {
+                                New-UDHeading -Text "Remove Environment Variable" -Size 5
+                                
+                                New-UDTextbox -Id "EnvVarNameC" -Label "Name"
+                                New-UDSelect -Id "EnvVarTypeC" -Label "Type" -Option {
+                                    New-UDSelectOption -Name "User" -Value "User" -Selected
+                                    New-UDSelectOption -Name "Machine" -Value "Machine"
+                                }
+
+                                New-UDButton -Text "Remove" -OnClick {
+                                    $EnvVarNameTextBox = Get-UDElement -Id "EnvVarNameC"
+                                    $EnvVarTypeSelection = Get-UDElement -Id "EnvVarTypeC"
+
+                                    $EnvVarName = $EnvVarNameTextBox.Attributes['value']
+                                    $EnvVarType = $($EnvVarTypeSelection.Content | foreach {
+                                        $_.ToString() | ConvertFrom-Json
+                                    } | Where-Object {$_.attributes.selected.isPresent}).attributes.value
+
+                                    $RemoveEnvVarFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Remove-EnvironmentVariable" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                                    $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                        Invoke-Expression $using:RemoveEnvVarFunc
+                                        Remove-EnvironmentVariable -name $using:EnvVarName -type $using:EnvVarType
+                                    }
                                     
                                     Sync-UDElement -Id "EnvVarsGrid"
                                 }
