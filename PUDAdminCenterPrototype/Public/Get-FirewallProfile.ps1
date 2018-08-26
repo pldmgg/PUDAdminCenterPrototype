@@ -1,51 +1,35 @@
-[System.Collections.ArrayList]$script:FunctionsForSBUse = @(
-    ${Function:AddWinRMTrustedHost}.Ast.Extent.Text
-    ${Function:AddWinRMTrustLocalHost}.Ast.Extent.Text
-    ${Function:EnableWinRMViaRPC}.Ast.Extent.Text
-    ${Function:GetComputerObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetDomainController}.Ast.Extent.Text
-    ${Function:GetElevation}.Ast.Extent.Text
-    ${Function:GetGroupObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetModuleDependencies}.Ast.Extent.Text
-    ${Function:GetNativePath}.Ast.Extent.Text
-    ${Function:GetUserObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetWorkingCredentials}.Ast.Extent.Text
-    ${Function:InstallFeatureDism}.Ast.Extent.Text
-    ${Function:InvokeModuleDependencies}.Ast.Extent.Text
-    ${Function:InvokePSCompatibility}.Ast.Extent.Text
-    ${Function:ManualPSGalleryModuleInstall}.Ast.Extent.Text
-    ${Function:NewUniqueString}.Ast.Extent.Text
-    ${Function:ResolveHost}.Ast.Extent.Text
-    ${Function:TestIsValidIPAddress}.Ast.Extent.Text
-    ${Function:TestLDAP}.Ast.Extent.Text
-    ${Function:TestPort}.Ast.Extent.Text
-    ${Function:UnzipFile}.Ast.Extent.Text
-    ${Function:Get-CertificateOverview}.Ast.Extent.Text
-    ${Function:Get-Certificates}.Ast.Extent.Text
-    ${Function:Get-CimPnpEntity}.Ast.Extent.Text
-    ${Function:Get-EnvironmentVariables}.Ast.Extent.Text
-    ${Function:Get-EventLogSummary}.Ast.Extent.Text
-    ${Function:Get-FirewallProfile}.Ast.Extent.Text
-    ${Function:Get-FirewallRules}.Ast.Extent.Text
-    ${Function:Get-LocalUsers}.Ast.Extent.Text
-    ${Function:Get-PUDAdminCenter}.Ast.Extent.Text
-    ${Function:Get-RemoteDesktop}.Ast.Extent.Text
-    ${Function:Get-ServerInventory}.Ast.Extent.Text
-    ${Function:New-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:New-Runspace}.Ast.Extent.Text
-    ${Function:Remove-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:Set-ComputerIdentification}.Ast.Extent.Text
-    ${Function:Set-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:Set-RemoteDesktop}.Ast.Extent.Text
-    ${Function:Start-DiskPerf}.Ast.Extent.Text
-    ${Function:Stop-DiskPerf}.Ast.Extent.Text
-)
+<#
+    
+    .SYNOPSIS
+        Get settings that apply to the per-profile configurations of the Windows Firewall with Advanced Security.
+    
+    .DESCRIPTION
+        Get settings that apply to the per-profile configurations of the Windows Firewall with Advanced Security.
+
+    .NOTES
+        This function is pulled directly from the real Microsoft Windows Admin Center
+
+        PowerShell scripts use rights (according to Microsoft):
+        We grant you a non-exclusive, royalty-free right to use, modify, reproduce, and distribute the scripts provided herein.
+
+        ANY SCRIPTS PROVIDED BY MICROSOFT ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
+        INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS OR A PARTICULAR PURPOSE.
+    
+    .ROLE
+        Readers
+    
+#>
+function Get-FirewallProfile {
+    Import-Module netsecurity
+    
+    Get-NetFirewallProfile -PolicyStore ActiveStore | Microsoft.PowerShell.Utility\Select-Object Name, Enabled, DefaultInboundAction, DefaultOutboundAction
+}
 
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUtQjZ6LVVjgQv7ZDX/44ZVtZn
-# oZygggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUb7krbd4PlJEW1dhrPXT4h85b
+# xBagggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -102,11 +86,11 @@
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFOUkmer9CE1JgHZp
-# P78BrIKQl8iaMA0GCSqGSIb3DQEBAQUABIIBACzYkz4B042s22rHWiRFYPOpz+nY
-# 1VpDNITkKnNYpViDZkAjxSknIMqSLLJiIgt8W0HVPr3ZmZeSDGMEIm3f6qre4nNJ
-# Ta39N4qKYuxuRok8CKkaWOIecMDr5r4uuGAv1LdiMdQzWZjnxZ/8VonL4vWzAdLz
-# GwuIRGtW0yFNCJrvgsG27l04Q2+yBGyfnyAE/fH9DqoleHFc9bNkCijwoHpN0/+W
-# dyUQaN73G9WbOzHqL/UVvrY9AmjCGsJ+Vtd4WR/TXe+nCGD092obiMLkfpKp5954
-# o6z29YztS3mAao7VV82rOrGVP9XaZQ2hoh4utyvfnXD0wRx6cbMHP9mZkjU=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFOH9MzKVWt6iuQ6S
+# MAJxbiQOnfbBMA0GCSqGSIb3DQEBAQUABIIBAGOWDNgrXNLrkNc5TtkArs64RwDo
+# UN+cCcm/6C68Wlk7FEDqJah8TeNLYab5jtNd5leRvrOcpLvup817ry+1MpNbzr/X
+# UJkgFoZYiBDzfSHng0cwUFi0T4rKTnxvw8XrdB02ZdLJYRuSGEfvCaqDAyuvBnPY
+# QM1GPZbQjeyXW85Vdur3024TReZcBtsTIV/H5O4Syowmh99zl33J4SPsmh7vp0YJ
+# PZXq+IqbXoI/8VjyI/vwGKsEljHS7M9gEq0ZsX367QRBir5mIHLMHMAEBCPZx5cj
+# 7ytTNZB8Lwm/lk1TV94LUaotUYX4uwXXCenrgI/smoAbz5UUaWcsbuy3+6g=
 # SIG # End signature block
