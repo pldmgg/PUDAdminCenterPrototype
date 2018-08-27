@@ -138,116 +138,139 @@ $RegistryPageContent = {
         #endregion >> Ensure We Are Connected / Can Connect to $RemoteHost
 
         #region >> Gather Some Initial Info From $RemoteHost
-
-        if (!$Session:RootDirChildItems) {
+        if (!$Session:HKLMChildKeys -or !$Session:HKCUChildKeys -or !$Session:HKCRChildKeys -or !$Session:HKUChildKeys -or !$Session:HKCCChildKeys) {
+            $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
+            $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
             $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                Invoke-Expression $using:GetRegistrySubKeysFunc
+                Invoke-Expression $using:GetRegistryValuesFunc
+
                 # HKLM and HKCU are already defined by default...
                 New-PSDrive -Name HKCR -PSProvider Registry -Root HKEY_CLASSES_ROOT
                 New-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS
                 New-PSDrive -Name HKCC -PSProvider Registry -Root HKEY_CURRENT_CONFIG
 
+                <#
+                'Get-RegistryValues -path HKLM:\SYSTEM\CurrentControlSet\Control\Network\Connections' Output Example
+                Name                 type data
+                ----                 ---- ----
+                ClassManagers MultiString {{B4C8DF59-D16F-4042-80B7-3557A254B7C5}, {BA126AD3-2166-11D1-B1D0-00805FC1270E}, {BA126AD5-2166-11D1-B1D0-00805FC1270E}, {BA126ADD-2166-11D1-B1D0-00805FC1270E}}
 
-                $HKLMChildItems = Get-ChildItem -Path "HKLM:\"
-                $HKLMDirItem = Get-Item -Path "HKLM:\"
 
-                $HKCUChildItems = Get-ChildItem -Path "HKCU:\"
-                $HKCUDirItem = Get-Item -Path "HKCU:\"
+                'Get-RegistrySubKeys -path HKLM:\SYSTEM\CurrentControlSet\Control\Network' Output Example
+                Name                                   Path                                                                                                                                   childCount
+                ----                                   ----                                                                                                                                   ----------
+                {4D36E972-E325-11CE-BFC1-08002BE10318} Microsoft.PowerShell.Core\Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Network\{4D36E972-E325-11CE-BFC1-08002BE10318}          8
+                {4d36e973-e325-11ce-bfc1-08002be10318} Microsoft.PowerShell.Core\Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Network\{4d36e973-e325-11ce-bfc1-08002be10318}          1
+                {4d36e974-e325-11ce-bfc1-08002be10318} Microsoft.PowerShell.Core\Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Network\{4d36e974-e325-11ce-bfc1-08002be10318}          9
+                {4d36e975-e325-11ce-bfc1-08002be10318} Microsoft.PowerShell.Core\Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Network\{4d36e975-e325-11ce-bfc1-08002be10318}         19
+                Connections                            Microsoft.PowerShell.Core\Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Network\Connections                                     0
+                LightweightCallHandlers                Microsoft.PowerShell.Core\Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Network\LightweightCallHandlers                         2
+                NetworkLocationWizard                  Microsoft.PowerShell.Core\Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Network\NetworkLocationWizard                           0
+                SharedAccessConnection                 Microsoft.PowerShell.Core\Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Network\SharedAccessConnection                          0
+                #>
 
-                $HKCRChildItems = Get-ChildItem -Path "HKCR:\"
-                $HKCRDirItem = Get-Item -Path "HKCR:\"
+                $HKLMChildKeys = Get-RegistrySubKeys -path "HKLM:\" -ErrorAction SilentlyContinue
+                $HKLMValues = Get-RegistryValues -path "HKLM:\" -ErrorAction SilentlyContinue
+
+                $HKCUChildKeys = Get-RegistrySubKeys -path "HKCU:\" -ErrorAction SilentlyContinue
+                $HKCUValues = Get-RegistryValues -path "HKCU:\" -ErrorAction SilentlyContinue
+
+                $HKCRChildKeys = Get-RegistrySubKeys -path "HKCR:\" -ErrorAction SilentlyContinue
+                $HKCRValues = Get-RegistryValues -path "HKCR:\" -ErrorAction SilentlyContinue
                 
-                $HKUChildItems = Get-ChildItem -Path "HKU:\"
-                $HKUDirItem = Get-Item -Path "HKU:\"
+                $HKUChildKeys = Get-RegistrySubKeys -path "HKU:\" -ErrorAction SilentlyContinue
+                $HKUValues = Get-RegistryValues -path "HKU:\" -ErrorAction SilentlyContinue
                 
-                $HKCCChildItems = Get-ChildItem -Path "HKCC:\"
-                $HKCCDirItem = Get-Item -Path "HKCC:\"
+                $HKCCChildKeys = Get-RegistrySubKeys -path "HKCC:\" -ErrorAction SilentlyContinue
+                $HKCCValues = Get-RegistryValues -path "HKCC:\" -ErrorAction SilentlyContinue
 
                 [pscustomobject]@{
-                    HKLMChildItems      = $HKLMChildItems
-                    HKLMDirItem         = $HKLMDirItem
-                    HKCUChildItems      = $HKCUChildItems
-                    HKCUDirItem         = $HKCUDirItem
-                    HKCRChildItems      = $HKCRChildItems
-                    HKCRDirItem         = $HKCRDirItem
-                    HKUChildItems       = $HKUChildItems
-                    HKUDirItem          = $HKUDirItem
-                    HKCCChildItems      = $HKCCChildItems
-                    HKCCDirItem         = $HKCCDirItem
+                    HKLMChildKeys   = $HKLMChildKeys
+                    HKLMValues      = $HKLMValues
+                    HKCUChildKeys   = $HKCUChildKeys
+                    HKCUValues      = $HKCUValues
+                    HKCRChildKeys   = $HKCRChildKeys
+                    HKCRValues      = $HKCRValues
+                    HKUChildKeys    = $HKUChildKeys
+                    HKUValues       = $HKUValues
+                    HKCCChildKeys   = $HKCCChildKeys
+                    HKCCValues      = $HKCCValues
                 }
             }
-            $Session:HKLMChildItems = $StaticInfo.HKLMChildItems
-            $Session:HKLMDirItem = $StaticInfo.HKLMDirItem
-            $Session:HKCUChildItems = $StaticInfo.HKCUChildItems
-            $Session:HKCUDirItem = $StaticInfo.HKCUDirItem
-            $Session:HKCRChildItems = $StaticInfo.HKCRChildItems
-            $Session:HKCRDirItem = $StaticInfo.HKCRDirItem
-            $Session:HKUChildItems = $StaticInfo.HKUChildItems
-            $Session:HKUDirItem = $StaticInfo.HKUDirItem
-            $Session:HKCCChildItems  = $StaticInfo.HKCCChildItems
-            $Session:HKCCDirItem = $StaticInfo.HKCCDirItem
-            if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKLMChildItems") {
-                $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKLMChildItems",$StaticInfo.HKLMChildItems)
+            $Session:HKLMChildKeys = $StaticInfo.HKLMChildKeys
+            $Session:HKLMValues = $StaticInfo.HKLMValues
+            $Session:HKCUChildKeys = $StaticInfo.HKCUChildKeys
+            $Session:HKCUValues = $StaticInfo.HKCUValues
+            $Session:HKCRChildKeys = $StaticInfo.HKCRChildKeys
+            $Session:HKCRValues = $StaticInfo.HKCRValues
+            $Session:HKUChildKeys = $StaticInfo.HKUChildKeys
+            $Session:HKUValues = $StaticInfo.HKUValues
+            $Session:HKCCChildKeys  = $StaticInfo.HKCCChildKeys
+            $Session:HKCCValues = $StaticInfo.HKCCValues
+            if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKLMChildKeys") {
+                $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKLMChildKeys",$StaticInfo.HKLMChildKeys)
             }
             else {
-                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMChildItems = $StaticInfo.HKLMChildItems
+                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMChildKeys = $StaticInfo.HKLMChildKeys
             }
-            if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKLMDirItem") {
-                $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKLMDirItem",$StaticInfo.HKLMDirItem)
+            if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKLMValues") {
+                $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKLMValues",$StaticInfo.HKLMValues)
             }
             else {
-                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMDirItem = $StaticInfo.HKLMDirItem
+                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMValues = $StaticInfo.HKLMValues
             }
 
-            if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKCUChildItems") {
-                $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKCUChildItems",$StaticInfo.HKCUChildItems)
+            if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKCUChildKeys") {
+                $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKCUChildKeys",$StaticInfo.HKCUChildKeys)
             }
             else {
-                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCUChildItems = $StaticInfo.HKCUChildItems
+                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCUChildKeys = $StaticInfo.HKCUChildKeys
             }
-            if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKCUDirItem") {
-                $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKCUDirItem",$StaticInfo.HKCUDirItem)
+            if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKCUValues") {
+                $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKCUValues",$StaticInfo.HKCUValues)
             }
             else {
-                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCUDirItem = $StaticInfo.HKCUDirItem
+                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCUValues = $StaticInfo.HKCUValues
             }
 
-            if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKCRChildItems") {
-                $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKCRChildItems",$StaticInfo.HKCRChildItems)
+            if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKCRChildKeys") {
+                $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKCRChildKeys",$StaticInfo.HKCRChildKeys)
             }
             else {
-                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCRChildItems = $StaticInfo.HKCRChildItems
+                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCRChildKeys = $StaticInfo.HKCRChildKeys
             }
-            if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKCRDirItem") {
-                $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKCRDirItem",$StaticInfo.HKCRDirItem)
+            if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKCRValues") {
+                $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKCRValues",$StaticInfo.HKCRValues)
             }
             else {
-                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCRDirItem = $StaticInfo.HKCRDirItem
+                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCRValues = $StaticInfo.HKCRValues
             }
 
-            if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKUChildItems") {
-                $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKUChildItems",$StaticInfo.HKUChildItems)
+            if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKUChildKeys") {
+                $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKUChildKeys",$StaticInfo.HKUChildKeys)
             }
             else {
-                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKUChildItems = $StaticInfo.HKUChildItems
+                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKUChildKeys = $StaticInfo.HKUChildKeys
             }
-            if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKUDirItem") {
-                $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKUDirItem",$StaticInfo.HKUDirItem)
+            if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKUValues") {
+                $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKUValues",$StaticInfo.HKUValues)
             }
             else {
-                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKUDirItem = $StaticInfo.HKUDirItem
+                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKUValues = $StaticInfo.HKUValues
             }
 
-            if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKCCChildItems") {
-                $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKCCChildItems",$StaticInfo.HKCCChildItems)
+            if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKCCChildKeys") {
+                $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKCCChildKeys",$StaticInfo.HKCCChildKeys)
             }
             else {
-                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCCChildItems = $StaticInfo.HKCCChildItems
+                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCCChildKeys = $StaticInfo.HKCCChildKeys
             }
-            if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKCCDirItem") {
-                $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKCCDirItem",$StaticInfo.HKCCDirItem)
+            if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKCCValues") {
+                $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKCCValues",$StaticInfo.HKCCValues)
             }
             else {
-                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCCDirItem = $StaticInfo.HKCCDirItem
+                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCCValues = $StaticInfo.HKCCValues
             }
         }
 
@@ -381,51 +404,62 @@ $RegistryPageContent = {
                             $NewRootDirTextBox = Get-UDElement -Id "NewHKLMRootDirTBProper"
                             $FullPathToExplore = $NewRootDirTextBox.Attributes['value']
 
+                            $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                            $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
                             $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                                $HKLMChildItems = Get-ChildItem -Path $args[0]
-                                $HKLMDirItem = Get-Item -Path $args[0]
+                                Invoke-Expression $using:GetRegistrySubKeysFunc
+                                Invoke-Expression $using:GetRegistryValuesFunc
+
+                                $HKLMChildKeys = Get-RegistrySubKeys -path $args[0] -ErrorAction SilentlyContinue
+                                $HKLMValues = Get-RegistryValues -path $args[0] -ErrorAction SilentlyContinue
 
                                 [pscustomobject]@{
-                                    HKLMChildItems      = $HKLMChildItems
-                                    HKLMDirItem         = $HKLMDirItem
+                                    HKLMChildKeys   = $HKLMChildKeys
+                                    HKLMValues      = $HKLMValues
                                 }
                             } -ArgumentList $FullPathToExplore
-                            $Session:HKLMChildItems = $NewPathInfo.HKLMChildItems
-                            $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMChildItems = $NewPathInfo.HKLMChildItems
-                            $Session:HKLMDirItem = $NewPathInfo.HKLMDirItem
-                            $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMDirItem = $NewPathInfo.HKLMDirItem
+                            $Session:HKLMChildKeys = $NewPathInfo.HKLMChildKeys
+                            $Session:HKLMValues = $NewPathInfo.HKLMValues
+                            $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMChildKeys = $NewPathInfo.HKLMChildKeys
+                            $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMValues = $NewPathInfo.HKLMValues
 
                             Sync-UDElement -Id "HKLMChildItemsUDGrid"
-                            Sync-UDElement -Id "NewJKLMRootDirTB"
+                            Sync-UDElement -Id "NewHKLMRootDirTB"
                             Sync-UDElement -Id "CurrentHKLMRootDirTB"
                         }
 
                         New-UDButton -Text "Parent Directory" -OnClick {
-                            $FullPathToExplore = $Session:RootDirItem.FullName | Split-Path -Parent
+                            $FullPathToExplore = $Session:HKLMDirItem.FullName | Split-Path -Parent
 
+                            $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                            $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
                             $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                                $RootDirChildItems = Get-ChildItem -Path $args[0]
-                                $RootDirItem = Get-Item -Path $args[0]
+                                Invoke-Expression $using:GetRegistrySubKeysFunc
+                                Invoke-Expression $using:GetRegistryValuesFunc
+
+                                $HKLMChildKeys = Get-RegistrySubKeys -path $args[0] -ErrorAction SilentlyContinue
+                                $HKLMValues = Get-RegistryValues -path $args[0] -ErrorAction SilentlyContinue
 
                                 [pscustomobject]@{
-                                    RootDirItem            = $RootDirItem
-                                    RootDirChildItems      = $RootDirChildItems
+                                    HKLMChildKeys   = $HKLMChildKeys
+                                    HKLMValues      = $HKLMValues
                                 }
                             } -ArgumentList $FullPathToExplore
-                            $Session:RootDirChildItems = $NewPathInfo.RootDirChildItems
-                            $PUDRSSyncHT."$RemoteHost`Info".Registry.RootDirChildItems = $NewPathInfo.RootDirChildItems
-                            $Session:RootDirItem = $NewPathInfo.RootDirItem
-                            $PUDRSSyncHT."$RemoteHost`Info".Registry.RootDirItem = $NewPathInfo.RootDirItem
-                            Sync-UDElement -Id "RootDirChildItemsUDGrid"
-                            Sync-UDElement -Id "NewRootDirTB"
-                            Sync-UDElement -Id "CurrentRootDirTB"
+                            $Session:HKLMChildKeys = $NewPathInfo.HKLMChildKeys
+                            $Session:HKLMValues = $NewPathInfo.HKLMValues
+                            $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMChildKeys = $NewPathInfo.HKLMChildKeys
+                            $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMValues = $NewPathInfo.HKLMValues
+
+                            Sync-UDElement -Id "HKLMChildItemsUDGrid"
+                            Sync-UDElement -Id "NewHKLMRootDirTB"
+                            Sync-UDElement -Id "CurrentHKLMRootDirTB"
                         }
                     }
                     New-UDColumn -Size 3 -Endpoint {}
                 }
                 New-UDRow -Endpoint {
                     New-UDColumn -Size 12 -Endpoint {
-                        $RootRegistryProperties = @("Name","FullPath","DateModified","Type","Size","Explore")
+                        $RootRegistryProperties = @("Name","Path","Type","Data","ChildCount","Explore")
                         $RootRegistryUDGridSplatParams = @{
                             Id              = "RootDirChildItemsUDGrid"
                             Headers         = $RootRegistryProperties
@@ -437,34 +471,40 @@ $RegistryPageContent = {
 
                             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
 
-                            $Session:RootDirChildItems | foreach {
+                            $Session:HKLMChildKeys | foreach {
                                 [pscustomobject]@{
                                     Name            = $_.Name
-                                    FullPath        = $_.FullName
-                                    DateModified    = Get-Date $_.LastWriteTime -Format MM/dd/yy_hh:mm:ss
-                                    Type            = if ($_.PSIsContainer) {"Folder"} else {"File"}
-                                    Size            = if ($_.PSIsContainer) {'-'} else {[Math]::Round($($_.Length / 1KB),2).toString() + 'KB'}
-                                    Explore         = if (!$_.PSIsContainer) {'-'} else {
+                                    Path            = if ($_.Path) {$_.Path -replace "Microsoft.PowerShell.Core\\Registry::.*?\\","HKLM:\"} else {$null}
+                                    Type            = if ($_.Type) {$_.Type.ToString()} else {"File"}
+                                    Data            = if ($_.Data) {$_.Data -join ", "} else {$null}
+                                    ChildCount      = if ($_.ChildCount) {$_.ChildCount} else {$null}
+                                    Explore         = if (!$_.Path) {'-'} elseif ($_.ChildCount -eq 0) {'Empty'} else {
                                         New-UDButton -Text "Explore" -OnClick {
                                             #$NewRootDirTextBox = Get-UDElement -Id "NewRootDirTB"
-                                            $FullPathToExplore = $_.FullName
-                
+                                            $FullPathToExplore = $_.Path -replace "Microsoft.PowerShell.Core\\Registry::.*?\\","HKLM:\"
+
+                                            $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                                            $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
                                             $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                                                $RootDirChildItems = Get-ChildItem -Path $args[0]
-                                                $RootDirItem = Get-Item -Path $args[0]
+                                                Invoke-Expression $using:GetRegistrySubKeysFunc
+                                                Invoke-Expression $using:GetRegistryValuesFunc
+
+                                                $HKLMChildKeys = Get-RegistrySubKeys -path $args[0] -ErrorAction SilentlyContinue
+                                                $HKLMValues = Get-RegistryValues -path $args[0] -ErrorAction SilentlyContinue
 
                                                 [pscustomobject]@{
-                                                    RootDirItem            = $RootDirItem
-                                                    RootDirChildItems      = $RootDirChildItems
+                                                    HKLMChildKeys   = $HKLMChildKeys
+                                                    HKLMValues      = $HKLMValues
                                                 }
                                             } -ArgumentList $FullPathToExplore
-                                            $Session:RootDirChildItems = $NewPathInfo.RootDirChildItems
-                                            $PUDRSSyncHT."$RemoteHost`Info".Registry.RootDirChildItems = $NewPathInfo.RootDirChildItems
-                                            $Session:RootDirItem = $NewPathInfo.RootDirItem
-                                            $PUDRSSyncHT."$RemoteHost`Info".Registry.RootDirItem = $NewPathInfo.RootDirItem
-                                            Sync-UDElement -Id "RootDirChildItemsUDGrid"
-                                            Sync-UDElement -Id "NewRootDirTB"
-                                            Sync-UDElement -Id "CurrentRootDirTB"
+                                            $Session:HKLMChildKeys = $NewPathInfo.HKLMChildKeys
+                                            $Session:HKLMValues = $NewPathInfo.HKLMValues
+                                            $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMChildKeys = $NewPathInfo.HKLMChildKeys
+                                            $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMValues = $NewPathInfo.HKLMValues
+
+                                            Sync-UDElement -Id "HKLMChildItemsUDGrid"
+                                            Sync-UDElement -Id "NewHKLMRootDirTB"
+                                            Sync-UDElement -Id "CurrentHKLMRootDirTB"
                                         }
                                     }
                                 }

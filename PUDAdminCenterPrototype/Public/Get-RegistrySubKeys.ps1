@@ -1,57 +1,51 @@
-[System.Collections.ArrayList]$script:FunctionsForSBUse = @(
-    ${Function:AddWinRMTrustedHost}.Ast.Extent.Text
-    ${Function:AddWinRMTrustLocalHost}.Ast.Extent.Text
-    ${Function:EnableWinRMViaRPC}.Ast.Extent.Text
-    ${Function:GetComputerObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetDomainController}.Ast.Extent.Text
-    ${Function:GetElevation}.Ast.Extent.Text
-    ${Function:GetGroupObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetModuleDependencies}.Ast.Extent.Text
-    ${Function:GetNativePath}.Ast.Extent.Text
-    ${Function:GetUserObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetWorkingCredentials}.Ast.Extent.Text
-    ${Function:InstallFeatureDism}.Ast.Extent.Text
-    ${Function:InvokeModuleDependencies}.Ast.Extent.Text
-    ${Function:InvokePSCompatibility}.Ast.Extent.Text
-    ${Function:ManualPSGalleryModuleInstall}.Ast.Extent.Text
-    ${Function:NewUniqueString}.Ast.Extent.Text
-    ${Function:ResolveHost}.Ast.Extent.Text
-    ${Function:TestIsValidIPAddress}.Ast.Extent.Text
-    ${Function:TestLDAP}.Ast.Extent.Text
-    ${Function:TestPort}.Ast.Extent.Text
-    ${Function:UnzipFile}.Ast.Extent.Text
-    ${Function:Get-CertificateOverview}.Ast.Extent.Text
-    ${Function:Get-Certificates}.Ast.Extent.Text
-    ${Function:Get-CimPnpEntity}.Ast.Extent.Text
-    ${Function:Get-EnvironmentVariables}.Ast.Extent.Text
-    ${Function:Get-EventLogSummary}.Ast.Extent.Text
-    ${Function:Get-FirewallProfile}.Ast.Extent.Text
-    ${Function:Get-FirewallRules}.Ast.Extent.Text
-    ${Function:Get-LocalGroups}.Ast.Extent.Text
-    ${Function:Get-LocalGroupUsers}.Ast.Extent.Text
-    ${Function:Get-LocalUserBelongGroups}.Ast.Extent.Text
-    ${Function:Get-LocalUsers}.Ast.Extent.Text
-    ${Function:Get-Networks}.Ast.Extent.Text
-    ${Function:Get-PUDAdminCenter}.Ast.Extent.Text
-    ${Function:Get-RegistrySubKeys}.Ast.Extent.Text
-    ${Function:Get-RegistryValues}.Ast.Extent.Text
-    ${Function:Get-RemoteDesktop}.Ast.Extent.Text
-    ${Function:Get-ServerInventory}.Ast.Extent.Text
-    ${Function:New-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:New-Runspace}.Ast.Extent.Text
-    ${Function:Remove-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:Set-ComputerIdentification}.Ast.Extent.Text
-    ${Function:Set-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:Set-RemoteDesktop}.Ast.Extent.Text
-    ${Function:Start-DiskPerf}.Ast.Extent.Text
-    ${Function:Stop-DiskPerf}.Ast.Extent.Text
-)
+<#
+    
+    .SYNOPSIS
+        Return subkeys based on the path.
+    
+    .DESCRIPTION
+        Return subkeys based on the path. The supported Operating Systems are
+        Window Server 2012 and Windows Server 2012R2 and Windows Server 2016.
+
+    .NOTES
+        This function is pulled directly from the real Microsoft Windows Admin Center
+
+        PowerShell scripts use rights (according to Microsoft):
+        We grant you a non-exclusive, royalty-free right to use, modify, reproduce, and distribute the scripts provided herein.
+
+        ANY SCRIPTS PROVIDED BY MICROSOFT ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
+        INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS OR A PARTICULAR PURPOSE.
+    
+    .ROLE
+        Readers
+    
+#>
+function Get-RegistrySubKeys {
+    Param([Parameter(Mandatory = $true)][string]$path)
+    
+    $ErrorActionPreference = "Stop"
+    
+    $Error.Clear()
+    $keyArray = @()
+    $key = Get-Item $path
+    foreach ($sub in $key.GetSubKeyNames() | Sort-Object)
+    {
+        $keyEntry = New-Object System.Object
+        $keyEntry | Add-Member -type NoteProperty -name Name -value $sub  
+        $subKeyPath = $key.PSPath+'\'+$sub
+        $keyEntry | Add-Member -type NoteProperty -name Path -value $subKeyPath
+        $keyEntry | Add-Member -type NoteProperty -name childCount -value @( Get-ChildItem $subKeyPath -ErrorAction SilentlyContinue ).Length
+        $keyArray += $keyEntry
+    }
+    $keyArray
+    
+}
 
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUfg/V7S74//SO0UsIm+3GOyWN
-# am6gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUG75iXa4XUnEO0RFjRfRn725h
+# vVCgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -108,11 +102,11 @@
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFFKYCJ9wl5uUFLx5
-# +qtH/7AeHKgAMA0GCSqGSIb3DQEBAQUABIIBAA6/QnN3NX+AK3H3uoRFBtYyl0NC
-# 7D1n7IsoaKk7tj3jFajixY8CA7zLkt1vawxwyZk9RVNR6TpMLwv/V/aRV4Ocdaem
-# SdVLsBtve5rB6AZJkMiDwHbHitLrt6x/jf+d6kxlDvdsElnpK2dCqBD24SS0wEU7
-# +vyEDT6ZU4SZ67JLQcmisasHb3M5Yiv/GlkM18JltcKsCNfsyIdGJ1++fYxorOyD
-# fjaZ7GWq7ywRgZm3ZYSFZ0y6gKlFHa92SKLXab+o/+//Wd+4Zi07xl5xCldVq2ol
-# n4FWWg5oLC9XpnXH2fI8CJn+wyGKOEbiSfcM0KHUj7cij37bcAKL0Nsd3wg=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFAYcD8bNpDZqUmj5
+# oaHJnmwA5R4aMA0GCSqGSIb3DQEBAQUABIIBAFF0jIrzRampSowOMGcasfd1jwRm
+# 9Zc1vVyWeReTIEj/4ESYX0GuqzX3gWQ3x7zsgAGJasClHcVZ3c21qAVKOHpxXHdr
+# +a1W5oqNQdbtdrB/y6+alfpOh0FJfLV5JygOwCp0V2I3jvlE+yBwFvTeCLVaeLi3
+# 7RUCZuxV4b/0QNwXkdTf6O9kIZ4lWNNxcUsyKYnCfo1/5/jJdCVhJIpNrb9onesB
+# ymuHdR+RAeYMAjv3u6J0oHFqyJoyTyfBEVQgbXA9Xe4RskAegPP9qhf8ho79IaR1
+# 9g/jdoYqgPZCtZuV6TUO5sQzcaK+VG+9ONHmpz5CmN4oJKlaQ6upVuOXiWU=
 # SIG # End signature block
