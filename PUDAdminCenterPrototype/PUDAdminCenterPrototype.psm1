@@ -1452,6 +1452,204 @@ function Get-LocalUsers {
 
 <#
     .SYNOPSIS
+        Gets the network ip configuration.
+    
+    .DESCRIPTION
+        Gets the network ip configuration. The supported Operating Systems are Window Server 2012, Windows Server 2012R2, Windows Server 2016.
+
+    .NOTES
+        This function is pulled directly from the real Microsoft Windows Admin Center
+
+        PowerShell scripts use rights (according to Microsoft):
+        We grant you a non-exclusive, royalty-free right to use, modify, reproduce, and distribute the scripts provided herein.
+
+        ANY SCRIPTS PROVIDED BY MICROSOFT ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
+        INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS OR A PARTICULAR PURPOSE.
+    
+    .ROLE
+        Readers
+#>
+function Get-Networks {
+    Import-Module NetAdapter
+    Import-Module NetTCPIP
+    Import-Module DnsClient
+    
+    Set-StrictMode -Version 5.0
+    $ErrorActionPreference = 'SilentlyContinue'
+    
+    # Get all net information
+    $netAdapter = Get-NetAdapter
+    
+    # conditions used to select the proper ip address for that object modeled after ibiza method.
+    # We only want manual (set by user manually), dhcp (set up automatically with dhcp), or link (set from link address)
+    # fe80 is the prefix for link local addresses, so that is the format want if the suffix origin is link
+    # SkipAsSource -eq zero only grabs ip addresses with skipassource set to false so we only get the preffered ip address
+    $ipAddress = Get-NetIPAddress | Where-Object {
+        ($_.SuffixOrigin -eq 'Manual') -or
+        ($_.SuffixOrigin -eq 'Dhcp') -or 
+        (($_.SuffixOrigin -eq 'Link') -and (($_.IPAddress.StartsWith('fe80:')) -or ($_.IPAddress.StartsWith('2001:'))))
+    }
+    
+    $netIPInterface = Get-NetIPInterface
+    $netRoute = Get-NetRoute -PolicyStore ActiveStore
+    $dnsServer = Get-DnsClientServerAddress
+    
+    # Load in relevant net information by name
+    Foreach ($currentNetAdapter in $netAdapter) {
+        $result = New-Object PSObject
+    
+        # Net Adapter information
+        $result | Add-Member -MemberType NoteProperty -Name 'InterfaceAlias' -Value $currentNetAdapter.InterfaceAlias
+        $result | Add-Member -MemberType NoteProperty -Name 'InterfaceIndex' -Value $currentNetAdapter.InterfaceIndex
+        $result | Add-Member -MemberType NoteProperty -Name 'InterfaceDescription' -Value $currentNetAdapter.InterfaceDescription
+        $result | Add-Member -MemberType NoteProperty -Name 'Status' -Value $currentNetAdapter.Status
+        $result | Add-Member -MemberType NoteProperty -Name 'MacAddress' -Value $currentNetAdapter.MacAddress
+        $result | Add-Member -MemberType NoteProperty -Name 'LinkSpeed' -Value $currentNetAdapter.LinkSpeed
+    
+        # Net IP Address information
+        # Primary addresses are used for outgoing calls so SkipAsSource is false (0)
+        # Should only return one if properly configured, but it is possible to set multiple, so collect all
+        $primaryIPv6Addresses = $ipAddress | Where-Object {($_.InterfaceAlias -eq $currentNetAdapter.Name) -and ($_.AddressFamily -eq 'IPv6') -and ($_.SkipAsSource -eq 0)}
+        if ($primaryIPv6Addresses) {
+            $ipArray = New-Object System.Collections.ArrayList
+            $linkLocalArray = New-Object System.Collections.ArrayList
+            Foreach ($address in $primaryIPv6Addresses) {
+                if ($address -ne $null -and $address.IPAddress -ne $null -and $address.IPAddress.StartsWith('fe80')) {
+                    $linkLocalArray.Add(($address.IPAddress, $address.PrefixLength)) > $null
+                }
+                else {
+                    $ipArray.Add(($address.IPAddress, $address.PrefixLength)) > $null
+                }
+            }
+            $result | Add-Member -MemberType NoteProperty -Name 'PrimaryIPv6Address' -Value $ipArray
+            $result | Add-Member -MemberType NoteProperty -Name 'LinkLocalIPv6Address' -Value $linkLocalArray
+        }
+    
+        $primaryIPv4Addresses = $ipAddress | Where-Object {($_.InterfaceAlias -eq $currentNetAdapter.Name) -and ($_.AddressFamily -eq 'IPv4') -and ($_.SkipAsSource -eq 0)}
+        if ($primaryIPv4Addresses) {
+            $ipArray = New-Object System.Collections.ArrayList
+            Foreach ($address in $primaryIPv4Addresses) {
+                $ipArray.Add(($address.IPAddress, $address.PrefixLength)) > $null
+            }
+            $result | Add-Member -MemberType NoteProperty -Name 'PrimaryIPv4Address' -Value $ipArray
+        }
+    
+        # Secondary addresses are not used for outgoing calls so SkipAsSource is true (1)
+        # There will usually not be secondary addresses, but collect them just in case
+        $secondaryIPv6Adresses = $ipAddress | Where-Object {($_.InterfaceAlias -eq $currentNetAdapter.Name) -and ($_.AddressFamily -eq 'IPv6') -and ($_.SkipAsSource -eq 1)}
+        if ($secondaryIPv6Adresses) {
+            $ipArray = New-Object System.Collections.ArrayList
+            Foreach ($address in $secondaryIPv6Adresses) {
+                $ipArray.Add(($address.IPAddress, $address.PrefixLength)) > $null
+            }
+            $result | Add-Member -MemberType NoteProperty -Name 'SecondaryIPv6Address' -Value $ipArray
+        }
+    
+        $secondaryIPv4Addresses = $ipAddress | Where-Object {($_.InterfaceAlias -eq $currentNetAdapter.Name) -and ($_.AddressFamily -eq 'IPv4') -and ($_.SkipAsSource -eq 1)}
+        if ($secondaryIPv4Addresses) {
+            $ipArray = New-Object System.Collections.ArrayList
+            Foreach ($address in $secondaryIPv4Addresses) {
+                $ipArray.Add(($address.IPAddress, $address.PrefixLength)) > $null
+            }
+            $result | Add-Member -MemberType NoteProperty -Name 'SecondaryIPv4Address' -Value $ipArray
+        }
+    
+        # Net IP Interface information
+        $currentDhcpIPv4 = $netIPInterface | Where-Object {($_.InterfaceAlias -eq $currentNetAdapter.Name) -and ($_.AddressFamily -eq 'IPv4')}
+        if ($currentDhcpIPv4) {
+            $result | Add-Member -MemberType NoteProperty -Name 'DhcpIPv4' -Value $currentDhcpIPv4.Dhcp
+            $result | Add-Member -MemberType NoteProperty -Name 'IPv4Enabled' -Value $true
+        }
+        else {
+            $result | Add-Member -MemberType NoteProperty -Name 'IPv4Enabled' -Value $false
+        }
+    
+        $currentDhcpIPv6 = $netIPInterface | Where-Object {($_.InterfaceAlias -eq $currentNetAdapter.Name) -and ($_.AddressFamily -eq 'IPv6')}
+        if ($currentDhcpIPv6) {
+            $result | Add-Member -MemberType NoteProperty -Name 'DhcpIPv6' -Value $currentDhcpIPv6.Dhcp
+            $result | Add-Member -MemberType NoteProperty -Name 'IPv6Enabled' -Value $true
+        }
+        else {
+            $result | Add-Member -MemberType NoteProperty -Name 'IPv6Enabled' -Value $false
+        }
+    
+        # Net Route information
+        # destination prefix for selected ipv6 address is always ::/0
+        $currentIPv6DefaultGateway = $netRoute | Where-Object {($_.InterfaceAlias -eq $currentNetAdapter.Name) -and ($_.DestinationPrefix -eq '::/0')}
+        if ($currentIPv6DefaultGateway) {
+            $ipArray = New-Object System.Collections.ArrayList
+            Foreach ($address in $currentIPv6DefaultGateway) {
+                if ($address.NextHop) {
+                    $ipArray.Add($address.NextHop) > $null
+                }
+            }
+            $result | Add-Member -MemberType NoteProperty -Name 'IPv6DefaultGateway' -Value $ipArray
+        }
+    
+        # destination prefix for selected ipv4 address is always 0.0.0.0/0
+        $currentIPv4DefaultGateway = $netRoute | Where-Object {($_.InterfaceAlias -eq $currentNetAdapter.Name) -and ($_.DestinationPrefix -eq '0.0.0.0/0')}
+        if ($currentIPv4DefaultGateway) {
+            $ipArray = New-Object System.Collections.ArrayList
+            Foreach ($address in $currentIPv4DefaultGateway) {
+                if ($address.NextHop) {
+                    $ipArray.Add($address.NextHop) > $null
+                }
+            }
+            $result | Add-Member -MemberType NoteProperty -Name 'IPv4DefaultGateway' -Value $ipArray
+        }
+    
+        # DNS information
+        # dns server util code for ipv4 is 2
+        $currentIPv4DnsServer = $dnsServer | Where-Object {($_.InterfaceAlias -eq $currentNetAdapter.Name) -and ($_.AddressFamily -eq 2)}
+        if ($currentIPv4DnsServer) {
+            $ipArray = New-Object System.Collections.ArrayList
+            Foreach ($address in $currentIPv4DnsServer) {
+                if ($address.ServerAddresses) {
+                    $ipArray.Add($address.ServerAddresses) > $null
+                }
+            }
+            $result | Add-Member -MemberType NoteProperty -Name 'IPv4DNSServer' -Value $ipArray
+        }
+    
+        # dns server util code for ipv6 is 23
+        $currentIPv6DnsServer = $dnsServer | Where-Object {($_.InterfaceAlias -eq $currentNetAdapter.Name) -and ($_.AddressFamily -eq 23)}
+        if ($currentIPv6DnsServer) {
+            $ipArray = New-Object System.Collections.ArrayList
+            Foreach ($address in $currentIPv6DnsServer) {
+                if ($address.ServerAddresses) {
+                    $ipArray.Add($address.ServerAddresses) > $null
+                }
+            }
+            $result | Add-Member -MemberType NoteProperty -Name 'IPv6DNSServer' -Value $ipArray
+        }
+    
+        $adapterGuid = $currentNetAdapter.InterfaceGuid
+        if ($adapterGuid) {
+          $regPath = "Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\$($adapterGuid)"
+          $ipv4Properties = Get-ItemProperty $regPath
+          if ($ipv4Properties -and $ipv4Properties.NameServer) {
+            $result | Add-Member -MemberType NoteProperty -Name 'IPv4DnsManuallyConfigured' -Value $true
+          } else {
+            $result | Add-Member -MemberType NoteProperty -Name 'IPv4DnsManuallyConfigured' -Value $false
+          }
+    
+          $regPath = "Registry::HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters\Interfaces\$($adapterGuid)"
+          $ipv6Properties = Get-ItemProperty $regPath
+          if ($ipv6Properties -and $ipv6Properties.NameServer) {
+            $result | Add-Member -MemberType NoteProperty -Name 'IPv6DnsManuallyConfigured' -Value $true
+          } else {
+            $result | Add-Member -MemberType NoteProperty -Name 'IPv6DnsManuallyConfigured' -Value $false
+          }
+        }
+    
+        $result
+    }
+    
+}
+
+
+<#
+    .SYNOPSIS
         This function starts a PowerShell Universal Dashboard (Web-based GUI) instance on the specified port on the
         localhost. The Dashboard features a Network Monitor tool that pings the specified Remote Hosts in your Domain
         every 5 seconds and reports the results to the site.
@@ -3745,6 +3943,411 @@ function Get-PUDAdminCenter {
         }
     }
     $Page = New-UDPage -Url "/Firewall/:RemoteHost" -Endpoint $FirewallPageContent
+    $null = $Pages.Add($Page)
+    
+    $NetworkPageContent = {
+        param($RemoteHost)
+    
+        $PUDRSSyncHT = $global:PUDRSSyncHT
+    
+        # Load PUDAdminCenter Module Functions Within ScriptBlock
+        $ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
+    
+        # For some reason, scriptblocks defined earlier can't be used directly here. They need to be a different objects before
+        # they actually behave as expected. Not sure why.
+        #$RecreatedDisconnectedPageContent = [scriptblock]::Create($DisconnectedPageContentString)
+    
+        $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+    
+        #region >> Ensure $RemoteHost is Valid
+    
+        if ($PUDRSSyncHT.RemoteHostList.HostName -notcontains $RemoteHost) {
+            $ErrorText = "The Remote Host $($RemoteHost.ToUpper()) is not a valid Host Name!"
+        }
+    
+        if ($ErrorText) {
+            New-UDRow -Columns {
+                New-UDColumn -Size 4 -Content {
+                    New-UDHeading -Text ""
+                }
+                New-UDColumn -Size 4 -Content {
+                    New-UDHeading -Text $ErrorText -Size 6
+                }
+                New-UDColumn -Size 4 -Content {
+                    New-UDHeading -Text ""
+                }
+            }
+        }
+    
+        # If $RemoteHost isn't valid, don't load anything else
+        if ($ErrorText) {
+            return
+        }
+    
+        #endregion >> Ensure $RemoteHost is Valid
+    
+        #region >> Loading Indicator
+    
+        New-UDRow -Columns {
+            New-UDColumn -Endpoint {
+                $Session:NetworkPageLoadingTracker = [System.Collections.ArrayList]::new()
+            }
+            New-UDColumn -AutoRefresh -RefreshInterval 5 -Endpoint {
+                if ($Session:NetworkPageLoadingTracker -notcontains "FinishedLoading") {
+                    New-UDHeading -Text "Loading...Please wait..." -Size 5
+                    New-UDPreloader -Size small
+                }
+            }
+        }
+    
+        #endregion >> Loading Indicator
+    
+        # Master Endpoint - All content will be within this Endpoint so that we can reference $Cache: and $Session: scope variables
+        New-UDColumn -Size 12 -Endpoint {
+            #region >> Ensure We Are Connected / Can Connect to $RemoteHost
+    
+            $PUDRSSyncHT = $global:PUDRSSyncHT
+    
+            # Load PUDAdminCenter Module Functions Within ScriptBlock
+            $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
+    
+            # For some reason, scriptblocks defined earlier can't be used directly here. They need to be a different objects before
+            # they actually behave as expected. Not sure why.
+            #$RecreatedDisconnectedPageContent = [scriptblock]::Create($DisconnectedPageContentString)
+    
+            $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+    
+            if ($Session:CredentialHT.$RemoteHost.PSRemotingCreds -eq $null) {
+                Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
+            }
+    
+            try {
+                $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+            }
+            catch {
+                $ConnectionStatus = "Disconnected"
+            }
+    
+            # If we're not connected to $RemoteHost, don't load anything else
+            if ($ConnectionStatus -ne "Connected") {
+                #Invoke-Command -ScriptBlock $RecreatedDisconnectedPageContent -ArgumentList $RemoteHost
+                Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
+            }
+            else {
+                New-UDRow -EndPoint {
+                    New-UDColumn -Size 3 -Content {
+                        New-UDHeading -Text ""
+                    }
+                    New-UDColumn -Size 6 -Endpoint {
+                        New-UDTable -Id "TrackingTable" -Headers @("RemoteHost","Status","DateTime") -AutoRefresh -RefreshInterval 2 -Endpoint {
+                            $PUDRSSyncHT = $global:PUDRSSyncHT
+    
+                            # Load PUDAdminCenter Module Functions Within ScriptBlock
+                            $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
+                            
+                            $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+    
+                            $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
+                            $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
+    
+                            if ($WSMan5985Available -or $WSMan5986Available) {
+                                $TableData = @{
+                                    RemoteHost      = $RemoteHost.ToUpper()
+                                    Status          = "Connected"
+                                }
+                            }
+                            else {
+                                Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
+                            }
+    
+                            # SUPER IMPORTANT NOTE: ALL Real-Time Enpoints on the Page reference LiveOutputClone!
+                            if ($PUDRSSyncHT."$RemoteHost`Info".Network.LiveDataRSInfo.LiveOutput.Count -gt 0) {
+                                if ($PUDRSSyncHT."$RemoteHost`Info".Network.LiveDataTracker.Previous -eq $null) {
+                                    $PUDRSSyncHT."$RemoteHost`Info".Network.LiveDataTracker.Previous = $PUDRSSyncHT."$RemoteHost`Info".Network.LiveDataRSInfo.LiveOutput.Clone()
+                                }
+                                if ($PUDRSSyncHT."$RemoteHost`Info".Network.LiveDataTracker.Current.Count -gt 0) {
+                                    $PUDRSSyncHT."$RemoteHost`Info".Network.LiveDataTracker.Previous = $PUDRSSyncHT."$RemoteHost`Info".Network.LiveDataTracker.Current.Clone()
+                                }
+                                $PUDRSSyncHT."$RemoteHost`Info".Network.LiveDataTracker.Current = $PUDRSSyncHT."$RemoteHost`Info".Network.LiveDataRSInfo.LiveOutput.Clone()
+                            }
+    
+                            $TableData.Add("DateTime",$(Get-Date -Format MM-dd-yy_hh:mm:sstt))
+    
+                            [PSCustomObject]$TableData | Out-UDTableData -Property @("RemoteHost","Status","DateTime")
+                        }
+                    }
+                    New-UDColumn -Size 3 -Content {
+                        New-UDHeading -Text ""
+                    }
+                }
+            }
+    
+            #endregion >> Ensure We Are Connected / Can Connect to $RemoteHost
+    
+            #region >> Gather Some Initial Info From $RemoteHost
+    
+            $GetNetworksFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-Networks" -and $_ -notmatch "function Get-PUDAdminCenter"}
+            $TestIsValidIPFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function TestIsValidIPAddress" -and $_ -notmatch "function Get-PUDAdminCenter"}
+            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                Invoke-Expression $using:GetNetworksFunc
+                Invoke-Expression $using:TestIsValidIPFunc
+                
+                $Networks = Get-Networks | foreach {
+                    $PrimaryIPv4AddressesUpdatedFormat = foreach ($ArrayObj in $_.PrimaryIPv4Address) {
+                        foreach ($IPString in $ArrayObj) {
+                            if (TestIsValidIPAddress -IPAddress $IPString) {
+                                $IPString
+                            }
+                        }
+                    }
+                    $IPv4DNSServerAddressesUpdatedFormat = foreach ($ArrayObj in $_.IPv4DNSServer) {
+                        foreach ($IPString in $ArrayObj) {
+                            if (TestIsValidIPAddress -IPAddress $IPString) {
+                                $IPString
+                            }
+                        }
+                    }
+    
+                    [pscustomobject]@{
+                        InterfaceAlias              = $_.InterfaceAlias
+                        InterfaceIndex              = $_.InterfaceIndex
+                        InterfaceDescription        = $_.InterfaceDescription
+                        Status                      = $_.Status
+                        MacAddress                  = $_.MacAddress
+                        LinkSpeed                   = $_.LinkSpeed
+                        PrimaryIPv6Address          = $_.PrimaryIPv6Address -join ", "
+                        LinkLocalIPv6Address        = $_.LinkLocalIPv6Address -join ", "
+                        PrimaryIPv4Address          = $PrimaryIPv4AddressesUpdatedFormat -join ", "
+                        DhcpIPv4                    = if ($_.DhcpIPv4) {$_.DhcpIPv4.ToString()} else {$null}
+                        IPv6Enabled                 = $_.IPv6Enabled.ToString()
+                        IPv4DefaultGateway          = $_.IPv4DefaultGateway -join ", "
+                        IPv4DNSServer               = $IPv4DNSServerAddressesUpdatedFormat -join ", "
+                        IPv6DNSServer               = $_.IPv6DNSServer -join ", "
+                        IPv4DnsManuallyConfigured   = $_.IPv4DnsManuallyConfigured.ToString()
+                    }
+                }
+    
+                [pscustomobject]@{
+                    NetworksInfo    = $Networks
+                }
+            }
+            $Session:NetworksInfoStatic = $StaticInfo.NetworksInfo
+            if ($PUDRSSyncHT."$RemoteHost`Info".Network.Keys -notcontains "NetworksInfo") {
+                $PUDRSSyncHT."$RemoteHost`Info".Network.Add("NetworksInfo",$Session:NetworksInfoStatic)
+            }
+            else {
+                $PUDRSSyncHT."$RemoteHost`Info".Network.NetworksInfo = $Session:NetworksInfoStatic
+            }
+    
+            #endregion >> Gather Some Initial Info From $RemoteHost
+    
+            #region >> Page Name and Horizontal Nav
+    
+            New-UDRow -Endpoint {
+                New-UDColumn -Content {
+                    New-UDHeading -Text "Network (In Progress)" -Size 3
+                    New-UDHeading -Text "NOTE: Domain Group Policy trumps controls with an asterisk (*)" -Size 6
+                }
+            }
+            New-UDRow -Endpoint {
+                New-UDColumn -Size 12 -Content {
+                    New-UDCollapsible -Items {
+                        New-UDCollapsibleItem -Title "More Tools" -Icon laptop -Active -Endpoint {
+                            New-UDRow -Endpoint {
+                                foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
+                                    New-UDColumn -Endpoint {
+                                        New-UDLink -Text $ToolName -Url "/$ToolName/$RemoteHost" -Icon dashboard
+                                    }
+                                }
+                                #New-UDCard -Links $Links
+                            }
+                        }
+                    }
+                }
+            }
+    
+            #endregion >> Page Name and Horizontal Nav
+    
+            #region >> Setup LiveData
+    
+            <#
+            New-UDColumn -Endpoint {
+                $PUDRSSyncHT = $global:PUDRSSyncHT
+    
+                $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
+    
+                $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+    
+                # Remove Existing Runspace for LiveDataRSInfo if it exists as well as the PSSession Runspace within
+                if ($PUDRSSyncHT."$RemoteHost`Info".Network.LiveDataRSInfo -ne $null) {
+                    $PSSessionRunspacePrep = @(
+                        Get-Runspace | Where-Object {
+                            $_.RunspaceIsRemote -and
+                            $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".Network.LiveDataRSInfo.ThisRunspace.Id -and
+                            $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
+                        }
+                    )
+                    if ($PSSessionRunspacePrep.Count -gt 0) {
+                        $PSSessionRunspace = $($PSSessionRunspacePrep | Sort-Object -Property Id)[0]
+                    }
+                    $PSSessionRunspace.Dispose()
+                    $PUDRSSyncHT."$RemoteHost`Info".Network.LiveDataRSInfo.ThisRunspace.Dispose()
+                }
+    
+                # Create a Runspace that creates a PSSession to $RemoteHost that is used once every second to re-gather data from $RemoteHost
+                $GetNetworkificateOverviewFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-NetworkificateOverview" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                $GetNetworkFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-Network" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                $LiveDataFunctionsToLoad = @($GetNetworkificateOverviewFunc,$GetNetworkFunc)
+                
+                # The New-Runspace function handles scope for you behind the scenes, so just pretend that everything within -ScriptBlock {} is in the current scope
+                New-Runspace -RunspaceName "Network$RemoteHost`LiveData" -ScriptBlock {
+                    $PUDRSSyncHT = $global:PUDRSSyncHT
+                
+                    $LiveDataPSSession = New-PSSession -Name "Network$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
+    
+                    # Load needed functions in the PSSession
+                    Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
+                        $using:LiveDataFunctionsToLoad | foreach {Invoke-Expression $_}
+                    }
+    
+                    $RSLoopCounter = 0
+    
+                    while ($PUDRSSyncHT) {
+                        # $LiveOutput is a special ArrayList created and used by the New-Runspace function that collects output as it occurs
+                        # We need to limit the number of elements this ArrayList holds so we don't exhaust memory
+                        if ($LiveOutput.Count -gt 1000) {
+                            $LiveOutput.RemoveRange(0,800)
+                        }
+    
+                        # Stream Results to $PUDRSSyncHT."$RemoteHost`Info".Network.LiveDataRSInfo.LiveOutput
+                        Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
+                            # Place most resource intensive operations first
+    
+                            # Operations that you only want running once every 30 seconds go within this 'if; block
+                            # Adjust the timing as needed with deference to $RemoteHost resource efficiency.
+                            if ($using:RSLoopCounter -eq 0 -or $($using:RSLoopCounter % 30) -eq 0) {
+                                #@{AllNetworks = Get-Network}
+                            }
+    
+                            # Operations that you want to run once every second go here
+                            @{NetworkSummary = Get-NetworkificateOverview -channel "Microsoft-Windows-NetworkervicesClient-Lifecycle-System*"}
+    
+                        } | foreach {$null = $LiveOutput.Add($_)}
+    
+                        $RSLoopCounter++
+    
+                        [GC]::Collect()
+    
+                        Start-Sleep -Seconds 1
+                    }
+                }
+                # The New-Runspace function outputs / continually updates a Global Scope variable called $global:RSSyncHash. The results of
+                # the Runspace we just created can be found in $global:RSSyncHash's "Network$RemoteHost`LiveDataResult" Property - which is just
+                # the -RunspaceName value plus the word 'Info'. By setting $PUDRSSyncHT."$RemoteHost`Info".Network.LiveDataRSInfo equal to
+                # $RSSyncHash."Network$RemoteHost`LiveDataResult", we can now reference $PUDRSSyncHT."$RemoteHost`Info".Network.LiveDataRSInfo.LiveOutput
+                # to get the latest data from $RemoteHost.
+                $PUDRSSyncHT."$RemoteHost`Info".Network.LiveDataRSInfo = $RSSyncHash."Network$RemoteHost`LiveDataResult"
+            }
+            #>
+    
+            #endregion >> Setup LiveData
+    
+            #region >> Controls
+    
+            # Static Data Element Example
+    
+            $NetworksInfoProperties = @(
+                "InterfaceAlias"
+                "InterfaceIndex"
+                "InterfaceDescription"
+                "Status"
+                "MacAddress"
+                "LinkSpeed"
+                "PrimaryIPv6Address"
+                "LinkLocalIPv6Address"
+                "PrimaryIPv4Address"
+                "DhcpIPv4"
+                "IPv6Enabled"
+                "IPv4DefaultGateway"
+                "IPv4DNSServer"
+                "IPv6DNSServer"
+                "IPv4DnsManuallyConfigured"
+            )
+            $AllNetworksUDGridSplatParams = @{
+                Headers         = $NetworksInfoProperties
+                Properties      = $NetworksInfoProperties
+                NoPaging        = $True
+            }
+            New-UDGrid @AllNetworksUDGridSplatParams -Endpoint {
+                $PUDRSSyncHT = $global:PUDRSSyncHT
+    
+                $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+    
+                $GetNetworksFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-Networks" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                $TestIsValidIPFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function TestIsValidIPAddress" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                    Invoke-Expression $using:GetNetworksFunc
+                    Invoke-Expression $using:TestIsValidIPFunc
+                    
+                    $Networks = Get-Networks | foreach {
+                        $PrimaryIPv4AddressesUpdatedFormat = foreach ($ArrayObj in $_.PrimaryIPv4Address) {
+                            foreach ($IPString in $ArrayObj) {
+                                if (TestIsValidIPAddress -IPAddress $IPString) {
+                                    $IPString
+                                }
+                            }
+                        }
+                        $IPv4DNSServerAddressesUpdatedFormat = foreach ($ArrayObj in $_.IPv4DNSServer) {
+                            foreach ($IPString in $ArrayObj) {
+                                if (TestIsValidIPAddress -IPAddress $IPString) {
+                                    $IPString
+                                }
+                            }
+                        }
+    
+                        [pscustomobject]@{
+                            InterfaceAlias              = $_.InterfaceAlias
+                            InterfaceIndex              = $_.InterfaceIndex
+                            InterfaceDescription        = $_.InterfaceDescription
+                            Status                      = $_.Status
+                            MacAddress                  = $_.MacAddress
+                            LinkSpeed                   = $_.LinkSpeed
+                            PrimaryIPv6Address          = $_.PrimaryIPv6Address -join ", "
+                            LinkLocalIPv6Address        = $_.LinkLocalIPv6Address -join ", "
+                            PrimaryIPv4Address          = $PrimaryIPv4AddressesUpdatedFormat -join ", "
+                            DhcpIPv4                    = if ($_.DhcpIPv4) {$_.DhcpIPv4.ToString()} else {$null}
+                            IPv6Enabled                 = $_.IPv6Enabled.ToString()
+                            IPv4DefaultGateway          = $_.IPv4DefaultGateway -join ", "
+                            IPv4DNSServer               = $IPv4DNSServerAddressesUpdatedFormat -join ", "
+                            IPv6DNSServer               = $_.IPv6DNSServer -join ", "
+                            IPv4DnsManuallyConfigured   = $_.IPv4DnsManuallyConfigured.ToString()
+                        }
+                    }
+    
+                    [pscustomobject]@{
+                        NetworksInfo    = $Networks
+                    }
+                }
+                $Session:NetworksInfoStatic = $StaticInfo.NetworksInfo
+                if ($PUDRSSyncHT."$RemoteHost`Info".Network.Keys -notcontains "NetworksInfo") {
+                    $PUDRSSyncHT."$RemoteHost`Info".Network.Add("NetworksInfo",$Session:NetworksInfoStatic)
+                }
+                else {
+                    $PUDRSSyncHT."$RemoteHost`Info".Network.NetworksInfo = $Session:NetworksInfoStatic
+                }
+    
+                $Session:NetworksInfoStatic | Out-UDGridData
+            }
+    
+            # Live Data Element Example
+    
+            # Remove the Loading  Indicator
+            $null = $Session:NetworkPageLoadingTracker.Add("FinishedLoading")
+    
+            #endregion >> Controls
+        }
+    }
+    $Page = New-UDPage -Url "/Network/:RemoteHost" -Endpoint $NetworkPageContent
     $null = $Pages.Add($Page)
     
     #region >> Overview Page
@@ -8863,6 +9466,7 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
     ${Function:Get-LocalGroupUsers}.Ast.Extent.Text
     ${Function:Get-LocalUserBelongGroups}.Ast.Extent.Text
     ${Function:Get-LocalUsers}.Ast.Extent.Text
+    ${Function:Get-Networks}.Ast.Extent.Text
     ${Function:Get-PUDAdminCenter}.Ast.Extent.Text
     ${Function:Get-RemoteDesktop}.Ast.Extent.Text
     ${Function:Get-ServerInventory}.Ast.Extent.Text
@@ -8879,8 +9483,8 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUlNv+YCBHdxdSof6djCQk0zlI
-# Qxegggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUbQe8dR07zHvxfTb+R1TkPjki
+# w4mgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -8937,11 +9541,11 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFPw9reKn80NikxBM
-# eHiicEeGM2i4MA0GCSqGSIb3DQEBAQUABIIBABAO/4y3/1/q3F9thGHARbcuKyv2
-# mCrrh/bF2D2UYLoaYz7GYQm7SR6tu+64BmVXBIuW+3+dja5U2d5ZX7TkpOm1QxRC
-# p4WJwacoeRiqH11pTbt4guzSDqX6PNvttW+EEZaGQzU+7yQqi2AtiLMERKEsYHsD
-# SSUB8XXe6U2Q6umC7FZnJJJWCCLnNbgt3XyInRRnydtByzUgHCNWUrFw9D+w3r/q
-# tq+3KOTqCirtOlhlzAMzHmkkePgTlDBpW4BXwELIFQzKetr75yD0IhByy6+9fF8+
-# 31IyuFqZ1eAmQ7N8VXxZsXilJiWfl6smexLw3nLVZceXb2+dRZlX6dL9pbY=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFOtqb6Nl6ULMnJzO
+# gNN3DZvLFFAmMA0GCSqGSIb3DQEBAQUABIIBAGV87QQnlM7GyUPBi5TUF/TvXqFL
+# d2XV6s7tIaWDi/lgIQxOpacHelNlCwDhst01esQZ6zULjRWJDs9F5ZiIUoWLhpUh
+# OOPjHyyapuUKXVoQfL8f1/+fWSlbAGULCYsOlmqxJpLbTxM9eXQGw62Xxh9xrj4P
+# E1/ab7PeZGPfgRQcR3Z+KO6QJmYsY9vxIDpe14gj+FUk0h7mrR+N5rbblAfZib65
+# BTdGlrvZmKKrdr+zTQ1e3ICVsOEqeq2FLuZ9mkSddJMU3nB87BxM5V43uwQli+wG
+# n8Qz+pWN4FwPjZC2sgUuuFhi14QmZ986hx5vBH7gYnAk3K6FEPupjykGXqQ=
 # SIG # End signature block

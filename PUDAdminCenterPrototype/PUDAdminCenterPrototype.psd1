@@ -71,7 +71,7 @@ PowerShellVersion = '5.1'
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
 FunctionsToExport = 'Get-Certificates','Get-CertificatesOverview','Get-CimPnpEntity','Get-EnvironmentVariables',
                     'Get-EventLogSummary','Get-FirewallProfile','Get-FirewallRules','Get-LocalGroups',
-                    'Get-LocalGroupUsers','Get-LocalUserBelongGroups','Get-LocalUsers',
+                    'Get-LocalGroupUsers','Get-LocalUserBelongGroups','Get-LocalUsers','Get-Networks',
                     'Get-PUDAdminCenter','Get-RemoteDesktop','Get-ServerInventory','New-EnvironmentVariable',
                     'New-Runspace','Remove-EnvironmentVariable','Set-ComputerIdentification','Set-EnvironmentVariable',
                     'Set-RemoteDesktop','Start-DiskPerf','Stop-DiskPerf'

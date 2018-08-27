@@ -8,147 +8,6 @@ function EnableWinRMViaRPC {
         [pscredential]$Credential
     )
 
-    #region >> Helper Functions
-
-    function TestIsValidIPAddress([string]$IPAddress) {
-        [boolean]$Octets = (($IPAddress.Split(".") | Measure-Object).Count -eq 4) 
-        [boolean]$Valid  =  ($IPAddress -as [ipaddress]) -as [boolean]
-        Return  ($Valid -and $Octets)
-    }
-
-    function ResolveHost {
-        [CmdletBinding()]
-        Param(
-            [Parameter(Mandatory=$True)]
-            [string]$HostNameOrIP
-        )
-    
-        ##### BEGIN Main Body #####
-    
-        $RemoteHostNetworkInfoArray = @()
-        if (!$(TestIsValidIPAddress -IPAddress $HostNameOrIP)) {
-            try {
-                $HostNamePrep = $HostNameOrIP
-                [System.Collections.ArrayList]$RemoteHostArrayOfIPAddresses = @()
-                $IPv4AddressFamily = "InterNetwork"
-                $IPv6AddressFamily = "InterNetworkV6"
-    
-                $ResolutionInfo = [System.Net.Dns]::GetHostEntry($HostNamePrep)
-                $ResolutionInfo.AddressList | Where-Object {
-                    $_.AddressFamily -eq $IPv4AddressFamily
-                } | foreach {
-                    if ($RemoteHostArrayOfIPAddresses -notcontains $_.IPAddressToString) {
-                        $null = $RemoteHostArrayOfIPAddresses.Add($_.IPAddressToString)
-                    }
-                }
-            }
-            catch {
-                Write-Verbose "Unable to resolve $HostNameOrIP when treated as a Host Name (as opposed to IP Address)!"
-            }
-        }
-        if (TestIsValidIPAddress -IPAddress $HostNameOrIP) {
-            try {
-                $HostIPPrep = $HostNameOrIP
-                [System.Collections.ArrayList]$RemoteHostArrayOfIPAddresses = @()
-                $null = $RemoteHostArrayOfIPAddresses.Add($HostIPPrep)
-    
-                $ResolutionInfo = [System.Net.Dns]::GetHostEntry($HostIPPrep)
-    
-                [System.Collections.ArrayList]$RemoteHostFQDNs = @() 
-                $null = $RemoteHostFQDNs.Add($ResolutionInfo.HostName)
-            }
-            catch {
-                Write-Verbose "Unable to resolve $HostNameOrIP when treated as an IP Address (as opposed to Host Name)!"
-            }
-        }
-    
-        if ($RemoteHostArrayOfIPAddresses.Count -eq 0) {
-            Write-Error "Unable to determine IP Address of $HostNameOrIP! Halting!"
-            $global:FunctionResult = "1"
-            return
-        }
-    
-        # At this point, we have $RemoteHostArrayOfIPAddresses...
-        [System.Collections.ArrayList]$RemoteHostFQDNs = @()
-        foreach ($HostIP in $RemoteHostArrayOfIPAddresses) {
-            try {
-                $FQDNPrep = [System.Net.Dns]::GetHostEntry($HostIP).HostName
-            }
-            catch {
-                Write-Verbose "Unable to resolve $HostIP. No PTR Record? Please check your DNS config."
-                continue
-            }
-            if ($RemoteHostFQDNs -notcontains $FQDNPrep) {
-                $null = $RemoteHostFQDNs.Add($FQDNPrep)
-            }
-        }
-    
-        if ($RemoteHostFQDNs.Count -eq 0) {
-            $null = $RemoteHostFQDNs.Add($ResolutionInfo.HostName)
-        }
-    
-        [System.Collections.ArrayList]$HostNameList = @()
-        [System.Collections.ArrayList]$DomainList = @()
-        foreach ($fqdn in $RemoteHostFQDNs) {
-            $PeriodCheck = $($fqdn | Select-String -Pattern "\.").Matches.Success
-            if ($PeriodCheck) {
-                $HostName = $($fqdn -split "\.")[0]
-                $Domain = $($fqdn -split "\.")[1..$($($fqdn -split "\.").Count-1)] -join '.'
-            }
-            else {
-                $HostName = $fqdn
-                $Domain = "Unknown"
-            }
-    
-            $null = $HostNameList.Add($HostName)
-            $null = $DomainList.Add($Domain)
-        }
-    
-        if ($RemoteHostFQDNs[0] -eq $null -and $HostNameList[0] -eq $null -and $DomainList -eq "Unknown" -and $RemoteHostArrayOfIPAddresses) {
-            [System.Collections.ArrayList]$SuccessfullyPingedIPs = @()
-            # Test to see if we can reach the IP Addresses
-            foreach ($ip in $RemoteHostArrayOfIPAddresses) {
-                if ([bool]$(Test-Connection $ip -Count 1 -ErrorAction SilentlyContinue)) {
-                    $null = $SuccessfullyPingedIPs.Add($ip)
-                }
-            }
-    
-            if ($SuccessfullyPingedIPs.Count -eq 0) {
-                Write-Error "Unable to resolve $HostNameOrIP! Halting!"
-                $global:FunctionResult = "1"
-                return
-            }
-        }
-    
-        $FQDNPrep = if ($RemoteHostFQDNs) {$RemoteHostFQDNs[0]} else {$null}
-        if ($FQDNPrep -match ',') {
-            $FQDN = $($FQDNPrep -split ',')[0]
-        }
-        else {
-            $FQDN = $FQDNPrep
-        }
-    
-        $DomainPrep = if ($DomainList) {$DomainList[0]} else {$null}
-        if ($DomainPrep -match ',') {
-            $Domain = $($DomainPrep -split ',')[0]
-        }
-        else {
-            $Domain = $DomainPrep
-        }
-    
-        [pscustomobject]@{
-            IPAddressList   = [System.Collections.ArrayList]@($(if ($SuccessfullyPingedIPs) {$SuccessfullyPingedIPs} else {$RemoteHostArrayOfIPAddresses}))
-            FQDN            = $FQDN
-            HostName        = if ($HostNameList) {$HostNameList[0].ToLowerInvariant()} else {$null}
-            Domain          = $Domain
-        }
-    
-        ##### END Main Body #####
-    
-    }
-    
-    #endregion >> Helper Functions
-
     #region >> Prep
     
     try {
@@ -183,8 +42,8 @@ function EnableWinRMViaRPC {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUV+1w3LGq5p9tszEdRmC8gj1H
-# 4dagggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUgTmXW1Exk/bjkxlxBuxRrYxS
+# kvugggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -241,11 +100,11 @@ function EnableWinRMViaRPC {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFHI8HpoZ1GVpqPK2
-# QIUdejvEZICqMA0GCSqGSIb3DQEBAQUABIIBALobTNUg0UOdCb/7ne+M0WN9zA6y
-# 2sv6NMVJEDfSiNQYfOs9cZl+DSU0E54EbkRyKVScr8CAkFKyhaqJqI8WvLgm1D8k
-# kvjhcuNefp2Va13u5IYw2CgerKNi6H0d2poHxNc1C5VcWeifW1PXVGIAzCcDh2CV
-# J0mvT6myvTp2eEKF0rFpkkPjRukvJPdHHdjFK5Dm8m25z7wYo3o21x186hWIKjBM
-# ALMCQaggpRDIgm0+Us0e/lxk7r+ue5+hHXGhOPpAKuihxH+DueBq+52C/koo2GnY
-# KdXH7kAV1Qrfzr7DlDeJN1YcdS0Q0vmgtI6PTiAvwYYl2qO6avikSGnbvYI=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFD4AZj7RS+ki4B9Y
+# CpW3ZWEBGIVDMA0GCSqGSIb3DQEBAQUABIIBACXJCq4aq4hr9MLfu9Bncc/q4KSj
+# zfVgf8YONq/EGizoEh4ePLt9j8Qkdm49UlNGoI8/OtfI1DaKTcEdq25qAzz8Ukmm
+# Ri+pCZICtbj4EUb3mRjdJIR8vprcIw/DJ1TkS255LMIr61XcE4/SstKXI8pdfdk0
+# xpaFs/4r/USmkpqEYgE/HxUBb6Ad5bsjYuRLS+s2508bjoCo7f8DKklv/sBWUmkV
+# uVKAFvyM0McBYUPiTrtvDZ9XnjwI52tYnKnGvvrlMEHgum+i9MRUDLrUZ1olnD7H
+# 3FV2V2ozu4EB8BEmm9TP0VAxCscKdifQVnR+uK8JIZgEW+9f0dz5rEu7muA=
 # SIG # End signature block
