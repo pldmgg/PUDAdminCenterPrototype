@@ -280,7 +280,7 @@ $FilesPageContent = {
 
         # Static Data Element Example
 
-        New-UDCollapsible -Id $CollapsibleId -Items {
+        New-UDCollapsible -Items {
             New-UDCollapsibleItem -Title "File System" -Icon laptop -Active -Endpoint {
                 <#
                 New-UDRow -Endpoint {

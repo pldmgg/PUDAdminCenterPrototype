@@ -65,7 +65,7 @@ $PSRemotingCredsPageContent = {
                 New-UDInputField -Type password -Name 'Local_Password'
                 New-UDInputField -Type textbox -Name 'Domain_UserName'
                 New-UDInputField -Type password -Name 'Domain_Password'
-                New-UDInputField -Type textarea -Name 'Path_To_SSH_Public_Cert'
+                New-UDInputField -Type textarea -Name 'SSH_Public_Cert'
                 New-UDInputField -Type select -Name 'Preferred_PSRemotingCredType' -Values @("Local","Domain") -DefaultValue "Domain"
                 New-UDInputField -Type select -Name 'Preferred_PSRemotingMethod' -Values @("WinRM","SSH") -DefaultValue "WinRM"
             } -Endpoint {
