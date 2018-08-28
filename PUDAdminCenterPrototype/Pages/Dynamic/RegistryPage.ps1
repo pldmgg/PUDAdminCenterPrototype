@@ -211,18 +211,23 @@ $RegistryPageContent = {
             $Session:HKLMChildKeys = $StaticInfo.HKLMChildKeys | Where-Object {$_.Name}
             $Session:HKLMValues = $StaticInfo.HKLMValues
             $Session:HKLMCurrentDir = $StaticInfo.HKLMCurrentDir
+            $Session:HKLMObjectsForGrid = $Session:HKLMChildKeys + $Session:HKLMValues
             $Session:HKCUChildKeys = $StaticInfo.HKCUChildKeys | Where-Object {$_.Name}
             $Session:HKCUValues = $StaticInfo.HKCUValues
             $Session:HKCUCurrentDir = $StaticInfo.HKCUCurrentDir
+            $Session:HKCUObjectsForGrid = $Session:HKCUChildKeys + $Session:HKCUValues
             $Session:HKCRChildKeys = $StaticInfo.HKCRChildKeys | Where-Object {$_.Name}
             $Session:HKCRValues = $StaticInfo.HKCRValues
             $Session:HKCRCurrentDir = $StaticInfo.HKCRCurrentDir
+            $Session:HKCRObjectsForGrid = $Session:HKCRChildKeys + $Session:HKCRValues
             $Session:HKUChildKeys = $StaticInfo.HKUChildKeys | Where-Object {$_.Name}
             $Session:HKUValues = $StaticInfo.HKUValues
             $Session:HKUCurrentDir = $StaticInfo.HKUCurrentDir
+            $Session:HKUObjectsForGrid = $Session:HKUChildKeys + $Session:HKUValues
             $Session:HKCCChildKeys  = $StaticInfo.HKCCChildKeys | Where-Object {$_.Name}
             $Session:HKCCValues = $StaticInfo.HKCCValues
             $Session:HKCCCurrentDir = $StaticInfo.HKCCCurrentDir
+            $Session:HKCCObjectsForGrid = $Session:HKCCChildKeys + $Session:HKCCValues
             if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKLMChildKeys") {
                 $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKLMChildKeys",$($StaticInfo.HKLMChildKeys | Where-Object {$_.Name}))
             }
@@ -436,6 +441,17 @@ $RegistryPageContent = {
 
         New-UDCollapsible -Items {
             New-UDCollapsibleItem -Title "HKEY_LOCAL_MACHINE" -Icon laptop -Endpoint {
+                New-UDElement -Id "UpdateHKLMGridObjects" -Tag div -EndPoint {
+                    $Session:HKLMObjectsForGrid = $Session:HKLMChildKeys + $Session:HKLMValues
+                }
+
+                New-UDColumn -AutoRefresh -RefreshInterval 1 -Endpoint {
+                    if ($Session:HKLMUDGridLoadingTracker -eq "Loading") {
+                        New-UDHeading -Text "Loading...Please wait..." -Size 6
+                        New-UDPreloader -Size small
+                    }
+                }
+
                 New-UDRow -Endpoint {
                     New-UDColumn -Size 3 -Endpoint {}
                     New-UDColumn -Size 6 -Endpoint {
@@ -451,6 +467,7 @@ $RegistryPageContent = {
                             New-UDTextbox -Id "NewHKLMRootDirTBProper" -Label "New Directory"
                         }
                         New-UDButton -Text "Explore" -OnClick {
+                            $Session:HKLMUDGridLoadingTracker = "Loading"
                             $NewRootDirTextBox = Get-UDElement -Id "NewHKLMRootDirTBProper"
                             $FullPathToExplore = $NewRootDirTextBox.Attributes['value']
 
@@ -476,13 +493,16 @@ $RegistryPageContent = {
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMChildKeys = $NewPathInfo.HKLMChildKeys | Where-Object {$_.Name}
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMValues = $NewPathInfo.HKLMValues
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMCurrentDir = $NewPathInfo.HKLMCurrentDir
+                            #$Session:HKLMObjectsForGrid = $Session:HKLMChildKeys + $Session:HKLMValues
 
-                            Sync-UDElement -Id "HKLMChildItemsUDGrid"
                             Sync-UDElement -Id "NewHKLMRootDirTB"
                             Sync-UDElement -Id "CurrentHKLMRootDirTB"
+                            Sync-UDElement -Id "UpdateHKLMGridObjects"
+                            Sync-UDElement -Id "HKLMChildItemsUDGrid"
                         }
 
                         New-UDButton -Text "Parent Directory" -OnClick {
+                            $Session:HKLMUDGridLoadingTracker = "Loading"
                             <#
                             $RootDirSlashCheck = $Session:HKLMChildKeys[0].Path -split "HKEY_LOCAL_MACHINE\\"
                             $ReplaceString = if ($RootDirSlashCheck[-1][0] -eq "\") {"HKLM:"} else {"HKLM:\"}
@@ -517,25 +537,26 @@ $RegistryPageContent = {
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMChildKeys = $NewPathInfo.HKLMChildKeys | Where-Object {$_.Name}
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMValues = $NewPathInfo.HKLMValues
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMCurrentDir = $NewPathInfo.HKLMCurrentDir
+                            #$Session:HKLMObjectsForGrid = $Session:HKLMChildKeys + $Session:HKLMValues
 
-                            Sync-UDElement -Id "HKLMChildItemsUDGrid"
                             Sync-UDElement -Id "NewHKLMRootDirTB"
                             Sync-UDElement -Id "CurrentHKLMRootDirTB"
+                            Sync-UDElement -Id "UpdateHKLMGridObjects"
+                            Sync-UDElement -Id "HKLMChildItemsUDGrid"
+                        }
+
+                        New-UDButton -Text "Force Refresh" -OnClick {
+                            $Session:HKLMUDGridLoadingTracker = "Loading"
+                            Sync-UDElement -Id "NewHKLMRootDirTB"
+                            Sync-UDElement -Id "CurrentHKLMRootDirTB"
+                            Sync-UDElement -Id "UpdateHKLMGridObjects"
+                            Sync-UDElement -Id "HKLMChildItemsUDGrid"
                         }
                     }
                     New-UDColumn -Size 3 -Endpoint {}
                 }
                 New-UDRow -Endpoint {
                     New-UDColumn -Size 12 -Endpoint {
-                        $Session:HKLMUDGridLoadingTracker = [System.Collections.ArrayList]::new()
-                            
-                        New-UDColumn -AutoRefresh -RefreshInterval 1 -Endpoint {
-                            if ($Session:HKLMUDGridLoadingTracker -notcontains "FinishedLoading") {
-                                New-UDHeading -Text "Loading...Please wait..." -Size 6
-                                New-UDPreloader -Size small
-                            }
-                        }
-
                         $RootRegistryProperties = @("Name","Path","Type","Data","ChildCount","Explore")
                         $RootRegistryUDGridSplatParams = @{
                             Id              = "HKLMChildItemsUDGrid"
@@ -547,64 +568,70 @@ $RegistryPageContent = {
                             $PUDRSSyncHT = $global:PUDRSSyncHT
 
                             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+                            
+                            $HKLMGridRefreshed = $False
+                            while (!$HKLMGridRefreshed) {
+                                try {
+                                    $Session:HKLMObjectsForGrid | foreach {
+                                        if ($_.Name) {
+                                            if ($_.Path) {
+                                                $RootDirSlashCheck = $_.Path -split "HKEY_LOCAL_MACHINE\\"
+                                                $ReplaceString = if ($RootDirSlashCheck[-1][0] -eq "\") {"HKLM:"} else {"HKLM:\"}
+                                                $PathUpdatedFormat = $_.Path -replace "Microsoft.PowerShell.Core\\Registry::.*?\\",$ReplaceString
+                                            }
 
-                            # We do NOT want to display UDGridData as values are sent through the pipe because if the user clicks on a
-                            # button while the foreach loop is still enumerating, it will throw an error. So, output UDGridData *after*
-                            # $HKLMUDGridData is fully defined.
-                            $ObjectsToPass = $Session:HKLMChildKeys + $Session:HKLMValues
-                            $ObjectsToPass | foreach {
-                                if ($_.Name) {
-                                    if ($_.Path) {
-                                        $RootDirSlashCheck = $_.Path -split "HKEY_LOCAL_MACHINE\\"
-                                        $ReplaceString = if ($RootDirSlashCheck[-1][0] -eq "\") {"HKLM:"} else {"HKLM:\"}
-                                        $PathUpdatedFormat = $_.Path -replace "Microsoft.PowerShell.Core\\Registry::.*?\\",$ReplaceString
-                                    }
+                                            #elseif ($_.ChildCount -eq 0 -and $($PathUpdatedFormat -split "\\").Count -gt 2) {'Empty'}
+                                            [pscustomobject]@{
+                                                Name            = $_.Name
+                                                Path            = if ($_.Path) {$PathUpdatedFormat} else {$null}
+                                                Type            = if ($_.Type) {$_.Type.ToString()} else {"Key"}
+                                                Data            = if ($_.Data) {$_.Data -join ", "} else {$null}
+                                                ChildCount      = if ($_.ChildCount) {$_.ChildCount} else {$null}
+                                                Explore         = if (!$_.Path) {'-'} else {
+                                                    New-UDButton -Text "Explore" -OnClick {
+                                                        $Session:HKLMUDGridLoadingTracker = "Loading"
+                                                        #$NewRootDirTextBox = Get-UDElement -Id "NewRootDirTB"
+                                                        $FullPathToExplore = $PathUpdatedFormat
 
-                                    #elseif ($_.ChildCount -eq 0 -and $($PathUpdatedFormat -split "\\").Count -gt 2) {'Empty'}
-                                    [pscustomobject]@{
-                                        Name            = $_.Name
-                                        Path            = if ($_.Path) {$PathUpdatedFormat} else {$null}
-                                        Type            = if ($_.Type) {$_.Type.ToString()} else {"Key"}
-                                        Data            = if ($_.Data) {$_.Data -join ", "} else {$null}
-                                        ChildCount      = if ($_.ChildCount) {$_.ChildCount} else {$null}
-                                        Explore         = if (!$_.Path) {'-'} else {
-                                            New-UDButton -Text "Explore" -OnClick {
-                                                #$NewRootDirTextBox = Get-UDElement -Id "NewRootDirTB"
-                                                $FullPathToExplore = $PathUpdatedFormat
+                                                        $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                                                        $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                                                        $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                                            Invoke-Expression $using:GetRegistrySubKeysFunc
+                                                            Invoke-Expression $using:GetRegistryValuesFunc
 
-                                                $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                                $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                                $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                                                    Invoke-Expression $using:GetRegistrySubKeysFunc
-                                                    Invoke-Expression $using:GetRegistryValuesFunc
+                                                            $HKLMChildKeys = Get-RegistrySubKeys -path $args[0] -ErrorAction SilentlyContinue
+                                                            $HKLMValues = Get-RegistryValues -path $args[0] -ErrorAction SilentlyContinue
+                                                            $HKLMCurrentDir = $args[0]
 
-                                                    $HKLMChildKeys = Get-RegistrySubKeys -path $args[0] -ErrorAction SilentlyContinue
-                                                    $HKLMValues = Get-RegistryValues -path $args[0] -ErrorAction SilentlyContinue
-                                                    $HKLMCurrentDir = $args[0]
+                                                            [pscustomobject]@{
+                                                                HKLMChildKeys   = $HKLMChildKeys
+                                                                HKLMValues      = $HKLMValues
+                                                                HKLMCurrentDir  = $HKLMCurrentDir
+                                                            }
+                                                        } -ArgumentList $FullPathToExplore
+                                                        $Session:HKLMChildKeys = $NewPathInfo.HKLMChildKeys | Where-Object {$_.Name}
+                                                        $Session:HKLMValues = $NewPathInfo.HKLMValues
+                                                        $Session:HKLMCurrentDir = $NewPathInfo.HKLMCurrentDir
+                                                        $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMChildKeys = $NewPathInfo.HKLMChildKeys | Where-Object {$_.Name}
+                                                        $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMValues = $NewPathInfo.HKLMValues
+                                                        $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMCurrentDir = $NewPathInfo.HKLMCurrentDir
+                                                        #$Session:HKLMObjectsForGrid = $Session:HKLMChildKeys + $Session:HKLMValues
 
-                                                    [pscustomobject]@{
-                                                        HKLMChildKeys   = $HKLMChildKeys
-                                                        HKLMValues      = $HKLMValues
-                                                        HKLMCurrentDir  = $HKLMCurrentDir
+                                                        Sync-UDElement -Id "NewHKLMRootDirTB"
+                                                        Sync-UDElement -Id "CurrentHKLMRootDirTB"
+                                                        Sync-UDElement -Id "UpdateHKLMGridObjects"
+                                                        Sync-UDElement -Id "HKLMChildItemsUDGrid"
                                                     }
-                                                } -ArgumentList $FullPathToExplore
-                                                $Session:HKLMChildKeys = $NewPathInfo.HKLMChildKeys | Where-Object {$_.Name}
-                                                $Session:HKLMValues = $NewPathInfo.HKLMValues
-                                                $Session:HKLMCurrentDir = $NewPathInfo.HKLMCurrentDir
-                                                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMChildKeys = $NewPathInfo.HKLMChildKeys | Where-Object {$_.Name}
-                                                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMValues = $NewPathInfo.HKLMValues
-                                                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMCurrentDir = $NewPathInfo.HKLMCurrentDir
-
-                                                Sync-UDElement -Id "HKLMChildItemsUDGrid"
-                                                Sync-UDElement -Id "NewHKLMRootDirTB"
-                                                Sync-UDElement -Id "CurrentHKLMRootDirTB"
+                                                }
                                             }
                                         }
-                                    }
-                                }
-                            } | Out-UDGridData
+                                    } | Out-UDGridData
 
-                            $null = $Session:HKLMUDGridLoadingTracker.Add("FinishedLoading")
+                                    $HKLMGridRefreshed = $True
+                                    $Session:HKLMUDGridLoadingTracker = "FinishedLoading"
+                                }
+                                catch {}
+                            }
                         }
                     }
                 }
@@ -617,10 +644,12 @@ $RegistryPageContent = {
                     New-UDColumn -Size 3 -Endpoint {}
                     New-UDColumn -Size 6 -Endpoint {
                         New-UDElement -Id "CurrentHKCURootDirTB" -Tag div -EndPoint {
+                            <#
                             $RootDirSlashCheck = $Session:HKCUChildKeys[0].Path -split "HKEY_CURRENT_USER\\"
                             $ReplaceString = if ($RootDirSlashCheck[-1][0] -eq "\") {"HKCU:"} else {"HKCU:\"}
                             $CurrentDirectory = $Session:HKCUChildKeys[0].Path -replace "Microsoft.PowerShell.Core\\Registry::.*?\\",$ReplaceString
-                            New-UDHeading -Text "Current Directory: $($CurrentDirectory | Split-Path -Parent)" -Size 5
+                            #>
+                            New-UDHeading -Text "Current Directory: $($Session:HKCUCurrentDir)" -Size 5
                         }
                         New-UDElement -Id "NewHKCURootDirTB" -Tag div -EndPoint {
                             New-UDTextbox -Id "NewHKCURootDirTBProper" -Label "New Directory"
@@ -637,16 +666,20 @@ $RegistryPageContent = {
 
                                 $HKCUChildKeys = Get-RegistrySubKeys -path "HKCU:\" -ErrorAction SilentlyContinue
                                 $HKCUValues = Get-RegistryValues -path "HKCU:\" -ErrorAction SilentlyContinue
+                                $HKCUCurrentDir = $args[0]
 
                                 [pscustomobject]@{
                                     HKCUChildKeys   = $HKCUChildKeys
                                     HKCUValues      = $HKCUValues
+                                    HKCUCurrentDir  = $HKCUCurrentDir
                                 }
                             } -ArgumentList $FullPathToExplore
                             $Session:HKCUChildKeys = $StaticInfo.HKCUChildKeys | Where-Object {$_.Name}
                             $Session:HKCUValues = $StaticInfo.HKCUValues
+                            $Session:HKCUCurrentDir = $StaticInfo.HKCUCurrentDir
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCUChildKeys = $StaticInfo.HKCUChildKeys | Where-Object {$_.Name}
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCUValues = $StaticInfo.HKCUValues
+                            $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCUCurrentDir = $StaticInfo.HKCUCurrentDir
 
                             Sync-UDElement -Id "HKCUChildItemsUDGrid"
                             Sync-UDElement -Id "NewHKCURootDirTB"
@@ -654,14 +687,16 @@ $RegistryPageContent = {
                         }
 
                         New-UDButton -Text "Parent Directory" -OnClick {
-                            $RootDirSlashCheck = $Session:HKCUChildKeys[0].Path -split "HKEY_CURRENT_USER\\"
+                            <#
+                            $RootDirSlashCheck = $Session:HKLMChildKeys[0].Path -split "HKEY_CURRENT_USER\\"
                             $ReplaceString = if ($RootDirSlashCheck[-1][0] -eq "\") {"HKCU:"} else {"HKCU:\"}
                             $FullPathToExplorePrep = $Session:HKCUChildKeys[0].Path -replace "Microsoft.PowerShell.Core\\Registry::.*?\\",$ReplaceString
-                            $FullPathToExplore = if ($($($FullPathToExplorePrep | Split-Path -Parent) | Split-Path -Parent) -eq "") {
-                                $FullPathToExplorePrep | Split-Path -Parent
+                            #>
+                            $FullPathToExplore = if ($($Session:HKCUCurrentDir | Split-Path -Parent) -eq "") {
+                                $Session:HKCUCurrentDir
                             }
                             else {
-                                $($FullPathToExplorePrep | Split-Path -Parent) | Split-Path -Parent
+                                $Session:HKCUCurrentDir | Split-Path -Parent
                             }
 
                             $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
@@ -670,18 +705,22 @@ $RegistryPageContent = {
                                 Invoke-Expression $using:GetRegistrySubKeysFunc
                                 Invoke-Expression $using:GetRegistryValuesFunc
 
-                                $HKCUChildKeys = Get-RegistrySubKeys -path "HKCU:\" -ErrorAction SilentlyContinue
-                                $HKCUValues = Get-RegistryValues -path "HKCU:\" -ErrorAction SilentlyContinue
+                                $HKCUChildKeys = Get-RegistrySubKeys -path $args[0] -ErrorAction SilentlyContinue
+                                $HKCUValues = Get-RegistryValues -path $args[0] -ErrorAction SilentlyContinue
+                                $HKCUCurrentDir = $args[0]
 
                                 [pscustomobject]@{
                                     HKCUChildKeys   = $HKCUChildKeys
                                     HKCUValues      = $HKCUValues
+                                    HKCUCurrentDir  = $HKCUCurrentDir
                                 }
                             } -ArgumentList $FullPathToExplore
                             $Session:HKCUChildKeys = $StaticInfo.HKCUChildKeys | Where-Object {$_.Name}
                             $Session:HKCUValues = $StaticInfo.HKCUValues
+                            $Session:HKCUCurrentDir = $StaticInfo.HKCUCurrentDir
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCUChildKeys = $StaticInfo.HKCUChildKeys | Where-Object {$_.Name}
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCUValues = $StaticInfo.HKCUValues
+                            $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCUCurrentDir = $StaticInfo.HKCUCurrentDir
 
                             Sync-UDElement -Id "HKCUChildItemsUDGrid"
                             Sync-UDElement -Id "NewHKCURootDirTB"
@@ -692,6 +731,15 @@ $RegistryPageContent = {
                 }
                 New-UDRow -Endpoint {
                     New-UDColumn -Size 12 -Endpoint {
+                        $Session:HKCUUDGridLoadingTracker = [System.Collections.ArrayList]::new()
+                            
+                        New-UDColumn -AutoRefresh -RefreshInterval 1 -Endpoint {
+                            if ($Session:HKCUUDGridLoadingTracker -notcontains "FinishedLoading") {
+                                New-UDHeading -Text "Loading...Please wait..." -Size 6
+                                New-UDPreloader -Size small
+                            }
+                        }
+                        
                         $RootRegistryProperties = @("Name","Path","Type","Data","ChildCount","Explore")
                         $RootRegistryUDGridSplatParams = @{
                             Id              = "HKCUChildItemsUDGrid"
@@ -703,8 +751,9 @@ $RegistryPageContent = {
                             $PUDRSSyncHT = $global:PUDRSSyncHT
 
                             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
-
-                            $($Session:HKCUChildKeys + $Session:HKCUValues) | foreach {
+                            
+                            $ObjectsToPass = $Session:HKCUChildKeys + $Session:HKCUValues
+                            $ObjectsToPass | foreach {
                                 if ($_.Name) {
                                     if ($_.Path) {
                                         $RootDirSlashCheck = $_.Path -split "HKEY_CURRENT_USER\\"
@@ -730,18 +779,22 @@ $RegistryPageContent = {
                                                     Invoke-Expression $using:GetRegistrySubKeysFunc
                                                     Invoke-Expression $using:GetRegistryValuesFunc
 
-                                                    $HKCUChildKeys = Get-RegistrySubKeys -path "HKCU:\" -ErrorAction SilentlyContinue
-                                                    $HKCUValues = Get-RegistryValues -path "HKCU:\" -ErrorAction SilentlyContinue
+                                                    $HKCUChildKeys = Get-RegistrySubKeys -path $args[0] -ErrorAction SilentlyContinue
+                                                    $HKCUValues = Get-RegistryValues -path $args[0] -ErrorAction SilentlyContinue
+                                                    $HKCUCurrentDir = $args[0]
 
                                                     [pscustomobject]@{
                                                         HKCUChildKeys   = $HKCUChildKeys
                                                         HKCUValues      = $HKCUValues
+                                                        HKCUCurrentDir  = $HKCUCurrentDir
                                                     }
                                                 } -ArgumentList $FullPathToExplore
                                                 $Session:HKCUChildKeys = $StaticInfo.HKCUChildKeys | Where-Object {$_.Name}
                                                 $Session:HKCUValues = $StaticInfo.HKCUValues
+                                                $Session:HKCUCurrentDir = $StaticInfo.HKCUCurrentDir
                                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCUChildKeys = $StaticInfo.HKCUChildKeys | Where-Object {$_.Name}
                                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCUValues = $StaticInfo.HKCUValues
+                                                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCUCurrentDir = $StaticInfo.HKCUCurrentDir
 
                                                 Sync-UDElement -Id "HKCUChildItemsUDGrid"
                                                 Sync-UDElement -Id "NewHKCURootDirTB"
@@ -763,10 +816,12 @@ $RegistryPageContent = {
                     New-UDColumn -Size 3 -Endpoint {}
                     New-UDColumn -Size 6 -Endpoint {
                         New-UDElement -Id "CurrentHKCRRootDirTB" -Tag div -EndPoint {
+                            <#
                             $RootDirSlashCheck = $Session:HKCRChildKeys[0].Path -split "HKEY_CLASSES_ROOT\\"
                             $ReplaceString = if ($RootDirSlashCheck[-1][0] -eq "\") {"HKCR:"} else {"HKCR:\"}
                             $CurrentDirectory = $Session:HKCRChildKeys[0].Path -replace "Microsoft.PowerShell.Core\\Registry::.*?\\",$ReplaceString
-                            New-UDHeading -Text "Current Directory: $($CurrentDirectory | Split-Path -Parent)" -Size 5
+                            #>
+                            New-UDHeading -Text "Current Directory: $($Session:HKCRCurrentDir)" -Size 5
                         }
                         New-UDElement -Id "NewHKCRRootDirTB" -Tag div -EndPoint {
                             New-UDTextbox -Id "NewHKCRRootDirTBProper" -Label "New Directory"
@@ -783,18 +838,22 @@ $RegistryPageContent = {
 
                                 New-PSDrive -Name HKCR -PSProvider Registry -Root HKEY_CLASSES_ROOT
 
-                                $HKCRChildKeys = Get-RegistrySubKeys -path "HKCR:\" -ErrorAction SilentlyContinue
-                                $HKCRValues = Get-RegistryValues -path "HKCR:\" -ErrorAction SilentlyContinue
+                                $HKCRChildKeys = Get-RegistrySubKeys -path $args[0] -ErrorAction SilentlyContinue
+                                $HKCRValues = Get-RegistryValues -path $args[0] -ErrorAction SilentlyContinue
+                                $HKCRCurrentDir = $args[0]
 
                                 [pscustomobject]@{
                                     HKCRChildKeys   = $HKCRChildKeys
                                     HKCRValues      = $HKCRValues
+                                    HKCRCurrentDir  = $HKCRCurrentDir
                                 }
                             } -ArgumentList $FullPathToExplore
                             $Session:HKCRChildKeys = $StaticInfo.HKCRChildKeys | Where-Object {$_.Name}
                             $Session:HKCRValues = $StaticInfo.HKCRValues
+                            $Session:HKCRCurrentDir = $StaticInfo.HKCRCurrentDir
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCRChildKeys = $StaticInfo.HKCRChildKeys | Where-Object {$_.Name}
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCRValues = $StaticInfo.HKCRValues
+                            $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCRCurrentDir = $StaticInfo.HKCRCurrentDir
 
                             Sync-UDElement -Id "HKCRChildItemsUDGrid"
                             Sync-UDElement -Id "NewHKCRRootDirTB"
@@ -802,14 +861,16 @@ $RegistryPageContent = {
                         }
 
                         New-UDButton -Text "Parent Directory" -OnClick {
+                            <#
                             $RootDirSlashCheck = $Session:HKCRChildKeys[0].Path -split "HKEY_CLASSES_ROOT\\"
                             $ReplaceString = if ($RootDirSlashCheck[-1][0] -eq "\") {"HKCR:"} else {"HKCR:\"}
                             $FullPathToExplorePrep = $Session:HKCRChildKeys[0].Path -replace "Microsoft.PowerShell.Core\\Registry::.*?\\",$ReplaceString
-                            $FullPathToExplore = if ($($($FullPathToExplorePrep | Split-Path -Parent) | Split-Path -Parent) -eq "") {
-                                $FullPathToExplorePrep | Split-Path -Parent
+                            #>
+                            $FullPathToExplore = if ($($Session:HKCRCurrentDir | Split-Path -Parent) -eq "") {
+                                $Session:HKCRCurrentDir
                             }
                             else {
-                                $($FullPathToExplorePrep | Split-Path -Parent) | Split-Path -Parent
+                                $Session:HKCRCurrentDir | Split-Path -Parent
                             }
 
                             $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
@@ -820,18 +881,22 @@ $RegistryPageContent = {
 
                                 New-PSDrive -Name HKCR -PSProvider Registry -Root HKEY_CLASSES_ROOT
 
-                                $HKCRChildKeys = Get-RegistrySubKeys -path "HKCR:\" -ErrorAction SilentlyContinue
-                                $HKCRValues = Get-RegistryValues -path "HKCR:\" -ErrorAction SilentlyContinue
+                                $HKCRChildKeys = Get-RegistrySubKeys -path $args[0] -ErrorAction SilentlyContinue
+                                $HKCRValues = Get-RegistryValues -path $args[0] -ErrorAction SilentlyContinue
+                                $HKCRCurrentDir = $args[0]
 
                                 [pscustomobject]@{
                                     HKCRChildKeys   = $HKCRChildKeys
                                     HKCRValues      = $HKCRValues
+                                    HKCRCurrentDir  = $HKCRCurrentDir
                                 }
                             } -ArgumentList $FullPathToExplore
                             $Session:HKCRChildKeys = $StaticInfo.HKCRChildKeys | Where-Object {$_.Name}
                             $Session:HKCRValues = $StaticInfo.HKCRValues
+                            $Session:HKCRCurrentDir = $StaticInfo.HKCRCurrentDir
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCRChildKeys = $StaticInfo.HKCRChildKeys | Where-Object {$_.Name}
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCRValues = $StaticInfo.HKCRValues
+                            $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCRCurrentDir = $StaticInfo.HKCRCurrentDir
 
                             Sync-UDElement -Id "HKCRChildItemsUDGrid"
                             Sync-UDElement -Id "NewHKCRRootDirTB"
@@ -853,8 +918,9 @@ $RegistryPageContent = {
                             $PUDRSSyncHT = $global:PUDRSSyncHT
 
                             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
-
-                            $($Session:HKCRChildKeys + $Session:HKCRValues) | foreach {
+                            
+                            $ObjectsToPass = $Session:HKCRChildKeys + $Session:HKCRValues
+                            $ObjectsToPass | foreach {
                                 if ($_.Name) {
                                     if ($_.Path) {
                                         $RootDirSlashCheck = $_.Path -split "HKEY_CLASSES_ROOT\\"
@@ -882,18 +948,22 @@ $RegistryPageContent = {
 
                                                     New-PSDrive -Name HKCR -PSProvider Registry -Root HKEY_CLASSES_ROOT
 
-                                                    $HKCRChildKeys = Get-RegistrySubKeys -path "HKCR:\" -ErrorAction SilentlyContinue
-                                                    $HKCRValues = Get-RegistryValues -path "HKCR:\" -ErrorAction SilentlyContinue
+                                                    $HKCRChildKeys = Get-RegistrySubKeys -path $args[0] -ErrorAction SilentlyContinue
+                                                    $HKCRValues = Get-RegistryValues -path $args[0] -ErrorAction SilentlyContinue
+                                                    $HKCRCurrentDir = $args[0]
 
                                                     [pscustomobject]@{
                                                         HKCRChildKeys   = $HKCRChildKeys
                                                         HKCRValues      = $HKCRValues
+                                                        HKCRCurrentDir  = $HKCRCurrentDir
                                                     }
                                                 } -ArgumentList $FullPathToExplore
                                                 $Session:HKCRChildKeys = $StaticInfo.HKCRChildKeys | Where-Object {$_.Name}
                                                 $Session:HKCRValues = $StaticInfo.HKCRValues
+                                                $Session:HKCRCurrentDir = $StaticInfo.HKCRCurrentDir
                                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCRChildKeys = $StaticInfo.HKCRChildKeys | Where-Object {$_.Name}
                                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCRValues = $StaticInfo.HKCRValues
+                                                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCRCurrentDir = $StaticInfo.HKCRCurrentDir
 
                                                 Sync-UDElement -Id "HKCRChildItemsUDGrid"
                                                 Sync-UDElement -Id "NewHKCRRootDirTB"
@@ -915,10 +985,12 @@ $RegistryPageContent = {
                     New-UDColumn -Size 3 -Endpoint {}
                     New-UDColumn -Size 6 -Endpoint {
                         New-UDElement -Id "CurrentHKURootDirTB" -Tag div -EndPoint {
+                            <#
                             $RootDirSlashCheck = $Session:HKUChildKeys[0].Path -split "HKEY_USERS\\"
                             $ReplaceString = if ($RootDirSlashCheck[-1][0] -eq "\") {"HKU:"} else {"HKU:\"}
                             $CurrentDirectory = $Session:HKUChildKeys[0].Path -replace "Microsoft.PowerShell.Core\\Registry::.*?\\",$ReplaceString
-                            New-UDHeading -Text "Current Directory: $($CurrentDirectory | Split-Path -Parent)" -Size 5
+                            #>
+                            New-UDHeading -Text "Current Directory: $($Session:HKUCurrentDir)" -Size 5
                         }
                         New-UDElement -Id "NewHKURootDirTB" -Tag div -EndPoint {
                             New-UDTextbox -Id "NewHKURootDirTBProper" -Label "New Directory"
@@ -935,18 +1007,22 @@ $RegistryPageContent = {
 
                                 New-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS
 
-                                $HKUChildKeys = Get-RegistrySubKeys -path "HKU:\" -ErrorAction SilentlyContinue
-                                $HKUValues = Get-RegistryValues -path "HKU:\" -ErrorAction SilentlyContinue
+                                $HKUChildKeys = Get-RegistrySubKeys -path $args[0] -ErrorAction SilentlyContinue
+                                $HKUValues = Get-RegistryValues -path $args[0] -ErrorAction SilentlyContinue
+                                $HKUCurrentDir = $args[0]
 
                                 [pscustomobject]@{
-                                    HKUChildKeys   = $HKUChildKeys
-                                    HKUValues      = $HKUValues
+                                    HKUChildKeys    = $HKUChildKeys
+                                    HKUValues       = $HKUValues
+                                    HKUCurrentDir   = $HKUCurrentDir
                                 }
                             } -ArgumentList $FullPathToExplore
                             $Session:HKUChildKeys = $StaticInfo.HKUChildKeys | Where-Object {$_.Name}
                             $Session:HKUValues = $StaticInfo.HKUValues
+                            $Session:HKUCurrentDir = $StaticInfo.HKUCurrentDir
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKUChildKeys = $StaticInfo.HKUChildKeys | Where-Object {$_.Name}
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKUValues = $StaticInfo.HKUValues
+                            $PUDRSSyncHT."$RemoteHost`Info".Registry.HKUCurrentDir = $StaticInfo.HKUCurrentDir
 
                             Sync-UDElement -Id "HKUChildItemsUDGrid"
                             Sync-UDElement -Id "NewHKURootDirTB"
@@ -954,14 +1030,16 @@ $RegistryPageContent = {
                         }
 
                         New-UDButton -Text "Parent Directory" -OnClick {
-                            $RootDirSlashCheck = $Session:HKUChildKeys[0].Path -split "HKEY_USERS\\"
+                            <#
+                            $RootDirSlashCheck = $Session:HKUChildKeys[0].Path -split "HKEY_USER\\"
                             $ReplaceString = if ($RootDirSlashCheck[-1][0] -eq "\") {"HKU:"} else {"HKU:\"}
                             $FullPathToExplorePrep = $Session:HKUChildKeys[0].Path -replace "Microsoft.PowerShell.Core\\Registry::.*?\\",$ReplaceString
-                            $FullPathToExplore = if ($($($FullPathToExplorePrep | Split-Path -Parent) | Split-Path -Parent) -eq "") {
-                                $FullPathToExplorePrep | Split-Path -Parent
+                            #>
+                            $FullPathToExplore = if ($($Session:HKUCurrentDir | Split-Path -Parent) -eq "") {
+                                $Session:HKUCurrentDir
                             }
                             else {
-                                $($FullPathToExplorePrep | Split-Path -Parent) | Split-Path -Parent
+                                $Session:HKUCurrentDir | Split-Path -Parent
                             }
 
                             $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
@@ -972,18 +1050,22 @@ $RegistryPageContent = {
 
                                 New-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS
 
-                                $HKUChildKeys = Get-RegistrySubKeys -path "HKU:\" -ErrorAction SilentlyContinue
-                                $HKUValues = Get-RegistryValues -path "HKU:\" -ErrorAction SilentlyContinue
+                                $HKUChildKeys = Get-RegistrySubKeys -path $args[0] -ErrorAction SilentlyContinue
+                                $HKUValues = Get-RegistryValues -path $args[0] -ErrorAction SilentlyContinue
+                                $HKUCurrentDir = $args[0]
 
                                 [pscustomobject]@{
-                                    HKUChildKeys   = $HKUChildKeys
-                                    HKUValues      = $HKUValues
+                                    HKUChildKeys    = $HKUChildKeys
+                                    HKUValues       = $HKUValues
+                                    HKUCurrentDir   = $HKUCurrentDir
                                 }
                             } -ArgumentList $FullPathToExplore
                             $Session:HKUChildKeys = $StaticInfo.HKUChildKeys | Where-Object {$_.Name}
                             $Session:HKUValues = $StaticInfo.HKUValues
+                            $Session:HKUCurrentDir = $StaticInfo.HKUCurrentDir
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKUChildKeys = $StaticInfo.HKUChildKeys | Where-Object {$_.Name}
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKUValues = $StaticInfo.HKUValues
+                            $PUDRSSyncHT."$RemoteHost`Info".Registry.HKUCurrentDir = $StaticInfo.HKUCurrentDir
 
                             Sync-UDElement -Id "HKUChildItemsUDGrid"
                             Sync-UDElement -Id "NewHKURootDirTB"
@@ -1005,8 +1087,9 @@ $RegistryPageContent = {
                             $PUDRSSyncHT = $global:PUDRSSyncHT
 
                             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
-
-                            $($Session:HKUChildKeys + $Session:HKUValues) | foreach {
+                            
+                            $ObjectsToPass = $Session:HKUChildKeys + $Session:HKUValues
+                            $ObjectsToPass | foreach {
                                 if ($_.Name) {
                                     if ($_.Path) {
                                         $RootDirSlashCheck = $_.Path -split "HKEY_USERS\\"
@@ -1034,18 +1117,22 @@ $RegistryPageContent = {
 
                                                     New-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS
 
-                                                    $HKUChildKeys = Get-RegistrySubKeys -path "HKU:\" -ErrorAction SilentlyContinue
-                                                    $HKUValues = Get-RegistryValues -path "HKU:\" -ErrorAction SilentlyContinue
+                                                    $HKUChildKeys = Get-RegistrySubKeys -path $args[0] -ErrorAction SilentlyContinue
+                                                    $HKUValues = Get-RegistryValues -path $args[0] -ErrorAction SilentlyContinue
+                                                    $HKUCurrentDir = $args[0]
 
                                                     [pscustomobject]@{
-                                                        HKUChildKeys   = $HKUChildKeys
-                                                        HKUValues      = $HKUValues
+                                                        HKUChildKeys    = $HKUChildKeys
+                                                        HKUValues       = $HKUValues
+                                                        HKUCurrentDir   = $HKUCurrentDir
                                                     }
                                                 } -ArgumentList $FullPathToExplore
                                                 $Session:HKUChildKeys = $StaticInfo.HKUChildKeys | Where-Object {$_.Name}
                                                 $Session:HKUValues = $StaticInfo.HKUValues
+                                                $Session:HKUCurrentDir = $StaticInfo.HKUCurrentDir
                                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKUChildKeys = $StaticInfo.HKUChildKeys | Where-Object {$_.Name}
                                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKUValues = $StaticInfo.HKUValues
+                                                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKUCurrentDir = $StaticInfo.HKUCurrentDir
 
                                                 Sync-UDElement -Id "HKUChildItemsUDGrid"
                                                 Sync-UDElement -Id "NewHKURootDirTB"
@@ -1067,10 +1154,12 @@ $RegistryPageContent = {
                     New-UDColumn -Size 3 -Endpoint {}
                     New-UDColumn -Size 6 -Endpoint {
                         New-UDElement -Id "CurrentHKCCRootDirTB" -Tag div -EndPoint {
+                            <#
                             $RootDirSlashCheck = $Session:HKCCChildKeys[0].Path -split "HKEY_CURRENT_CONFIG\\"
                             $ReplaceString = if ($RootDirSlashCheck[-1][0] -eq "\") {"HKCC:"} else {"HKCC:\"}
                             $CurrentDirectory = $Session:HKCCChildKeys[0].Path -replace "Microsoft.PowerShell.Core\\Registry::.*?\\",$ReplaceString
-                            New-UDHeading -Text "Current Directory: $($CurrentDirectory | Split-Path -Parent)" -Size 5
+                            #>
+                            New-UDHeading -Text "Current Directory: $($Session:HKCCCurrentDir)" -Size 5
                         }
                         New-UDElement -Id "NewHKCCRootDirTB" -Tag div -EndPoint {
                             New-UDTextbox -Id "NewHKCCRootDirTBProper" -Label "New Directory"
@@ -1087,18 +1176,22 @@ $RegistryPageContent = {
 
                                 New-PSDrive -Name HKCC -PSProvider Registry -Root HKEY_CURRENT_CONFIG
 
-                                $HKCCChildKeys = Get-RegistrySubKeys -path "HKCC:\" -ErrorAction SilentlyContinue
-                                $HKCCValues = Get-RegistryValues -path "HKCC:\" -ErrorAction SilentlyContinue
+                                $HKCCChildKeys = Get-RegistrySubKeys -path $args[0] -ErrorAction SilentlyContinue
+                                $HKCCValues = Get-RegistryValues -path $args[0] -ErrorAction SilentlyContinue
+                                $HKCCCurrentDir = $args[0]
 
                                 [pscustomobject]@{
                                     HKCCChildKeys   = $HKCCChildKeys
                                     HKCCValues      = $HKCCValues
+                                    HKCCCurrentDir  = $HKCCCurrentDir
                                 }
                             } -ArgumentList $FullPathToExplore
                             $Session:HKCCChildKeys = $StaticInfo.HKCCChildKeys | Where-Object {$_.Name}
                             $Session:HKCCValues = $StaticInfo.HKCCValues
+                            $Session:HKCCCurrentDir = $StaticInfo.HKCCCurrentDir
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCCChildKeys = $StaticInfo.HKCCChildKeys | Where-Object {$_.Name}
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCCValues = $StaticInfo.HKCCValues
+                            $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCCCurrentDir = $StaticInfo.HKCCCurrentDir
 
                             Sync-UDElement -Id "HKCCChildItemsUDGrid"
                             Sync-UDElement -Id "NewHKCCRootDirTB"
@@ -1106,14 +1199,16 @@ $RegistryPageContent = {
                         }
 
                         New-UDButton -Text "Parent Directory" -OnClick {
-                            $RootDirSlashCheck = $Session:HKCCChildKeys[0].Path -split "HKEY_CURRENT_CONFIG\\"
-                            $ReplaceString = if ($RootDirSlashCheck[-1][0] -eq "\") {"HKCC:"} else {"HKCC:\"}
-                            $FullPathToExplorePrep = $Session:HKCCChildKeys[0].Path -replace "Microsoft.PowerShell.Core\\Registry::.*?\\",$ReplaceString
-                            $FullPathToExplore = if ($($($FullPathToExplorePrep | Split-Path -Parent) | Split-Path -Parent) -eq "") {
-                                $FullPathToExplorePrep | Split-Path -Parent
+                            <#
+                            $RootDirSlashCheck = $Session:HKUChildKeys[0].Path -split "HKEY_USER\\"
+                            $ReplaceString = if ($RootDirSlashCheck[-1][0] -eq "\") {"HKU:"} else {"HKU:\"}
+                            $FullPathToExplorePrep = $Session:HKUChildKeys[0].Path -replace "Microsoft.PowerShell.Core\\Registry::.*?\\",$ReplaceString
+                            #>
+                            $FullPathToExplore = if ($($Session:HKUCurrentDir | Split-Path -Parent) -eq "") {
+                                $Session:HKUCurrentDir
                             }
                             else {
-                                $($FullPathToExplorePrep | Split-Path -Parent) | Split-Path -Parent
+                                $Session:HKUCurrentDir | Split-Path -Parent
                             }
 
                             $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
@@ -1124,18 +1219,22 @@ $RegistryPageContent = {
 
                                 New-PSDrive -Name HKCC -PSProvider Registry -Root HKEY_CURRENT_CONFIG
 
-                                $HKCCChildKeys = Get-RegistrySubKeys -path "HKCC:\" -ErrorAction SilentlyContinue
-                                $HKCCValues = Get-RegistryValues -path "HKCC:\" -ErrorAction SilentlyContinue
+                                $HKCCChildKeys = Get-RegistrySubKeys -path $args[0] -ErrorAction SilentlyContinue
+                                $HKCCValues = Get-RegistryValues -path $args[0] -ErrorAction SilentlyContinue
+                                $HKCCCurrentDir = $args[0]
 
                                 [pscustomobject]@{
                                     HKCCChildKeys   = $HKCCChildKeys
                                     HKCCValues      = $HKCCValues
+                                    HKCCCurrentDir  = $HKCCCurrentDir
                                 }
                             } -ArgumentList $FullPathToExplore
                             $Session:HKCCChildKeys = $StaticInfo.HKCCChildKeys | Where-Object {$_.Name}
                             $Session:HKCCValues = $StaticInfo.HKCCValues
+                            $Session:HKCCCurrentDir = $StaticInfo.HKCCCurrentDir
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCCChildKeys = $StaticInfo.HKCCChildKeys | Where-Object {$_.Name}
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCCValues = $StaticInfo.HKCCValues
+                            $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCCCurrentDir = $StaticInfo.HKCCCurrentDir
 
                             Sync-UDElement -Id "HKCCChildItemsUDGrid"
                             Sync-UDElement -Id "NewHKCCRootDirTB"
@@ -1158,7 +1257,8 @@ $RegistryPageContent = {
 
                             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
 
-                            $($Session:HKCCChildKeys + $Session:HKCCValues) | foreach {
+                            $ObjectsToPass = $Session:HKCCChildKeys + $Session:HKCCValues
+                            $ObjectsToPass | foreach {
                                 if ($_.Name) {
                                     if ($_.Path) {
                                         $RootDirSlashCheck = $_.Path -split "HKEY_CURRENT_CONFIG\\"
@@ -1186,18 +1286,22 @@ $RegistryPageContent = {
 
                                                     New-PSDrive -Name HKCC -PSProvider Registry -Root HKEY_CURRENT_CONFIG
 
-                                                    $HKCCChildKeys = Get-RegistrySubKeys -path "HKCC:\" -ErrorAction SilentlyContinue
-                                                    $HKCCValues = Get-RegistryValues -path "HKCC:\" -ErrorAction SilentlyContinue
+                                                    $HKCCChildKeys = Get-RegistrySubKeys -path $args[0] -ErrorAction SilentlyContinue
+                                                    $HKCCValues = Get-RegistryValues -path $args[0] -ErrorAction SilentlyContinue
+                                                    $HKCCCurrentDir = $args[0]
 
                                                     [pscustomobject]@{
                                                         HKCCChildKeys   = $HKCCChildKeys
                                                         HKCCValues      = $HKCCValues
+                                                        HKCCCurrentDir  = $HKCCCurrentDir
                                                     }
                                                 } -ArgumentList $FullPathToExplore
                                                 $Session:HKCCChildKeys = $StaticInfo.HKCCChildKeys | Where-Object {$_.Name}
                                                 $Session:HKCCValues = $StaticInfo.HKCCValues
+                                                $Session:HKCCCurrentDir = $StaticInfo.HKCCCurrentDir
                                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCCChildKeys = $StaticInfo.HKCCChildKeys | Where-Object {$_.Name}
                                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCCValues = $StaticInfo.HKCCValues
+                                                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCCCurrentDir = $StaticInfo.HKCCCurrentDir
 
                                                 Sync-UDElement -Id "HKCCChildItemsUDGrid"
                                                 Sync-UDElement -Id "NewHKCCRootDirTB"
