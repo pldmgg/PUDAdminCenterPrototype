@@ -545,7 +545,7 @@ $RegistryPageContent = {
                     $Session:HKLMGridItemsRefreshed = $True
                 }
 
-                New-UDColumn -AutoRefresh -RefreshInterval 5 -Endpoint {
+                New-UDColumn -AutoRefresh -RefreshInterval 1 -Endpoint {
                     if ($Session:HKLMUDGridLoadingTracker -eq "Loading") {
                         New-UDHeading -Text "Loading...Please wait..." -Size 6
                         New-UDPreloader -Size small
@@ -750,6 +750,8 @@ $RegistryPageContent = {
         New-UDCollapsible -Items {
             New-UDCollapsibleItem -Title "HKEY_CURRENT_USER" -Icon laptop -Endpoint {
                 New-UDElement -Id "UpdateHKCUGridObjects" -Tag div -EndPoint {
+                    $Session:HKCUGridItemsRefreshed = $False
+
                     [System.Collections.ArrayList]$HKCUObjectsForGridPrep = @()
                     if (@($Session:HKCUChildKeys).Count -gt 0) {
                         foreach ($obj in $Session:HKCUChildKeys) {
@@ -766,9 +768,11 @@ $RegistryPageContent = {
                         }
                     }
                     $Session:HKCUObjectsForGrid = $HKCUObjectsForGridPrep
+
+                    $Session:HKCUGridItemsRefreshed = $True
                 }
 
-                New-UDColumn -AutoRefresh -RefreshInterval 5 -Endpoint {
+                New-UDColumn -AutoRefresh -RefreshInterval 1 -Endpoint {
                     if ($Session:HKCUUDGridLoadingTracker -eq "Loading") {
                         New-UDHeading -Text "Loading...Please wait..." -Size 6
                         New-UDPreloader -Size small
@@ -817,9 +821,13 @@ $RegistryPageContent = {
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCUValues = $StaticInfo.HKCUValues
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCUCurrentDir = $StaticInfo.HKCUCurrentDir
 
+                            $Session:HKCUGridItemsRefreshed = $False
                             Sync-UDElement -Id "NewHKCURootDirTB"
                             Sync-UDElement -Id "CurrentHKCURootDirTB"
                             Sync-UDElement -Id "UpdateHKCUGridObjects"
+                            while (!$Session:HKCUGridItemsRefreshed) {
+                                Start-Sleep -Seconds 2
+                            }
                             Sync-UDElement -Id "HKCUChildItemsUDGrid"
                         }
 
@@ -860,17 +868,25 @@ $RegistryPageContent = {
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCUValues = $StaticInfo.HKCUValues
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCUCurrentDir = $StaticInfo.HKCUCurrentDir
 
+                            $Session:HKCUGridItemsRefreshed = $False
                             Sync-UDElement -Id "NewHKCURootDirTB"
                             Sync-UDElement -Id "CurrentHKCURootDirTB"
                             Sync-UDElement -Id "UpdateHKCUGridObjects"
+                            while (!$Session:HKCUGridItemsRefreshed) {
+                                Start-Sleep -Seconds 2
+                            }
                             Sync-UDElement -Id "HKCUChildItemsUDGrid"
                         }
 
                         New-UDButton -Text "Force Refresh" -OnClick {
                             $Session:HKCUUDGridLoadingTracker = "Loading"
+                            $Session:HKCUGridItemsRefreshed = $False
                             Sync-UDElement -Id "NewHKCURootDirTB"
                             Sync-UDElement -Id "CurrentHKCURootDirTB"
                             Sync-UDElement -Id "UpdateHKCUGridObjects"
+                            while (!$Session:HKCUGridItemsRefreshed) {
+                                Start-Sleep -Seconds 2
+                            }
                             Sync-UDElement -Id "HKCUChildItemsUDGrid"
                         }
                     }
@@ -878,15 +894,6 @@ $RegistryPageContent = {
                 }
                 New-UDRow -Endpoint {
                     New-UDColumn -Size 12 -Endpoint {
-                        $Session:HKCUUDGridLoadingTracker = [System.Collections.ArrayList]::new()
-                            
-                        New-UDColumn -AutoRefresh -RefreshInterval 5 -Endpoint {
-                            if ($Session:HKCUUDGridLoadingTracker -notcontains "FinishedLoading") {
-                                New-UDHeading -Text "Loading...Please wait..." -Size 6
-                                New-UDPreloader -Size small
-                            }
-                        }
-                        
                         $RootRegistryProperties = @("Name","Path","Type","Data","ChildCount","Explore")
                         $RootRegistryUDGridSplatParams = @{
                             Id              = "HKCUChildItemsUDGrid"
@@ -946,9 +953,13 @@ $RegistryPageContent = {
                                                         $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCUValues = $StaticInfo.HKCUValues
                                                         $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCUCurrentDir = $StaticInfo.HKCUCurrentDir
 
+                                                        $Session:HKCUGridItemsRefreshed = $False
                                                         Sync-UDElement -Id "NewHKCURootDirTB"
                                                         Sync-UDElement -Id "CurrentHKCURootDirTB"
                                                         Sync-UDElement -Id "UpdateHKCUGridObjects"
+                                                        while (!$Session:HKCUGridItemsRefreshed) {
+                                                            Start-Sleep -Seconds 2
+                                                        }
                                                         Sync-UDElement -Id "HKCUChildItemsUDGrid"
                                                     }
                                                 }
@@ -970,6 +981,8 @@ $RegistryPageContent = {
         New-UDCollapsible -Items {
             New-UDCollapsibleItem -Title "HKEY_CLASSES_ROOT" -Icon laptop -Endpoint {
                 New-UDElement -Id "UpdateHKCRGridObjects" -Tag div -EndPoint {
+                    $Session:HKCRGridItemsRefreshed = $False
+
                     [System.Collections.ArrayList]$HKCRObjectsForGridPrep = @()
                     if (@($Session:HKCRChildKeys).Count -gt 0) {
                         foreach ($obj in $Session:HKCRChildKeys) {
@@ -986,9 +999,11 @@ $RegistryPageContent = {
                         }
                     }
                     $Session:HKCRObjectsForGrid = $HKCRObjectsForGridPrep
+
+                    $Session:HKCRGridItemsRefreshed = $True
                 }
 
-                New-UDColumn -AutoRefresh -RefreshInterval 5 -Endpoint {
+                New-UDColumn -AutoRefresh -RefreshInterval 1 -Endpoint {
                     if ($Session:HKCRUDGridLoadingTracker -eq "Loading") {
                         New-UDHeading -Text "Loading...Please wait..." -Size 6
                         New-UDPreloader -Size small
@@ -1039,9 +1054,13 @@ $RegistryPageContent = {
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCRValues = $StaticInfo.HKCRValues
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCRCurrentDir = $StaticInfo.HKCRCurrentDir
 
+                            $Session:HKCRGridItemsRefreshed = $False
                             Sync-UDElement -Id "NewHKCRRootDirTB"
                             Sync-UDElement -Id "CurrentHKCRRootDirTB"
                             Sync-UDElement -Id "UpdateHKCRGridObjects"
+                            while (!$Session:HKCRGridItemsRefreshed) {
+                                Start-Sleep -Seconds 2
+                            }
                             Sync-UDElement -Id "HKCRChildItemsUDGrid"
                         }
 
@@ -1084,17 +1103,25 @@ $RegistryPageContent = {
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCRValues = $StaticInfo.HKCRValues
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCRCurrentDir = $StaticInfo.HKCRCurrentDir
 
+                            $Session:HKCRGridItemsRefreshed = $False
                             Sync-UDElement -Id "NewHKCRRootDirTB"
                             Sync-UDElement -Id "CurrentHKCRRootDirTB"
                             Sync-UDElement -Id "UpdateHKCRGridObjects"
+                            while (!$Session:HKCRGridItemsRefreshed) {
+                                Start-Sleep -Seconds 2
+                            }
                             Sync-UDElement -Id "HKCRChildItemsUDGrid"
                         }
 
                         New-UDButton -Text "Force Refresh" -OnClick {
                             $Session:HKCRUDGridLoadingTracker = "Loading"
+                            $Session:HKCRGridItemsRefreshed = $False
                             Sync-UDElement -Id "NewHKCRRootDirTB"
                             Sync-UDElement -Id "CurrentHKCRRootDirTB"
                             Sync-UDElement -Id "UpdateHKCRGridObjects"
+                            while (!$Session:HKCRGridItemsRefreshed) {
+                                Start-Sleep -Seconds 2
+                            }
                             Sync-UDElement -Id "HKCRChildItemsUDGrid"
                         }
                     }
@@ -1163,9 +1190,13 @@ $RegistryPageContent = {
                                                         $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCRValues = $StaticInfo.HKCRValues
                                                         $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCRCurrentDir = $StaticInfo.HKCRCurrentDir
 
+                                                        $Session:HKCRGridItemsRefreshed = $False
                                                         Sync-UDElement -Id "NewHKCRRootDirTB"
                                                         Sync-UDElement -Id "CurrentHKCRRootDirTB"
                                                         Sync-UDElement -Id "UpdateHKCRGridObjects"
+                                                        while (!$Session:HKCRGridItemsRefreshed) {
+                                                            Start-Sleep -Seconds 2
+                                                        }
                                                         Sync-UDElement -Id "HKCRChildItemsUDGrid"
                                                     }
                                                 }
@@ -1188,6 +1219,8 @@ $RegistryPageContent = {
         New-UDCollapsible -Items {
             New-UDCollapsibleItem -Title "HKEY_USERS" -Icon laptop -Endpoint {
                 New-UDElement -Id "UpdateHKUGridObjects" -Tag div -EndPoint {
+                    $Session:HKUGridItemsRefreshed = $False
+
                     [System.Collections.ArrayList]$HKUObjectsForGridPrep = @()
                     if (@($Session:HKUChildKeys).Count -gt 0) {
                         foreach ($obj in $Session:HKUChildKeys) {
@@ -1204,9 +1237,11 @@ $RegistryPageContent = {
                         }
                     }
                     $Session:HKUObjectsForGrid = $HKUObjectsForGridPrep
+
+                    $Session:HKUGridItemsRefreshed = $True
                 }
 
-                New-UDColumn -AutoRefresh -RefreshInterval 5 -Endpoint {
+                New-UDColumn -AutoRefresh -RefreshInterval 1 -Endpoint {
                     if ($Session:HKUUDGridLoadingTracker -eq "Loading") {
                         New-UDHeading -Text "Loading...Please wait..." -Size 6
                         New-UDPreloader -Size small
@@ -1257,9 +1292,13 @@ $RegistryPageContent = {
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKUValues = $StaticInfo.HKUValues
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKUCurrentDir = $StaticInfo.HKUCurrentDir
 
+                            $Session:HKUGridItemsRefreshed = $False
                             Sync-UDElement -Id "NewHKURootDirTB"
                             Sync-UDElement -Id "CurrentHKURootDirTB"
                             Sync-UDElement -Id "UpdateHKUGridObjects"
+                            while (!$Session:HKUGridItemsRefreshed) {
+                                Start-Sleep -Seconds 2
+                            }
                             Sync-UDElement -Id "HKUChildItemsUDGrid"
                         }
 
@@ -1302,17 +1341,25 @@ $RegistryPageContent = {
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKUValues = $StaticInfo.HKUValues
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKUCurrentDir = $StaticInfo.HKUCurrentDir
 
+                            $Session:HKUGridItemsRefreshed = $False
                             Sync-UDElement -Id "NewHKURootDirTB"
                             Sync-UDElement -Id "CurrentHKURootDirTB"
                             Sync-UDElement -Id "UpdateHKUGridObjects"
+                            while (!$Session:HKUGridItemsRefreshed) {
+                                Start-Sleep -Seconds 2
+                            }
                             Sync-UDElement -Id "HKUChildItemsUDGrid"
                         }
 
                         New-UDButton -Text "Force Refresh" -OnClick {
                             $Session:HKUUDGridLoadingTracker = "Loading"
+                            $Session:HKUGridItemsRefreshed = $False
                             Sync-UDElement -Id "NewHKURootDirTB"
                             Sync-UDElement -Id "CurrentHKURootDirTB"
                             Sync-UDElement -Id "UpdateHKUGridObjects"
+                            while (!$Session:HKUGridItemsRefreshed) {
+                                Start-Sleep -Seconds 2
+                            }
                             Sync-UDElement -Id "HKUChildItemsUDGrid"
                         }
                     }
@@ -1381,9 +1428,13 @@ $RegistryPageContent = {
                                                         $PUDRSSyncHT."$RemoteHost`Info".Registry.HKUValues = $StaticInfo.HKUValues
                                                         $PUDRSSyncHT."$RemoteHost`Info".Registry.HKUCurrentDir = $StaticInfo.HKUCurrentDir
 
+                                                        $Session:HKUGridItemsRefreshed = $False
                                                         Sync-UDElement -Id "NewHKURootDirTB"
                                                         Sync-UDElement -Id "CurrentHKURootDirTB"
                                                         Sync-UDElement -Id "UpdateHKUGridObjects"
+                                                        while (!$Session:HKUGridItemsRefreshed) {
+                                                            Start-Sleep -Seconds 2
+                                                        }
                                                         Sync-UDElement -Id "HKUChildItemsUDGrid"
                                                     }
                                                 }
@@ -1406,6 +1457,8 @@ $RegistryPageContent = {
         New-UDCollapsible -Items {
             New-UDCollapsibleItem -Title "HKEY_CURRENT_CONFIG" -Icon laptop -Endpoint {
                 New-UDElement -Id "UpdateHKCCGridObjects" -Tag div -EndPoint {
+                    $Session:HKCCGridItemsRefreshed = $False
+
                     [System.Collections.ArrayList]$HKCCObjectsForGridPrep = @()
                     if (@($Session:HKCCChildKeys).Count -gt 0) {
                         foreach ($obj in $Session:HKCCChildKeys) {
@@ -1422,9 +1475,11 @@ $RegistryPageContent = {
                         }
                     }
                     $Session:HKCCObjectsForGrid = $HKCCObjectsForGridPrep
+
+                    $Session:HKCCGridItemsRefreshed = $False
                 }
 
-                New-UDColumn -AutoRefresh -RefreshInterval 5 -Endpoint {
+                New-UDColumn -AutoRefresh -RefreshInterval 1 -Endpoint {
                     if ($Session:HKCCUDGridLoadingTracker -eq "Loading") {
                         New-UDHeading -Text "Loading...Please wait..." -Size 6
                         New-UDPreloader -Size small
@@ -1475,9 +1530,13 @@ $RegistryPageContent = {
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCCValues = $StaticInfo.HKCCValues
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCCCurrentDir = $StaticInfo.HKCCCurrentDir
 
+                            $Session:HKCCGridItemsRefreshed = $False
                             Sync-UDElement -Id "NewHKCCRootDirTB"
                             Sync-UDElement -Id "CurrentHKCCRootDirTB"
                             Sync-UDElement -Id "UpdateHKCCGridObjects"
+                            while (!$Session:HKCCGridItemsRefreshed) {
+                                Start-Sleep -Seconds 2
+                            }
                             Sync-UDElement -Id "HKCCChildItemsUDGrid"
                         }
 
@@ -1520,17 +1579,25 @@ $RegistryPageContent = {
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCCValues = $StaticInfo.HKCCValues
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCCCurrentDir = $StaticInfo.HKCCCurrentDir
 
+                            $Session:HKCCGridItemsRefreshed = $False
                             Sync-UDElement -Id "NewHKCCRootDirTB"
                             Sync-UDElement -Id "CurrentHKCCRootDirTB"
                             Sync-UDElement -Id "UpdateHKCCGridObjects"
+                            while (!$Session:HKCCGridItemsRefreshed) {
+                                Start-Sleep -Seconds 2
+                            }
                             Sync-UDElement -Id "HKCCChildItemsUDGrid"
                         }
 
                         New-UDButton -Text "Force Refresh" -OnClick {
                             $Session:HKCCUDGridLoadingTracker = "Loading"
+                            $Session:HKCCGridItemsRefreshed = $False
                             Sync-UDElement -Id "NewHKCCRootDirTB"
                             Sync-UDElement -Id "CurrentHKCCRootDirTB"
                             Sync-UDElement -Id "UpdateHKCCGridObjects"
+                            while (!$Session:HKCCGridItemsRefreshed) {
+                                Start-Sleep -Seconds 2
+                            }
                             Sync-UDElement -Id "HKCCChildItemsUDGrid"
                         }
                     }
@@ -1599,9 +1666,13 @@ $RegistryPageContent = {
                                                         $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCCValues = $StaticInfo.HKCCValues
                                                         $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCCCurrentDir = $StaticInfo.HKCCCurrentDir
 
+                                                        $Session:HKCCGridItemsRefreshed = $False
                                                         Sync-UDElement -Id "NewHKCCRootDirTB"
                                                         Sync-UDElement -Id "CurrentHKCCRootDirTB"
                                                         Sync-UDElement -Id "UpdateHKCCGridObjects"
+                                                        while (!$Session:HKCCGridItemsRefreshed) {
+                                                            Start-Sleep -Seconds 2
+                                                        }
                                                         Sync-UDElement -Id "HKCCChildItemsUDGrid"
                                                     }
                                                 }

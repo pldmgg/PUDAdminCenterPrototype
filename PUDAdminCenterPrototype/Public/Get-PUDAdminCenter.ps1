@@ -5938,7 +5938,7 @@ function Get-PUDAdminCenter {
                         $Session:HKLMGridItemsRefreshed = $True
                     }
     
-                    New-UDColumn -AutoRefresh -RefreshInterval 5 -Endpoint {
+                    New-UDColumn -AutoRefresh -RefreshInterval 1 -Endpoint {
                         if ($Session:HKLMUDGridLoadingTracker -eq "Loading") {
                             New-UDHeading -Text "Loading...Please wait..." -Size 6
                             New-UDPreloader -Size small
@@ -6143,6 +6143,8 @@ function Get-PUDAdminCenter {
             New-UDCollapsible -Items {
                 New-UDCollapsibleItem -Title "HKEY_CURRENT_USER" -Icon laptop -Endpoint {
                     New-UDElement -Id "UpdateHKCUGridObjects" -Tag div -EndPoint {
+                        $Session:HKCUGridItemsRefreshed = $False
+    
                         [System.Collections.ArrayList]$HKCUObjectsForGridPrep = @()
                         if (@($Session:HKCUChildKeys).Count -gt 0) {
                             foreach ($obj in $Session:HKCUChildKeys) {
@@ -6159,9 +6161,11 @@ function Get-PUDAdminCenter {
                             }
                         }
                         $Session:HKCUObjectsForGrid = $HKCUObjectsForGridPrep
+    
+                        $Session:HKCUGridItemsRefreshed = $True
                     }
     
-                    New-UDColumn -AutoRefresh -RefreshInterval 5 -Endpoint {
+                    New-UDColumn -AutoRefresh -RefreshInterval 1 -Endpoint {
                         if ($Session:HKCUUDGridLoadingTracker -eq "Loading") {
                             New-UDHeading -Text "Loading...Please wait..." -Size 6
                             New-UDPreloader -Size small
@@ -6210,9 +6214,13 @@ function Get-PUDAdminCenter {
                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCUValues = $StaticInfo.HKCUValues
                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCUCurrentDir = $StaticInfo.HKCUCurrentDir
     
+                                $Session:HKCUGridItemsRefreshed = $False
                                 Sync-UDElement -Id "NewHKCURootDirTB"
                                 Sync-UDElement -Id "CurrentHKCURootDirTB"
                                 Sync-UDElement -Id "UpdateHKCUGridObjects"
+                                while (!$Session:HKCUGridItemsRefreshed) {
+                                    Start-Sleep -Seconds 2
+                                }
                                 Sync-UDElement -Id "HKCUChildItemsUDGrid"
                             }
     
@@ -6253,17 +6261,25 @@ function Get-PUDAdminCenter {
                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCUValues = $StaticInfo.HKCUValues
                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCUCurrentDir = $StaticInfo.HKCUCurrentDir
     
+                                $Session:HKCUGridItemsRefreshed = $False
                                 Sync-UDElement -Id "NewHKCURootDirTB"
                                 Sync-UDElement -Id "CurrentHKCURootDirTB"
                                 Sync-UDElement -Id "UpdateHKCUGridObjects"
+                                while (!$Session:HKCUGridItemsRefreshed) {
+                                    Start-Sleep -Seconds 2
+                                }
                                 Sync-UDElement -Id "HKCUChildItemsUDGrid"
                             }
     
                             New-UDButton -Text "Force Refresh" -OnClick {
                                 $Session:HKCUUDGridLoadingTracker = "Loading"
+                                $Session:HKCUGridItemsRefreshed = $False
                                 Sync-UDElement -Id "NewHKCURootDirTB"
                                 Sync-UDElement -Id "CurrentHKCURootDirTB"
                                 Sync-UDElement -Id "UpdateHKCUGridObjects"
+                                while (!$Session:HKCUGridItemsRefreshed) {
+                                    Start-Sleep -Seconds 2
+                                }
                                 Sync-UDElement -Id "HKCUChildItemsUDGrid"
                             }
                         }
@@ -6271,15 +6287,6 @@ function Get-PUDAdminCenter {
                     }
                     New-UDRow -Endpoint {
                         New-UDColumn -Size 12 -Endpoint {
-                            $Session:HKCUUDGridLoadingTracker = [System.Collections.ArrayList]::new()
-                                
-                            New-UDColumn -AutoRefresh -RefreshInterval 5 -Endpoint {
-                                if ($Session:HKCUUDGridLoadingTracker -notcontains "FinishedLoading") {
-                                    New-UDHeading -Text "Loading...Please wait..." -Size 6
-                                    New-UDPreloader -Size small
-                                }
-                            }
-                            
                             $RootRegistryProperties = @("Name","Path","Type","Data","ChildCount","Explore")
                             $RootRegistryUDGridSplatParams = @{
                                 Id              = "HKCUChildItemsUDGrid"
@@ -6339,9 +6346,13 @@ function Get-PUDAdminCenter {
                                                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCUValues = $StaticInfo.HKCUValues
                                                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCUCurrentDir = $StaticInfo.HKCUCurrentDir
     
+                                                            $Session:HKCUGridItemsRefreshed = $False
                                                             Sync-UDElement -Id "NewHKCURootDirTB"
                                                             Sync-UDElement -Id "CurrentHKCURootDirTB"
                                                             Sync-UDElement -Id "UpdateHKCUGridObjects"
+                                                            while (!$Session:HKCUGridItemsRefreshed) {
+                                                                Start-Sleep -Seconds 2
+                                                            }
                                                             Sync-UDElement -Id "HKCUChildItemsUDGrid"
                                                         }
                                                     }
@@ -6363,6 +6374,8 @@ function Get-PUDAdminCenter {
             New-UDCollapsible -Items {
                 New-UDCollapsibleItem -Title "HKEY_CLASSES_ROOT" -Icon laptop -Endpoint {
                     New-UDElement -Id "UpdateHKCRGridObjects" -Tag div -EndPoint {
+                        $Session:HKCRGridItemsRefreshed = $False
+    
                         [System.Collections.ArrayList]$HKCRObjectsForGridPrep = @()
                         if (@($Session:HKCRChildKeys).Count -gt 0) {
                             foreach ($obj in $Session:HKCRChildKeys) {
@@ -6379,9 +6392,11 @@ function Get-PUDAdminCenter {
                             }
                         }
                         $Session:HKCRObjectsForGrid = $HKCRObjectsForGridPrep
+    
+                        $Session:HKCRGridItemsRefreshed = $True
                     }
     
-                    New-UDColumn -AutoRefresh -RefreshInterval 5 -Endpoint {
+                    New-UDColumn -AutoRefresh -RefreshInterval 1 -Endpoint {
                         if ($Session:HKCRUDGridLoadingTracker -eq "Loading") {
                             New-UDHeading -Text "Loading...Please wait..." -Size 6
                             New-UDPreloader -Size small
@@ -6432,9 +6447,13 @@ function Get-PUDAdminCenter {
                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCRValues = $StaticInfo.HKCRValues
                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCRCurrentDir = $StaticInfo.HKCRCurrentDir
     
+                                $Session:HKCRGridItemsRefreshed = $False
                                 Sync-UDElement -Id "NewHKCRRootDirTB"
                                 Sync-UDElement -Id "CurrentHKCRRootDirTB"
                                 Sync-UDElement -Id "UpdateHKCRGridObjects"
+                                while (!$Session:HKCRGridItemsRefreshed) {
+                                    Start-Sleep -Seconds 2
+                                }
                                 Sync-UDElement -Id "HKCRChildItemsUDGrid"
                             }
     
@@ -6477,17 +6496,25 @@ function Get-PUDAdminCenter {
                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCRValues = $StaticInfo.HKCRValues
                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCRCurrentDir = $StaticInfo.HKCRCurrentDir
     
+                                $Session:HKCRGridItemsRefreshed = $False
                                 Sync-UDElement -Id "NewHKCRRootDirTB"
                                 Sync-UDElement -Id "CurrentHKCRRootDirTB"
                                 Sync-UDElement -Id "UpdateHKCRGridObjects"
+                                while (!$Session:HKCRGridItemsRefreshed) {
+                                    Start-Sleep -Seconds 2
+                                }
                                 Sync-UDElement -Id "HKCRChildItemsUDGrid"
                             }
     
                             New-UDButton -Text "Force Refresh" -OnClick {
                                 $Session:HKCRUDGridLoadingTracker = "Loading"
+                                $Session:HKCRGridItemsRefreshed = $False
                                 Sync-UDElement -Id "NewHKCRRootDirTB"
                                 Sync-UDElement -Id "CurrentHKCRRootDirTB"
                                 Sync-UDElement -Id "UpdateHKCRGridObjects"
+                                while (!$Session:HKCRGridItemsRefreshed) {
+                                    Start-Sleep -Seconds 2
+                                }
                                 Sync-UDElement -Id "HKCRChildItemsUDGrid"
                             }
                         }
@@ -6556,9 +6583,13 @@ function Get-PUDAdminCenter {
                                                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCRValues = $StaticInfo.HKCRValues
                                                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCRCurrentDir = $StaticInfo.HKCRCurrentDir
     
+                                                            $Session:HKCRGridItemsRefreshed = $False
                                                             Sync-UDElement -Id "NewHKCRRootDirTB"
                                                             Sync-UDElement -Id "CurrentHKCRRootDirTB"
                                                             Sync-UDElement -Id "UpdateHKCRGridObjects"
+                                                            while (!$Session:HKCRGridItemsRefreshed) {
+                                                                Start-Sleep -Seconds 2
+                                                            }
                                                             Sync-UDElement -Id "HKCRChildItemsUDGrid"
                                                         }
                                                     }
@@ -6581,6 +6612,8 @@ function Get-PUDAdminCenter {
             New-UDCollapsible -Items {
                 New-UDCollapsibleItem -Title "HKEY_USERS" -Icon laptop -Endpoint {
                     New-UDElement -Id "UpdateHKUGridObjects" -Tag div -EndPoint {
+                        $Session:HKUGridItemsRefreshed = $False
+    
                         [System.Collections.ArrayList]$HKUObjectsForGridPrep = @()
                         if (@($Session:HKUChildKeys).Count -gt 0) {
                             foreach ($obj in $Session:HKUChildKeys) {
@@ -6597,9 +6630,11 @@ function Get-PUDAdminCenter {
                             }
                         }
                         $Session:HKUObjectsForGrid = $HKUObjectsForGridPrep
+    
+                        $Session:HKUGridItemsRefreshed = $True
                     }
     
-                    New-UDColumn -AutoRefresh -RefreshInterval 5 -Endpoint {
+                    New-UDColumn -AutoRefresh -RefreshInterval 1 -Endpoint {
                         if ($Session:HKUUDGridLoadingTracker -eq "Loading") {
                             New-UDHeading -Text "Loading...Please wait..." -Size 6
                             New-UDPreloader -Size small
@@ -6650,9 +6685,13 @@ function Get-PUDAdminCenter {
                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKUValues = $StaticInfo.HKUValues
                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKUCurrentDir = $StaticInfo.HKUCurrentDir
     
+                                $Session:HKUGridItemsRefreshed = $False
                                 Sync-UDElement -Id "NewHKURootDirTB"
                                 Sync-UDElement -Id "CurrentHKURootDirTB"
                                 Sync-UDElement -Id "UpdateHKUGridObjects"
+                                while (!$Session:HKUGridItemsRefreshed) {
+                                    Start-Sleep -Seconds 2
+                                }
                                 Sync-UDElement -Id "HKUChildItemsUDGrid"
                             }
     
@@ -6695,17 +6734,25 @@ function Get-PUDAdminCenter {
                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKUValues = $StaticInfo.HKUValues
                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKUCurrentDir = $StaticInfo.HKUCurrentDir
     
+                                $Session:HKUGridItemsRefreshed = $False
                                 Sync-UDElement -Id "NewHKURootDirTB"
                                 Sync-UDElement -Id "CurrentHKURootDirTB"
                                 Sync-UDElement -Id "UpdateHKUGridObjects"
+                                while (!$Session:HKUGridItemsRefreshed) {
+                                    Start-Sleep -Seconds 2
+                                }
                                 Sync-UDElement -Id "HKUChildItemsUDGrid"
                             }
     
                             New-UDButton -Text "Force Refresh" -OnClick {
                                 $Session:HKUUDGridLoadingTracker = "Loading"
+                                $Session:HKUGridItemsRefreshed = $False
                                 Sync-UDElement -Id "NewHKURootDirTB"
                                 Sync-UDElement -Id "CurrentHKURootDirTB"
                                 Sync-UDElement -Id "UpdateHKUGridObjects"
+                                while (!$Session:HKUGridItemsRefreshed) {
+                                    Start-Sleep -Seconds 2
+                                }
                                 Sync-UDElement -Id "HKUChildItemsUDGrid"
                             }
                         }
@@ -6774,9 +6821,13 @@ function Get-PUDAdminCenter {
                                                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKUValues = $StaticInfo.HKUValues
                                                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKUCurrentDir = $StaticInfo.HKUCurrentDir
     
+                                                            $Session:HKUGridItemsRefreshed = $False
                                                             Sync-UDElement -Id "NewHKURootDirTB"
                                                             Sync-UDElement -Id "CurrentHKURootDirTB"
                                                             Sync-UDElement -Id "UpdateHKUGridObjects"
+                                                            while (!$Session:HKUGridItemsRefreshed) {
+                                                                Start-Sleep -Seconds 2
+                                                            }
                                                             Sync-UDElement -Id "HKUChildItemsUDGrid"
                                                         }
                                                     }
@@ -6799,6 +6850,8 @@ function Get-PUDAdminCenter {
             New-UDCollapsible -Items {
                 New-UDCollapsibleItem -Title "HKEY_CURRENT_CONFIG" -Icon laptop -Endpoint {
                     New-UDElement -Id "UpdateHKCCGridObjects" -Tag div -EndPoint {
+                        $Session:HKCCGridItemsRefreshed = $False
+    
                         [System.Collections.ArrayList]$HKCCObjectsForGridPrep = @()
                         if (@($Session:HKCCChildKeys).Count -gt 0) {
                             foreach ($obj in $Session:HKCCChildKeys) {
@@ -6815,9 +6868,11 @@ function Get-PUDAdminCenter {
                             }
                         }
                         $Session:HKCCObjectsForGrid = $HKCCObjectsForGridPrep
+    
+                        $Session:HKCCGridItemsRefreshed = $False
                     }
     
-                    New-UDColumn -AutoRefresh -RefreshInterval 5 -Endpoint {
+                    New-UDColumn -AutoRefresh -RefreshInterval 1 -Endpoint {
                         if ($Session:HKCCUDGridLoadingTracker -eq "Loading") {
                             New-UDHeading -Text "Loading...Please wait..." -Size 6
                             New-UDPreloader -Size small
@@ -6868,9 +6923,13 @@ function Get-PUDAdminCenter {
                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCCValues = $StaticInfo.HKCCValues
                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCCCurrentDir = $StaticInfo.HKCCCurrentDir
     
+                                $Session:HKCCGridItemsRefreshed = $False
                                 Sync-UDElement -Id "NewHKCCRootDirTB"
                                 Sync-UDElement -Id "CurrentHKCCRootDirTB"
                                 Sync-UDElement -Id "UpdateHKCCGridObjects"
+                                while (!$Session:HKCCGridItemsRefreshed) {
+                                    Start-Sleep -Seconds 2
+                                }
                                 Sync-UDElement -Id "HKCCChildItemsUDGrid"
                             }
     
@@ -6913,17 +6972,25 @@ function Get-PUDAdminCenter {
                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCCValues = $StaticInfo.HKCCValues
                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCCCurrentDir = $StaticInfo.HKCCCurrentDir
     
+                                $Session:HKCCGridItemsRefreshed = $False
                                 Sync-UDElement -Id "NewHKCCRootDirTB"
                                 Sync-UDElement -Id "CurrentHKCCRootDirTB"
                                 Sync-UDElement -Id "UpdateHKCCGridObjects"
+                                while (!$Session:HKCCGridItemsRefreshed) {
+                                    Start-Sleep -Seconds 2
+                                }
                                 Sync-UDElement -Id "HKCCChildItemsUDGrid"
                             }
     
                             New-UDButton -Text "Force Refresh" -OnClick {
                                 $Session:HKCCUDGridLoadingTracker = "Loading"
+                                $Session:HKCCGridItemsRefreshed = $False
                                 Sync-UDElement -Id "NewHKCCRootDirTB"
                                 Sync-UDElement -Id "CurrentHKCCRootDirTB"
                                 Sync-UDElement -Id "UpdateHKCCGridObjects"
+                                while (!$Session:HKCCGridItemsRefreshed) {
+                                    Start-Sleep -Seconds 2
+                                }
                                 Sync-UDElement -Id "HKCCChildItemsUDGrid"
                             }
                         }
@@ -6992,9 +7059,13 @@ function Get-PUDAdminCenter {
                                                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCCValues = $StaticInfo.HKCCValues
                                                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCCCurrentDir = $StaticInfo.HKCCCurrentDir
     
+                                                            $Session:HKCCGridItemsRefreshed = $False
                                                             Sync-UDElement -Id "NewHKCCRootDirTB"
                                                             Sync-UDElement -Id "CurrentHKCCRootDirTB"
                                                             Sync-UDElement -Id "UpdateHKCCGridObjects"
+                                                            while (!$Session:HKCCGridItemsRefreshed) {
+                                                                Start-Sleep -Seconds 2
+                                                            }
                                                             Sync-UDElement -Id "HKCCChildItemsUDGrid"
                                                         }
                                                     }
@@ -7983,8 +8054,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUTeTfO71gsm6K8AYer9HSako8
-# OuOgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUO8VKEETDlHuny8YTnRobxl7c
+# Zuugggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -8041,11 +8112,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFMXn2YssI1OfxWHQ
-# OAZ9yIouRBGDMA0GCSqGSIb3DQEBAQUABIIBAGJEpw8qwuOdZ/VnBB+OcXRhD7Jq
-# rhVbQXccVc5/0mynD7fhF92jOM2WpbUm4Wtxp2w9amTptr28vTNT4x9vDv8wdQRD
-# /sp0J28xqGuz7BH00XNz9R9oGWHSEEi1V7TdNqwnhfOqd4rNBy81C5nP0fh4FMjl
-# UaVnO5yfzTz6US+EfY9AkMNSz/Acu/WfvtbLwhHR0ZFrpL3Nbl0yPZ1ND6s/Kl4C
-# DxetZuaskScdYaa3saqLMDXl5jYs5vqWmDshYEX1QBPnXRsQ9OhzaLWOVPV0h2Sk
-# F6lmGcSpP2n2P7itYk+Xw/SNArvNtOEUsfYiYt4lqH9SMR8HOMxFc236QVo=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFJ9j89MuCqC1UYxf
+# GefBTB2xcy4MMA0GCSqGSIb3DQEBAQUABIIBAJv/d80r79fqVgKRnlyvziJsIIhJ
+# LZ05FwjfU8QSjI+H73chYwZHjMg9SeFAvCv8+zjalW2fpwk/85XkumP1mQb6cxwC
+# //FYhyOj4CxmwulERD0qLTm8WE4o6ZEILHruNmxFcqF/L/qU4zRJYrqGHHFdWvsF
+# g+gvYNzn0sEcb0myk6jKrQ3yCAAkfuF5bb6HkSyuA1SrXCMlHkFIRKKFr1cgD/Mn
+# x/GhppzCmboA4aCC/2hKinqfUHnvwst4Joc8TKA2g6dpPw6eivFN8II3Lz2/E6Je
+# jX6tZq119DzvJUmVpMyAKGrvrgcVXyhpQAYIFcX/4o0ICwbnkpNJGQMdWRQ=
 # SIG # End signature block
