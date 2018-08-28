@@ -7566,6 +7566,8 @@ function Get-PUDAdminCenter {
             New-UDCollapsible -Items {
                 New-UDCollapsibleItem -Title "HKEY_LOCAL_MACHINE" -Icon laptop -Endpoint {
                     New-UDElement -Id "UpdateHKLMGridObjects" -Tag div -EndPoint {
+                        $Session:HKLMGridItemsRefreshed = $False
+    
                         [System.Collections.ArrayList]$HKLMObjectsForGridPrep = @()
                         if (@($Session:HKLMChildKeys).Count -gt 0) {
                             foreach ($obj in $Session:HKLMChildKeys) {
@@ -7582,6 +7584,8 @@ function Get-PUDAdminCenter {
                             }
                         }
                         $Session:HKLMObjectsForGrid = $HKLMObjectsForGridPrep
+    
+                        $Session:HKLMGridItemsRefreshed = $True
                     }
     
                     New-UDColumn -AutoRefresh -RefreshInterval 5 -Endpoint {
@@ -7633,9 +7637,13 @@ function Get-PUDAdminCenter {
                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMValues = $NewPathInfo.HKLMValues
                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMCurrentDir = $NewPathInfo.HKLMCurrentDir
     
+                                $Session:HKLMGridItemsRefreshed = $False
                                 Sync-UDElement -Id "NewHKLMRootDirTB"
                                 Sync-UDElement -Id "CurrentHKLMRootDirTB"
                                 Sync-UDElement -Id "UpdateHKLMGridObjects"
+                                while (!$Session:HKLMGridItemsRefreshed) {
+                                    Start-Sleep -Seconds 2
+                                }
                                 Sync-UDElement -Id "HKLMChildItemsUDGrid"
                             }
     
@@ -7676,17 +7684,25 @@ function Get-PUDAdminCenter {
                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMValues = $NewPathInfo.HKLMValues
                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMCurrentDir = $NewPathInfo.HKLMCurrentDir
     
+                                $Session:HKLMGridItemsRefreshed = $False
                                 Sync-UDElement -Id "NewHKLMRootDirTB"
                                 Sync-UDElement -Id "CurrentHKLMRootDirTB"
                                 Sync-UDElement -Id "UpdateHKLMGridObjects"
+                                while (!$Session:HKLMGridItemsRefreshed) {
+                                    Start-Sleep -Seconds 2
+                                }
                                 Sync-UDElement -Id "HKLMChildItemsUDGrid"
                             }
     
                             New-UDButton -Text "Force Refresh" -OnClick {
                                 $Session:HKLMUDGridLoadingTracker = "Loading"
+                                $Session:HKLMGridItemsRefreshed = $False
                                 Sync-UDElement -Id "NewHKLMRootDirTB"
                                 Sync-UDElement -Id "CurrentHKLMRootDirTB"
                                 Sync-UDElement -Id "UpdateHKLMGridObjects"
+                                while (!$Session:HKLMGridItemsRefreshed) {
+                                    Start-Sleep -Seconds 2
+                                }
                                 Sync-UDElement -Id "HKLMChildItemsUDGrid"
                             }
                         }
@@ -7750,10 +7766,14 @@ function Get-PUDAdminCenter {
                                                     $Session:HKLMChildKeys = $NewPathInfo.HKLMChildKeys
                                                     $Session:HKLMValues = $NewPathInfo.HKLMValues
                                                     $Session:HKLMCurrentDir = $NewPathInfo.HKLMCurrentDir
-    
+                                                    
+                                                    $Session:HKLMGridItemsRefreshed = $False
                                                     Sync-UDElement -Id "NewHKLMRootDirTB"
                                                     Sync-UDElement -Id "CurrentHKLMRootDirTB"
                                                     Sync-UDElement -Id "UpdateHKLMGridObjects"
+                                                    while (!$Session:HKLMGridItemsRefreshed) {
+                                                        Start-Sleep -Seconds 2
+                                                    }
                                                     Sync-UDElement -Id "HKLMChildItemsUDGrid"
                                                 }
                                             }
@@ -11195,8 +11215,8 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUa2XgSsDWGotWGz6u5eGTjG1Y
-# KoKgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUp+zC0Lx6+yEDGrF3pUZRCQZt
+# WDSgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -11253,11 +11273,11 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFCR82vixRYYGrAQC
-# FAUd7rigDHS5MA0GCSqGSIb3DQEBAQUABIIBACZitZovCvVvhD/A2PnW3slEb5zY
-# IYfPEDXywGPIudM/BXkSvx50DDfyODVUvgmnfCWxITWq+a4opNH1qJIgaqPEEhxd
-# xSlMxucVYdheVL8FzFVK272XuSMfWBLzTU/DgskN7Z5j72zRBF+pbpzoWBsyCwVy
-# 946HIMGLk60jfLGQU1mktqgBp5n2LI6EuveHpbdzMEMASH3AFG0DhEd3ra2csiXY
-# DFlZswkt+FqDhvonoxqTTuTuw2vqeg2Ic2OETG72Med0FHC7NanO4bGLIFk3ykzC
-# D8cLkcOMHP1qJxi/qfjD/HMSPH1H42asDH+rIcmCSgquz6I7yTu6wFdId9U=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFJGXcKkh7fNSXpSr
+# FohjZwoEmFc6MA0GCSqGSIb3DQEBAQUABIIBALaumx9wAjZXRrx2wo9ae0zmU3IY
+# U3TcbGKrf5q1SDpsiyAK8IkAT+Hbtsaxe2fGEK0htzhbtK+X8r4sTDfaVz14O0ng
+# H1yV525UOKA7maZuORvSp1wcZiwENUIuQsV6KETgEFl+zEAxxddVpYmZXLt7tzjP
+# jUMwfUMxj0UmYwaDI+YsKGKOwBRcKK/hwp+90NGUD/hY11LU5UGRtpW9u5DTWeoc
+# a+5fEdtOnI0bouBWKw3ZMD6xK/AWuP1vHnZNqMRbnejgnFJS6esmM3kBWld6xH4t
+# tYTT2vZ8XYcVT95VbLo5pmvqaNA2tIT+9jWuYkz4jCoy6VC/t0y2Vl2dtYc=
 # SIG # End signature block

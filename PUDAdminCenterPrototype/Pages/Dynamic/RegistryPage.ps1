@@ -523,6 +523,8 @@ $RegistryPageContent = {
         New-UDCollapsible -Items {
             New-UDCollapsibleItem -Title "HKEY_LOCAL_MACHINE" -Icon laptop -Endpoint {
                 New-UDElement -Id "UpdateHKLMGridObjects" -Tag div -EndPoint {
+                    $Session:HKLMGridItemsRefreshed = $False
+
                     [System.Collections.ArrayList]$HKLMObjectsForGridPrep = @()
                     if (@($Session:HKLMChildKeys).Count -gt 0) {
                         foreach ($obj in $Session:HKLMChildKeys) {
@@ -539,6 +541,8 @@ $RegistryPageContent = {
                         }
                     }
                     $Session:HKLMObjectsForGrid = $HKLMObjectsForGridPrep
+
+                    $Session:HKLMGridItemsRefreshed = $True
                 }
 
                 New-UDColumn -AutoRefresh -RefreshInterval 5 -Endpoint {
@@ -590,9 +594,13 @@ $RegistryPageContent = {
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMValues = $NewPathInfo.HKLMValues
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMCurrentDir = $NewPathInfo.HKLMCurrentDir
 
+                            $Session:HKLMGridItemsRefreshed = $False
                             Sync-UDElement -Id "NewHKLMRootDirTB"
                             Sync-UDElement -Id "CurrentHKLMRootDirTB"
                             Sync-UDElement -Id "UpdateHKLMGridObjects"
+                            while (!$Session:HKLMGridItemsRefreshed) {
+                                Start-Sleep -Seconds 2
+                            }
                             Sync-UDElement -Id "HKLMChildItemsUDGrid"
                         }
 
@@ -633,17 +641,25 @@ $RegistryPageContent = {
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMValues = $NewPathInfo.HKLMValues
                             $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMCurrentDir = $NewPathInfo.HKLMCurrentDir
 
+                            $Session:HKLMGridItemsRefreshed = $False
                             Sync-UDElement -Id "NewHKLMRootDirTB"
                             Sync-UDElement -Id "CurrentHKLMRootDirTB"
                             Sync-UDElement -Id "UpdateHKLMGridObjects"
+                            while (!$Session:HKLMGridItemsRefreshed) {
+                                Start-Sleep -Seconds 2
+                            }
                             Sync-UDElement -Id "HKLMChildItemsUDGrid"
                         }
 
                         New-UDButton -Text "Force Refresh" -OnClick {
                             $Session:HKLMUDGridLoadingTracker = "Loading"
+                            $Session:HKLMGridItemsRefreshed = $False
                             Sync-UDElement -Id "NewHKLMRootDirTB"
                             Sync-UDElement -Id "CurrentHKLMRootDirTB"
                             Sync-UDElement -Id "UpdateHKLMGridObjects"
+                            while (!$Session:HKLMGridItemsRefreshed) {
+                                Start-Sleep -Seconds 2
+                            }
                             Sync-UDElement -Id "HKLMChildItemsUDGrid"
                         }
                     }
@@ -707,10 +723,14 @@ $RegistryPageContent = {
                                                 $Session:HKLMChildKeys = $NewPathInfo.HKLMChildKeys
                                                 $Session:HKLMValues = $NewPathInfo.HKLMValues
                                                 $Session:HKLMCurrentDir = $NewPathInfo.HKLMCurrentDir
-
+                                                
+                                                $Session:HKLMGridItemsRefreshed = $False
                                                 Sync-UDElement -Id "NewHKLMRootDirTB"
                                                 Sync-UDElement -Id "CurrentHKLMRootDirTB"
                                                 Sync-UDElement -Id "UpdateHKLMGridObjects"
+                                                while (!$Session:HKLMGridItemsRefreshed) {
+                                                    Start-Sleep -Seconds 2
+                                                }
                                                 Sync-UDElement -Id "HKLMChildItemsUDGrid"
                                             }
                                         }
