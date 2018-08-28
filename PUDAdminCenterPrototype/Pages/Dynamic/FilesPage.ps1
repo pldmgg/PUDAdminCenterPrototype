@@ -340,7 +340,7 @@ $FilesPageContent = {
                         }
 
                         New-UDButton -Text "Parent Directory" -OnClick {
-                            $FullPathToExplore = $Session:RootDirItem.FullName | Split-Path -Parent
+                            $FullPathToExplore = if ($($Session:RootDirItem.FullName | Split-Path -Parent) -eq "") {$Session:RootDirItem.FullName} else {$Session:RootDirItem.FullName | Split-Path -Parent}
 
                             $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                 $RootDirChildItems = Get-ChildItem -Path $args[0]
