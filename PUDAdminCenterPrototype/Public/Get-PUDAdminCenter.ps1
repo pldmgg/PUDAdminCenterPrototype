@@ -5565,42 +5565,57 @@ function Get-PUDAdminCenter {
     
                     $HKLMChildKeys = Get-RegistrySubKeys -path "HKLM:\" -ErrorAction SilentlyContinue
                     $HKLMValues = Get-RegistryValues -path "HKLM:\" -ErrorAction SilentlyContinue
+                    $HKLMCurrentDir = "HKLM:\"
     
                     $HKCUChildKeys = Get-RegistrySubKeys -path "HKCU:\" -ErrorAction SilentlyContinue
                     $HKCUValues = Get-RegistryValues -path "HKCU:\" -ErrorAction SilentlyContinue
+                    $HKCUCurrentDir = "HKCU:\"
     
                     $HKCRChildKeys = Get-RegistrySubKeys -path "HKCR:\" -ErrorAction SilentlyContinue
                     $HKCRValues = Get-RegistryValues -path "HKCR:\" -ErrorAction SilentlyContinue
+                    $HKCRCurrentDir = "HKCR:\"
                     
                     $HKUChildKeys = Get-RegistrySubKeys -path "HKU:\" -ErrorAction SilentlyContinue
                     $HKUValues = Get-RegistryValues -path "HKU:\" -ErrorAction SilentlyContinue
+                    $HKUCurrentDir = "HKU:\"
                     
                     $HKCCChildKeys = Get-RegistrySubKeys -path "HKCC:\" -ErrorAction SilentlyContinue
                     $HKCCValues = Get-RegistryValues -path "HKCC:\" -ErrorAction SilentlyContinue
+                    $HKCCCurrentDir = "HKCC:\"
     
                     [pscustomobject]@{
                         HKLMChildKeys   = $HKLMChildKeys
                         HKLMValues      = $HKLMValues
+                        HKLMCurrentDir  = $HKLMCurrentDir
                         HKCUChildKeys   = $HKCUChildKeys
                         HKCUValues      = $HKCUValues
+                        HKCUCurrentDir  = $HKCUCurrentDir
                         HKCRChildKeys   = $HKCRChildKeys
                         HKCRValues      = $HKCRValues
+                        HKCRCurrentDir  = $HKCRCurrentDir
                         HKUChildKeys    = $HKUChildKeys
                         HKUValues       = $HKUValues
+                        HKUCurrentDir   = $HKUCurrentDir
                         HKCCChildKeys   = $HKCCChildKeys
                         HKCCValues      = $HKCCValues
+                        HKCCCurrentDir  = $HKCCCurrentDir
                     }
                 }
                 $Session:HKLMChildKeys = $StaticInfo.HKLMChildKeys | Where-Object {$_.Name}
                 $Session:HKLMValues = $StaticInfo.HKLMValues
+                $Session:HKLMCurrentDir = $StaticInfo.HKLMCurrentDir
                 $Session:HKCUChildKeys = $StaticInfo.HKCUChildKeys | Where-Object {$_.Name}
                 $Session:HKCUValues = $StaticInfo.HKCUValues
+                $Session:HKCUCurrentDir = $StaticInfo.HKCUCurrentDir
                 $Session:HKCRChildKeys = $StaticInfo.HKCRChildKeys | Where-Object {$_.Name}
                 $Session:HKCRValues = $StaticInfo.HKCRValues
+                $Session:HKCRCurrentDir = $StaticInfo.HKCRCurrentDir
                 $Session:HKUChildKeys = $StaticInfo.HKUChildKeys | Where-Object {$_.Name}
                 $Session:HKUValues = $StaticInfo.HKUValues
+                $Session:HKUCurrentDir = $StaticInfo.HKUCurrentDir
                 $Session:HKCCChildKeys  = $StaticInfo.HKCCChildKeys | Where-Object {$_.Name}
                 $Session:HKCCValues = $StaticInfo.HKCCValues
+                $Session:HKCCCurrentDir = $StaticInfo.HKCCCurrentDir
                 if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKLMChildKeys") {
                     $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKLMChildKeys",$($StaticInfo.HKLMChildKeys | Where-Object {$_.Name}))
                 }
@@ -5612,6 +5627,12 @@ function Get-PUDAdminCenter {
                 }
                 else {
                     $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMValues = $StaticInfo.HKLMValues
+                }
+                if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKLMCurrentDir") {
+                    $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKLMCurrentDir",$StaticInfo.HKLMCurrentDir)
+                }
+                else {
+                    $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMCurrentDir = $StaticInfo.HKLMCurrentDir
                 }
     
                 if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKCUChildKeys") {
@@ -5626,6 +5647,12 @@ function Get-PUDAdminCenter {
                 else {
                     $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCUValues = $StaticInfo.HKCUValues
                 }
+                if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKCUCurrentDir") {
+                    $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKCUCurrentDir",$StaticInfo.HKCUCurrentDir)
+                }
+                else {
+                    $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCUCurrentDir = $StaticInfo.HKCUCurrentDir
+                }
     
                 if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKCRChildKeys") {
                     $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKCRChildKeys",$($StaticInfo.HKCRChildKeys | Where-Object {$_.Name}))
@@ -5638,6 +5665,12 @@ function Get-PUDAdminCenter {
                 }
                 else {
                     $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCRValues = $StaticInfo.HKCRValues
+                }
+                if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKCRCurrentDir") {
+                    $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKCRCurrentDir",$StaticInfo.HKCRCurrentDir)
+                }
+                else {
+                    $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCRCurrentDir = $StaticInfo.HKCRCurrentDir
                 }
     
                 if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKUChildKeys") {
@@ -5652,6 +5685,12 @@ function Get-PUDAdminCenter {
                 else {
                     $PUDRSSyncHT."$RemoteHost`Info".Registry.HKUValues = $StaticInfo.HKUValues
                 }
+                if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKUCurrentDir") {
+                    $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKUCurrentDir",$StaticInfo.HKUCurrentDir)
+                }
+                else {
+                    $PUDRSSyncHT."$RemoteHost`Info".Registry.HKUCurrentDir = $StaticInfo.HKUCurrentDir
+                }
     
                 if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKCCChildKeys") {
                     $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKCCChildKeys",$($StaticInfo.HKCCChildKeys | Where-Object {$_.Name}))
@@ -5664,6 +5703,12 @@ function Get-PUDAdminCenter {
                 }
                 else {
                     $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCCValues = $StaticInfo.HKCCValues
+                }
+                if ($PUDRSSyncHT."$RemoteHost`Info".Registry.Keys -notcontains "HKCCCurrentDir") {
+                    $PUDRSSyncHT."$RemoteHost`Info".Registry.Add("HKCCCurrentDir",$StaticInfo.HKCCCurrentDir)
+                }
+                else {
+                    $PUDRSSyncHT."$RemoteHost`Info".Registry.HKCCCurrentDir = $StaticInfo.HKCCCurrentDir
                 }
             }
     
@@ -5788,10 +5833,12 @@ function Get-PUDAdminCenter {
                         New-UDColumn -Size 3 -Endpoint {}
                         New-UDColumn -Size 6 -Endpoint {
                             New-UDElement -Id "CurrentHKLMRootDirTB" -Tag div -EndPoint {
+                                <#
                                 $RootDirSlashCheck = $Session:HKLMChildKeys[0].Path -split "HKEY_LOCAL_MACHINE\\"
                                 $ReplaceString = if ($RootDirSlashCheck[-1][0] -eq "\") {"HKLM:"} else {"HKLM:\"}
                                 $CurrentDirectory = $Session:HKLMChildKeys[0].Path -replace "Microsoft.PowerShell.Core\\Registry::.*?\\",$ReplaceString
-                                New-UDHeading -Text "Current Directory: $($CurrentDirectory | Split-Path -Parent)" -Size 5
+                                #>
+                                New-UDHeading -Text "Current Directory: $($Session:HKLMCurrentDir)" -Size 5
                             }
                             New-UDElement -Id "NewHKLMRootDirTB" -Tag div -EndPoint {
                                 New-UDTextbox -Id "NewHKLMRootDirTBProper" -Label "New Directory"
@@ -5808,16 +5855,20 @@ function Get-PUDAdminCenter {
     
                                     $HKLMChildKeys = Get-RegistrySubKeys -path $args[0] -ErrorAction SilentlyContinue
                                     $HKLMValues = Get-RegistryValues -path $args[0] -ErrorAction SilentlyContinue
+                                    $HKLMCurrentDir = $args[0]
     
                                     [pscustomobject]@{
                                         HKLMChildKeys   = $HKLMChildKeys
                                         HKLMValues      = $HKLMValues
+                                        HKLMCurrentDir  = $HKLMCurrentDir
                                     }
                                 } -ArgumentList $FullPathToExplore
                                 $Session:HKLMChildKeys = $NewPathInfo.HKLMChildKeys | Where-Object {$_.Name}
                                 $Session:HKLMValues = $NewPathInfo.HKLMValues
+                                $Session:HKLMCurrentDir = $NewPathInfo.HKLMCurrentDir
                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMChildKeys = $NewPathInfo.HKLMChildKeys | Where-Object {$_.Name}
                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMValues = $NewPathInfo.HKLMValues
+                                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMCurrentDir = $NewPathInfo.HKLMCurrentDir
     
                                 Sync-UDElement -Id "HKLMChildItemsUDGrid"
                                 Sync-UDElement -Id "NewHKLMRootDirTB"
@@ -5825,14 +5876,16 @@ function Get-PUDAdminCenter {
                             }
     
                             New-UDButton -Text "Parent Directory" -OnClick {
+                                <#
                                 $RootDirSlashCheck = $Session:HKLMChildKeys[0].Path -split "HKEY_LOCAL_MACHINE\\"
                                 $ReplaceString = if ($RootDirSlashCheck[-1][0] -eq "\") {"HKLM:"} else {"HKLM:\"}
                                 $FullPathToExplorePrep = $Session:HKLMChildKeys[0].Path -replace "Microsoft.PowerShell.Core\\Registry::.*?\\",$ReplaceString
-                                $FullPathToExplore = if ($($($FullPathToExplorePrep | Split-Path -Parent) | Split-Path -Parent) -eq "") {
-                                    $FullPathToExplorePrep | Split-Path -Parent
+                                #>
+                                $FullPathToExplore = if ($($Session:HKLMCurrentDir | Split-Path -Parent) -eq "") {
+                                    $Session:HKLMCurrentDir
                                 }
                                 else {
-                                    $($FullPathToExplorePrep | Split-Path -Parent) | Split-Path -Parent
+                                    $Session:HKLMCurrentDir | Split-Path -Parent
                                 }
     
                                 $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
@@ -5843,16 +5896,20 @@ function Get-PUDAdminCenter {
     
                                     $HKLMChildKeys = Get-RegistrySubKeys -path $args[0] -ErrorAction SilentlyContinue
                                     $HKLMValues = Get-RegistryValues -path $args[0] -ErrorAction SilentlyContinue
+                                    $HKLMCurrentDir = $args[0]
     
                                     [pscustomobject]@{
                                         HKLMChildKeys   = $HKLMChildKeys
                                         HKLMValues      = $HKLMValues
+                                        HKLMCurrentDir  = $HKLMCurrentDir
                                     }
                                 } -ArgumentList $FullPathToExplore
                                 $Session:HKLMChildKeys = $NewPathInfo.HKLMChildKeys | Where-Object {$_.Name}
                                 $Session:HKLMValues = $NewPathInfo.HKLMValues
+                                $Session:HKLMCurrentDir = $NewPathInfo.HKLMCurrentDir
                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMChildKeys = $NewPathInfo.HKLMChildKeys | Where-Object {$_.Name}
                                 $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMValues = $NewPathInfo.HKLMValues
+                                $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMCurrentDir = $NewPathInfo.HKLMCurrentDir
     
                                 Sync-UDElement -Id "HKLMChildItemsUDGrid"
                                 Sync-UDElement -Id "NewHKLMRootDirTB"
@@ -5863,6 +5920,15 @@ function Get-PUDAdminCenter {
                     }
                     New-UDRow -Endpoint {
                         New-UDColumn -Size 12 -Endpoint {
+                            $Session:HKLMUDGridLoadingTracker = [System.Collections.ArrayList]::new()
+                                
+                            New-UDColumn -AutoRefresh -RefreshInterval 1 -Endpoint {
+                                if ($Session:HKLMUDGridLoadingTracker -notcontains "FinishedLoading") {
+                                    New-UDHeading -Text "Loading...Please wait..." -Size 6
+                                    New-UDPreloader -Size small
+                                }
+                            }
+    
                             $RootRegistryProperties = @("Name","Path","Type","Data","ChildCount","Explore")
                             $RootRegistryUDGridSplatParams = @{
                                 Id              = "HKLMChildItemsUDGrid"
@@ -5875,7 +5941,11 @@ function Get-PUDAdminCenter {
     
                                 $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
-                                $($Session:HKLMChildKeys + $Session:HKLMValues) | foreach {
+                                # We do NOT want to display UDGridData as values are sent through the pipe because if the user clicks on a
+                                # button while the foreach loop is still enumerating, it will throw an error. So, output UDGridData *after*
+                                # $HKLMUDGridData is fully defined.
+                                $ObjectsToPass = $Session:HKLMChildKeys + $Session:HKLMValues
+                                $ObjectsToPass | foreach {
                                     if ($_.Name) {
                                         if ($_.Path) {
                                             $RootDirSlashCheck = $_.Path -split "HKEY_LOCAL_MACHINE\\"
@@ -5903,16 +5973,20 @@ function Get-PUDAdminCenter {
     
                                                         $HKLMChildKeys = Get-RegistrySubKeys -path $args[0] -ErrorAction SilentlyContinue
                                                         $HKLMValues = Get-RegistryValues -path $args[0] -ErrorAction SilentlyContinue
+                                                        $HKLMCurrentDir = $args[0]
     
                                                         [pscustomobject]@{
                                                             HKLMChildKeys   = $HKLMChildKeys
                                                             HKLMValues      = $HKLMValues
+                                                            HKLMCurrentDir  = $HKLMCurrentDir
                                                         }
                                                     } -ArgumentList $FullPathToExplore
                                                     $Session:HKLMChildKeys = $NewPathInfo.HKLMChildKeys | Where-Object {$_.Name}
                                                     $Session:HKLMValues = $NewPathInfo.HKLMValues
+                                                    $Session:HKLMCurrentDir = $NewPathInfo.HKLMCurrentDir
                                                     $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMChildKeys = $NewPathInfo.HKLMChildKeys | Where-Object {$_.Name}
                                                     $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMValues = $NewPathInfo.HKLMValues
+                                                    $PUDRSSyncHT."$RemoteHost`Info".Registry.HKLMCurrentDir = $NewPathInfo.HKLMCurrentDir
     
                                                     Sync-UDElement -Id "HKLMChildItemsUDGrid"
                                                     Sync-UDElement -Id "NewHKLMRootDirTB"
@@ -5922,6 +5996,8 @@ function Get-PUDAdminCenter {
                                         }
                                     }
                                 } | Out-UDGridData
+    
+                                $null = $Session:HKLMUDGridLoadingTracker.Add("FinishedLoading")
                             }
                         }
                     }
@@ -7499,8 +7575,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUzgij0jyKpBdLShjy7nqbpGy+
-# rsSgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUTEsXZY/Zq9OjpRZYd5vTDlnE
+# fEmgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -7557,11 +7633,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFIX2/A9FFap4SYzC
-# dSW15KHqqhz4MA0GCSqGSIb3DQEBAQUABIIBAFwFOz3iWflKWs3CtAPy+68CINNg
-# 90RqlUAI1CrwuVn5BdNHcELAPF3EGfnB+WQSAWAUcsivaxeQLbII1Y8/Nit1j+yq
-# 6OPQtkdBpiqxNpmW2VlsE1WHuJwccBTokY2gnKcnslsT46OL/Laa7YA4d7Ut1NfT
-# XRNSVyKoxeXy/pFmDx2F77+MIPVMSz9P9/aYo0oHwk4y9v7HNJTFaAKiD4OD83TV
-# fFqbWe6ngy6TdDcDHIHN0f9o/oLfnVSS60qo7iZE7kYVO3497mXFD8a6fOZ052AO
-# C/1uFY/ZMz/1lRxeQ5ju+W6BARyooTFHJNJW+v7cyqsWb9sTgen9hCdb0qY=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFHbRKQeJf5EKGI8a
+# qT1t5ncsEExqMA0GCSqGSIb3DQEBAQUABIIBAIAXDwsEnKAEDN92KxEuO+8EH/Ef
+# oC+bHedDD4chlFgUMJ+OODtix/3nj/OwpU5/CJDo3HOGXum/LE20OqpnD4HUJCi1
+# /Om3xJ75G0PdtdvS7kjG34XnjPD9UeNsKdQLQ1RlvUxmhvI2c8P2xFhZyeb6OjLB
+# lea1uxNptQa3reL0C+p/MXODWOFXZmBfYZ1xhSVvCjPeBq7mF2lxr7PQ6Tf+9u8v
+# xLMRLRoKsEYWbGIc4/nWZVts+ztXVI6NULgjvpmDqq9ClYva9vLLLLZNbp2xaAAP
+# Uro5ZLX819pPkF+l21xUu1OCg607E7y7FZTygkk7OMtHmo+w0U65y2V6gmg=
 # SIG # End signature block
