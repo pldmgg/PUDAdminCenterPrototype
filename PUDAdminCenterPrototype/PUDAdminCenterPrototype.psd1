@@ -73,7 +73,7 @@ FunctionsToExport = 'Get-Certificates','Get-CertificatesOverview','Get-CimPnpEnt
                     'Get-EventLogSummary','Get-FirewallProfile','Get-FirewallRules','Get-LocalGroups',
                     'Get-LocalGroupUsers','Get-LocalUserBelongGroups','Get-LocalUsers','Get-Networks',
                     'Get-Processes','Get-PUDAdminCenter','Get-RegistrySubKeys','Get-RegistryValues',
-                    'Get-RemoteDesktop','Get-ServerInventory','New-EnvironmentVariable',
+                    'Get-RemoteDesktop','Get-ScheduledTasks','Get-ServerInventory','New-EnvironmentVariable',
                     'New-Runspace','Remove-EnvironmentVariable','Set-ComputerIdentification','Set-EnvironmentVariable',
                     'Set-RemoteDesktop','Start-DiskPerf','Stop-DiskPerf'
 

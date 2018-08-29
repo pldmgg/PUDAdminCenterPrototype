@@ -1,59 +1,111 @@
-[System.Collections.ArrayList]$script:FunctionsForSBUse = @(
-    ${Function:AddWinRMTrustedHost}.Ast.Extent.Text
-    ${Function:AddWinRMTrustLocalHost}.Ast.Extent.Text
-    ${Function:EnableWinRMViaRPC}.Ast.Extent.Text
-    ${Function:GetComputerObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetDomainController}.Ast.Extent.Text
-    ${Function:GetElevation}.Ast.Extent.Text
-    ${Function:GetGroupObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetModuleDependencies}.Ast.Extent.Text
-    ${Function:GetNativePath}.Ast.Extent.Text
-    ${Function:GetUserObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetWorkingCredentials}.Ast.Extent.Text
-    ${Function:InstallFeatureDism}.Ast.Extent.Text
-    ${Function:InvokeModuleDependencies}.Ast.Extent.Text
-    ${Function:InvokePSCompatibility}.Ast.Extent.Text
-    ${Function:ManualPSGalleryModuleInstall}.Ast.Extent.Text
-    ${Function:NewUniqueString}.Ast.Extent.Text
-    ${Function:ResolveHost}.Ast.Extent.Text
-    ${Function:TestIsValidIPAddress}.Ast.Extent.Text
-    ${Function:TestLDAP}.Ast.Extent.Text
-    ${Function:TestPort}.Ast.Extent.Text
-    ${Function:UnzipFile}.Ast.Extent.Text
-    ${Function:Get-CertificateOverview}.Ast.Extent.Text
-    ${Function:Get-Certificates}.Ast.Extent.Text
-    ${Function:Get-CimPnpEntity}.Ast.Extent.Text
-    ${Function:Get-EnvironmentVariables}.Ast.Extent.Text
-    ${Function:Get-EventLogSummary}.Ast.Extent.Text
-    ${Function:Get-FirewallProfile}.Ast.Extent.Text
-    ${Function:Get-FirewallRules}.Ast.Extent.Text
-    ${Function:Get-LocalGroups}.Ast.Extent.Text
-    ${Function:Get-LocalGroupUsers}.Ast.Extent.Text
-    ${Function:Get-LocalUserBelongGroups}.Ast.Extent.Text
-    ${Function:Get-LocalUsers}.Ast.Extent.Text
-    ${Function:Get-Networks}.Ast.Extent.Text
-    ${Function:Get-Processes}.Ast.Extent.Text
-    ${Function:Get-PUDAdminCenter}.Ast.Extent.Text
-    ${Function:Get-RegistrySubKeys}.Ast.Extent.Text
-    ${Function:Get-RegistryValues}.Ast.Extent.Text
-    ${Function:Get-RemoteDesktop}.Ast.Extent.Text
-    ${Function:Get-ScheduledTasks}.Ast.Extent.Text
-    ${Function:Get-ServerInventory}.Ast.Extent.Text
-    ${Function:New-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:New-Runspace}.Ast.Extent.Text
-    ${Function:Remove-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:Set-ComputerIdentification}.Ast.Extent.Text
-    ${Function:Set-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:Set-RemoteDesktop}.Ast.Extent.Text
-    ${Function:Start-DiskPerf}.Ast.Extent.Text
-    ${Function:Stop-DiskPerf}.Ast.Extent.Text
-)
+<#
+    
+    .SYNOPSIS
+        Script to get list of scheduled tasks.
+    
+    .DESCRIPTION
+        Script to get list of scheduled tasks.
+
+    .NOTES
+        This function is pulled directly from the real Microsoft Windows Admin Center
+
+        PowerShell scripts use rights (according to Microsoft):
+        We grant you a non-exclusive, royalty-free right to use, modify, reproduce, and distribute the scripts provided herein.
+
+        ANY SCRIPTS PROVIDED BY MICROSOFT ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
+        INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS OR A PARTICULAR PURPOSE.
+    
+    .ROLE
+        Readers
+    
+#>
+function Get-ScheduledTasks {
+    param (
+      [Parameter(Mandatory = $false)]
+      [String]
+      $taskPath,
+    
+      [Parameter(Mandatory = $false)]
+      [String]
+      $taskName
+    )
+    
+    Import-Module ScheduledTasks
+    
+    function New-TaskWrapper
+    {
+      param (
+        [Parameter(Mandatory = $true, ValueFromPipeline=$true)]
+        $task
+      )
+    
+      $task | Add-Member -MemberType NoteProperty -Name 'status' -Value $task.state.ToString()
+      $info = Get-ScheduledTaskInfo $task
+    
+      $triggerCopies = @()
+      for ($i=0;$i -lt $task.Triggers.Length;$i++)
+      {
+        $trigger = $task.Triggers[$i];
+        $triggerCopy = $trigger.PSObject.Copy();
+        if ($trigger -ne $null) {
+            if ($trigger.StartBoundary -eq $null -or$trigger.StartBoundary -eq '') 
+            {
+                $startDate = $null;
+            }
+            else 
+            {
+                $startDate = [datetime]($trigger.StartBoundary)
+            }
+          
+            $triggerCopy | Add-Member -MemberType NoteProperty -Name 'TriggerAtDate' -Value $startDate -TypeName System.DateTime
+    
+            if ($trigger.EndBoundary -eq $null -or$trigger.EndBoundary -eq '') 
+            {
+                $endDate = $null;
+            }
+            else 
+            {
+                $endDate = [datetime]($trigger.EndBoundary)
+            }
+            
+            $triggerCopy | Add-Member -MemberType NoteProperty -Name 'TriggerEndDate' -Value $endDate -TypeName System.DateTime
+    
+            $triggerCopies += $triggerCopy
+        }
+    
+      }
+    
+      $task | Add-Member -MemberType NoteProperty -Name 'TriggersEx' -Value $triggerCopies
+    
+      New-Object -TypeName PSObject -Property @{
+          
+          ScheduledTask = $task
+          ScheduledTaskInfo = $info
+      }
+    }
+    
+    if ($taskPath -and $taskName) {
+      try
+      {
+        $task = Get-ScheduledTask -TaskPath $taskPath -TaskName $taskName -ErrorAction Stop
+        New-TaskWrapper $task
+      }
+      catch
+      {
+      }
+    } else {
+        Get-ScheduledTask | ForEach-Object {
+          New-TaskWrapper $_
+        }
+    }
+    
+}
 
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUClXF+xqEOjyOQO9B0u8mzfvf
-# Waugggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUtLS/+NPWWmjPVbLad2+nTtI7
+# Exygggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -110,11 +162,11 @@
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFFVFMvVjdzNquja8
-# IFH89RJ8I1sGMA0GCSqGSIb3DQEBAQUABIIBALYe+o9mImIMYJTVgk5++Js6aRLg
-# NMbSB8hsys8GpmHPof/7UQNWw2OpsL7wI1YtpO7C/NM032BMkRaU/gcIZJ6B68Yx
-# WZuen67uno3ST+m73Oz9BEo2sAn3vuz+i6nsJBzJF4Wjh8ashiKRiC2n5Qn72K1o
-# TbiNTAEicfDbX583y+66rilAFcPDbVnEQu4h7u80Ep+aSNRi1lCOvh1gd7vRWoXy
-# wHj0tWFotpdMPjrYct4/dvpw3D8gqrhCWs/DLnSRHkjVmnLrpj8tgwS/WWc30bdI
-# ePtiXO9TJ2BGIuiH4x2ZGJu8S8W/b/x/gdRX1DvMybHnTTVsnDDA7nbDOuI=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFM2QmRud2kh0YL6z
+# qw6CzK+D3/4zMA0GCSqGSIb3DQEBAQUABIIBAJCedoOcbmpgN6sx9nIBP7Ch+7au
+# Du36S7cKsM+WF3kM5GuHpuRHVTT/NprGURFP7eZGeUgoO0K+mnpIUOdrO4bvbIuL
+# vIyKquoVHV5nlkyafsyfE91tILhE22DpHPgQAhTCQATRWVFXvXyQdBE4piSjNQWg
+# vGf2MbhArm5AViYkf0HdKXRhM29iBBGV/NUvKtJKw+lxdoDkFxbBqII23mWWDmUR
+# rr0snzvRrWVey9yuq4qNu1x78oAPHdc98V3cAwbILH+Snl6ZifUpFAzP4TMTtAt9
+# p7H6CjbYHP9ZUve3Znh7TmONSPGo15TTZTqFb3mkHsyRL4FBIw+0LcJsh0E=
 # SIG # End signature block

@@ -93,6 +93,7 @@ Describe -Name "General Project Validation: $env:BHProjectName" -Tag 'Validation
         $Commands -contains 'Get-RegistrySubKeys' | Should Be $True
         $Commands -contains 'Get-RegistryValues' | Should Be $True
         $Commands -contains 'Get-RemoteDesktop' | Should Be $True
+        $Commands -contains 'Get-ScheduledTasks' | Should Be $True
         $Commands -contains 'Get-ServerInventory' | Should Be $True
         $Commands -contains 'New-EnvironmentVariable' | Should Be $True
         $Commands -contains 'New-Runspace' | Should Be $True
@@ -133,8 +134,8 @@ Describe -Name "General Project Validation: $env:BHProjectName" -Tag 'Validation
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUbgfqNyFLfWmlbLtLMn+tklW/
-# zvqgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUJ+BtyPzxRvA4gSKhzn32eU9X
+# 06agggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -191,11 +192,11 @@ Describe -Name "General Project Validation: $env:BHProjectName" -Tag 'Validation
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFKxQ+N/8fGZMZO1I
-# ZSEh3Jq0eVSOMA0GCSqGSIb3DQEBAQUABIIBAJ8EBPWJ4L2o60m2HBXWNd2rvuaV
-# BeKkAdvlZRSnuW1hTMUVTo2AYqFQ/ed7RWl7JP/lk0adcVkNKauz4aNWSWnXQSq8
-# N4KwNuD+dDx2//D6+rGL6YAVuV6YOOGz9VOI9DgiW+kp4uPXPcC7LrXpVOVi2697
-# advvTckzGpAKQc4NY4CICqeGBCDALBkgo9JIImoLX/oII9Bfqe6nWbO1vMmsEZWx
-# r0/F8tfxTXdA6ISXkJn2rlZnnaPZ76zO693SqnJIPgP0EyHDDsFa7Qx5iZqjht/h
-# T01l2+9ohMmDoExLVGAoL7ro/zi/qmz+deeHJxu8po+f6fU7GvjEI4MV4DA=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFGtps1ws1vwT/guu
+# RANgU9G/IuEjMA0GCSqGSIb3DQEBAQUABIIBAByJVgsMKxDcpAIiCn+PiVJ73ddo
+# IdLnD/zkuhSWup1aor77SXl1Hgb0hzGOOqxfCL51CVecmwSaLPCBKqGuGT6gR7KY
+# SoUi0KMjLVvNR6AtdJ8jCT3IykCAUxyoIRIWhUqEIUA7MrmhEhsq+NrqQtqtILZW
+# jGRBxbFNTXelbH43Blmm5tUCCybrKYpJmpVhZEr6ZP9+/adCxMWO5umcG5BWqVCW
+# xcyxwYyyzV7o1tVGiuZMGOhqh4sEFUHZ8mTzD0+h6UVNY+caOwjG6xwljQFDT5Q7
+# zI9rHYial09wMmIJjt4LaY38QONuGLCGXVyDRG6SRuTbnG/l2BsENAzi8UI=
 # SIG # End signature block
