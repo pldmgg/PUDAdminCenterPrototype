@@ -545,13 +545,6 @@ $RegistryPageContent = {
                     $Session:HKLMGridItemsRefreshed = $True
                 }
 
-                New-UDColumn -AutoRefresh -RefreshInterval 1 -Endpoint {
-                    if ($Session:HKLMUDGridLoadingTracker -eq "Loading") {
-                        New-UDHeading -Text "Loading...Please wait..." -Size 6
-                        New-UDPreloader -Size small
-                    }
-                }
-
                 New-UDRow -Endpoint {
                     New-UDColumn -Size 3 -Endpoint {}
                     New-UDColumn -Size 6 -Endpoint {
@@ -666,13 +659,20 @@ $RegistryPageContent = {
                     New-UDColumn -Size 3 -Endpoint {}
                 }
                 New-UDRow -Endpoint {
+                    New-UDColumn -AutoRefresh -RefreshInterval 1 -Endpoint {
+                        if ($Session:HKLMUDGridLoadingTracker -eq "Loading") {
+                            New-UDHeading -Text "Loading...Please wait..." -Size 6
+                            New-UDPreloader -Size small
+                        }
+                    }
+
                     New-UDColumn -Size 12 -Endpoint {
                         $RootRegistryProperties = @("Name","Path","Type","Data","ChildCount","Explore")
                         $RootRegistryUDGridSplatParams = @{
                             Id              = "HKLMChildItemsUDGrid"
                             Headers         = $RootRegistryProperties
                             Properties      = $RootRegistryProperties
-                            PageSize        = 20
+                            PageSize        = 10
                         }
                         New-UDGrid @RootRegistryUDGridSplatParams -Endpoint {
                             $PUDRSSyncHT = $global:PUDRSSyncHT
@@ -770,13 +770,6 @@ $RegistryPageContent = {
                     $Session:HKCUObjectsForGrid = $HKCUObjectsForGridPrep
 
                     $Session:HKCUGridItemsRefreshed = $True
-                }
-
-                New-UDColumn -AutoRefresh -RefreshInterval 1 -Endpoint {
-                    if ($Session:HKCUUDGridLoadingTracker -eq "Loading") {
-                        New-UDHeading -Text "Loading...Please wait..." -Size 6
-                        New-UDPreloader -Size small
-                    }
                 }
 
                 New-UDRow -Endpoint {
@@ -893,13 +886,20 @@ $RegistryPageContent = {
                     New-UDColumn -Size 3 -Endpoint {}
                 }
                 New-UDRow -Endpoint {
+                    New-UDColumn -AutoRefresh -RefreshInterval 1 -Endpoint {
+                        if ($Session:HKCUUDGridLoadingTracker -eq "Loading") {
+                            New-UDHeading -Text "Loading...Please wait..." -Size 6
+                            New-UDPreloader -Size small
+                        }
+                    }
+
                     New-UDColumn -Size 12 -Endpoint {
                         $RootRegistryProperties = @("Name","Path","Type","Data","ChildCount","Explore")
                         $RootRegistryUDGridSplatParams = @{
                             Id              = "HKCUChildItemsUDGrid"
                             Headers         = $RootRegistryProperties
                             Properties      = $RootRegistryProperties
-                            PageSize        = 20
+                            PageSize        = 10
                         }
                         New-UDGrid @RootRegistryUDGridSplatParams -Endpoint {
                             $PUDRSSyncHT = $global:PUDRSSyncHT
@@ -1001,13 +1001,6 @@ $RegistryPageContent = {
                     $Session:HKCRObjectsForGrid = $HKCRObjectsForGridPrep
 
                     $Session:HKCRGridItemsRefreshed = $True
-                }
-
-                New-UDColumn -AutoRefresh -RefreshInterval 1 -Endpoint {
-                    if ($Session:HKCRUDGridLoadingTracker -eq "Loading") {
-                        New-UDHeading -Text "Loading...Please wait..." -Size 6
-                        New-UDPreloader -Size small
-                    }
                 }
 
                 New-UDRow -Endpoint {
@@ -1128,13 +1121,20 @@ $RegistryPageContent = {
                     New-UDColumn -Size 3 -Endpoint {}
                 }
                 New-UDRow -Endpoint {
+                    New-UDColumn -AutoRefresh -RefreshInterval 1 -Endpoint {
+                        if ($Session:HKCRUDGridLoadingTracker -eq "Loading") {
+                            New-UDHeading -Text "Loading...Please wait..." -Size 6
+                            New-UDPreloader -Size small
+                        }
+                    }
+
                     New-UDColumn -Size 12 -Endpoint {
                         $RootRegistryProperties = @("Name","Path","Type","Data","ChildCount","Explore")
                         $RootRegistryUDGridSplatParams = @{
                             Id              = "HKCRChildItemsUDGrid"
                             Headers         = $RootRegistryProperties
                             Properties      = $RootRegistryProperties
-                            PageSize        = 20
+                            PageSize        = 10
                         }
                         New-UDGrid @RootRegistryUDGridSplatParams -Endpoint {
                             $PUDRSSyncHT = $global:PUDRSSyncHT
@@ -1239,13 +1239,6 @@ $RegistryPageContent = {
                     $Session:HKUObjectsForGrid = $HKUObjectsForGridPrep
 
                     $Session:HKUGridItemsRefreshed = $True
-                }
-
-                New-UDColumn -AutoRefresh -RefreshInterval 1 -Endpoint {
-                    if ($Session:HKUUDGridLoadingTracker -eq "Loading") {
-                        New-UDHeading -Text "Loading...Please wait..." -Size 6
-                        New-UDPreloader -Size small
-                    }
                 }
 
                 New-UDRow -Endpoint {
@@ -1366,13 +1359,20 @@ $RegistryPageContent = {
                     New-UDColumn -Size 3 -Endpoint {}
                 }
                 New-UDRow -Endpoint {
+                    New-UDColumn -AutoRefresh -RefreshInterval 1 -Endpoint {
+                        if ($Session:HKUUDGridLoadingTracker -eq "Loading") {
+                            New-UDHeading -Text "Loading...Please wait..." -Size 6
+                            New-UDPreloader -Size small
+                        }
+                    }
+
                     New-UDColumn -Size 12 -Endpoint {
                         $RootRegistryProperties = @("Name","Path","Type","Data","ChildCount","Explore")
                         $RootRegistryUDGridSplatParams = @{
                             Id              = "HKUChildItemsUDGrid"
                             Headers         = $RootRegistryProperties
                             Properties      = $RootRegistryProperties
-                            PageSize        = 20
+                            PageSize        = 10
                         }
                         New-UDGrid @RootRegistryUDGridSplatParams -Endpoint {
                             $PUDRSSyncHT = $global:PUDRSSyncHT
@@ -1477,13 +1477,6 @@ $RegistryPageContent = {
                     $Session:HKCCObjectsForGrid = $HKCCObjectsForGridPrep
 
                     $Session:HKCCGridItemsRefreshed = $False
-                }
-
-                New-UDColumn -AutoRefresh -RefreshInterval 1 -Endpoint {
-                    if ($Session:HKCCUDGridLoadingTracker -eq "Loading") {
-                        New-UDHeading -Text "Loading...Please wait..." -Size 6
-                        New-UDPreloader -Size small
-                    }
                 }
 
                 New-UDRow -Endpoint {
@@ -1604,13 +1597,20 @@ $RegistryPageContent = {
                     New-UDColumn -Size 3 -Endpoint {}
                 }
                 New-UDRow -Endpoint {
+                    New-UDColumn -AutoRefresh -RefreshInterval 1 -Endpoint {
+                        if ($Session:HKCCUDGridLoadingTracker -eq "Loading") {
+                            New-UDHeading -Text "Loading...Please wait..." -Size 6
+                            New-UDPreloader -Size small
+                        }
+                    }
+
                     New-UDColumn -Size 12 -Endpoint {
                         $RootRegistryProperties = @("Name","Path","Type","Data","ChildCount","Explore")
                         $RootRegistryUDGridSplatParams = @{
                             Id              = "HKCCChildItemsUDGrid"
                             Headers         = $RootRegistryProperties
                             Properties      = $RootRegistryProperties
-                            PageSize        = 20
+                            PageSize        = 10
                         }
                         New-UDGrid @RootRegistryUDGridSplatParams -Endpoint {
                             $PUDRSSyncHT = $global:PUDRSSyncHT
