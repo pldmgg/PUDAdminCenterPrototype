@@ -39,6 +39,9 @@
     ${Function:Get-RemoteDesktop}.Ast.Extent.Text
     ${Function:Get-ScheduledTasks}.Ast.Extent.Text
     ${Function:Get-ServerInventory}.Ast.Extent.Text
+    ${Function:Get-StorageDisk}.Ast.Extent.Text
+    ${Function:Get-StorageFileShare}.Ast.Extent.Text
+    ${Function:Get-StorageVolume}.Ast.Extent.Text
     ${Function:New-EnvironmentVariable}.Ast.Extent.Text
     ${Function:New-Runspace}.Ast.Extent.Text
     ${Function:Remove-EnvironmentVariable}.Ast.Extent.Text
@@ -52,8 +55,8 @@
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUClXF+xqEOjyOQO9B0u8mzfvf
-# Waugggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUVq8Z/Hhtfla0gHTsl4xs2Uo0
+# Bx+gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -110,11 +113,11 @@
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFFVFMvVjdzNquja8
-# IFH89RJ8I1sGMA0GCSqGSIb3DQEBAQUABIIBALYe+o9mImIMYJTVgk5++Js6aRLg
-# NMbSB8hsys8GpmHPof/7UQNWw2OpsL7wI1YtpO7C/NM032BMkRaU/gcIZJ6B68Yx
-# WZuen67uno3ST+m73Oz9BEo2sAn3vuz+i6nsJBzJF4Wjh8ashiKRiC2n5Qn72K1o
-# TbiNTAEicfDbX583y+66rilAFcPDbVnEQu4h7u80Ep+aSNRi1lCOvh1gd7vRWoXy
-# wHj0tWFotpdMPjrYct4/dvpw3D8gqrhCWs/DLnSRHkjVmnLrpj8tgwS/WWc30bdI
-# ePtiXO9TJ2BGIuiH4x2ZGJu8S8W/b/x/gdRX1DvMybHnTTVsnDDA7nbDOuI=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFIlu5nZ1tWyqqzxX
+# /DkcDu+YidpbMA0GCSqGSIb3DQEBAQUABIIBAGRXCp4LBXCqVx56zo8tl+sFRghD
+# 687ybouuurKttjJRc9F4ugMFE1fGgBgQ1OC4JVyKegJ5EK99VtY7f+6GkliguLfw
+# kIyIcU01pWtMzrB5PsTFO8o4Iwy6NxhNR2fpK/sOp5Bfz0HjHXNJXnYXt58RC0ZN
+# lJsfKk+VIEIkA1ZQnB7lFiWau1tizqmkAABwfQarYkGriNTCfusgGpWTdmx4W0kP
+# aVMe1PZH+XbmgIIxpMK7A+xtoNMUM602Wv+SRbKQFm4vqNrzYmzbXhFy0AfsgXnz
+# TuoN40wRkuE8oBZH35I/1MCrN7p0cxAtc254bFb+ivARPTl/4rtJk+/hGac=
 # SIG # End signature block
