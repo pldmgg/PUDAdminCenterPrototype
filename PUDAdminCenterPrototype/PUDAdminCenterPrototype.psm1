@@ -10819,7 +10819,7 @@ function Get-PUDAdminCenter {
             }
     
             # Volume Summary
-            $VolumeSummaryProperties = @("Name","DiskNumber","BootVolume","DriveType","FileSystem","Health","SizeRemaining","Size")
+            $VolumeSummaryProperties = @("Name","DiskNumber","BootVolume","DriveType","FileSystem","Health","SpaceRemaining","Size")
             $VolumeSummaryUDGridSplatParams = @{
                 Title           = "Volume Summary"
                 Headers         = $VolumeSummaryProperties
@@ -10878,7 +10878,7 @@ function Get-PUDAdminCenter {
             }
     
             # FileShare Summary
-            $FileShareSummaryProperties = @("Name","Health","ShareState","FileSharingProtocol","EncryptData","isHidden")
+            $FileShareSummaryProperties = @("Name","Health","ShareState","FileSharingProtocol","EncryptData","Hidden")
             $FileShareSummaryUDGridSplatParams = @{
                 Title           = "FileShare Summary"
                 Headers         = $FileShareSummaryProperties
@@ -10929,7 +10929,7 @@ function Get-PUDAdminCenter {
                         ShareState          = $ShareState
                         FileSharingProtocol = $FileSharingProtocol
                         EncryptData         = $obj.EncryptData.ToString()
-                        Hidden              = $obj.isHidden.ToString()
+                        Hidden              = $obj.IsHidden.ToString()
                     }
                 }
                 
@@ -14231,8 +14231,8 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU6gk8Pbf3canaZ215/J/+Czyk
-# VRugggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUo0CpFscPRtYfngI64X4fJCRn
+# PYCgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -14289,11 +14289,11 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFBNrnjf/Zvso3Vzq
-# Qwlgztgn2lGnMA0GCSqGSIb3DQEBAQUABIIBABCCfC8u07Flit14rQasVe5wNO1J
-# o7ByThWX0+ABNbFeeDCBM/st+mGZqdo7gzMUHSxQ8L9iufJFE3OLm3fZLU/ceZNB
-# al5hAVBF2ClDricux5ANZUwipsba7M8SsC/8+z6EYLRTC0znGrhGH4kNTQ2pGBuB
-# a1DZ+YV4ub69YwEa0pyUN+bjcTinUZNmhOns1sTmon1u7Smg/hrvIoE7MwQYTGfV
-# jJoX9BbMUb9jBPNB10HLbQKTE0rnVtUosO1qBJiXwoKMgbWU44LdZ1mM2lNgjPux
-# 8O1n0dsKeZmSeVTvUv1HaUkRPJtgqY3K95CXASvJGm0kq6ynVFCH4KAQ+BA=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFDzfa6/yd6ED+dW7
+# ymwE1grtGJEsMA0GCSqGSIb3DQEBAQUABIIBACdNE8YmwkeIdNtc872cf8xZRtc4
+# dLU1kDDA0mtVX/VKeVQMLKD4rtTOMl4rXxqnSLeId9KX3v0hYL2BonyZ/PtKeRlh
+# +VonPFiUwvK8ANbvCNCi09qG2pcsx0QZHrZoWTK4IFHwmsKxImpsTrvBMcY6bzgQ
+# mUeiOGnhq9V5Z2LVW8DuCY7eHU4rfylkupskeltfYj+Ii/wq/n0g92N9yBEhe122
+# 0qL48u6ADh9j2lpNw0ltRn4ig+Z3ZARGXuBg9SmOGf3eAh0bWUDsEYy6BbKM+q4t
+# mKxD0rou8Pe7VXRz8nfumj4PMgfm9d0lg7NAnK0MLJARvuKMdEyl15XPp8M=
 # SIG # End signature block

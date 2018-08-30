@@ -9048,7 +9048,7 @@ function Get-PUDAdminCenter {
             }
     
             # Volume Summary
-            $VolumeSummaryProperties = @("Name","DiskNumber","BootVolume","DriveType","FileSystem","Health","SizeRemaining","Size")
+            $VolumeSummaryProperties = @("Name","DiskNumber","BootVolume","DriveType","FileSystem","Health","SpaceRemaining","Size")
             $VolumeSummaryUDGridSplatParams = @{
                 Title           = "Volume Summary"
                 Headers         = $VolumeSummaryProperties
@@ -9107,7 +9107,7 @@ function Get-PUDAdminCenter {
             }
     
             # FileShare Summary
-            $FileShareSummaryProperties = @("Name","Health","ShareState","FileSharingProtocol","EncryptData","isHidden")
+            $FileShareSummaryProperties = @("Name","Health","ShareState","FileSharingProtocol","EncryptData","Hidden")
             $FileShareSummaryUDGridSplatParams = @{
                 Title           = "FileShare Summary"
                 Headers         = $FileShareSummaryProperties
@@ -9158,7 +9158,7 @@ function Get-PUDAdminCenter {
                         ShareState          = $ShareState
                         FileSharingProtocol = $FileSharingProtocol
                         EncryptData         = $obj.EncryptData.ToString()
-                        Hidden              = $obj.isHidden.ToString()
+                        Hidden              = $obj.IsHidden.ToString()
                     }
                 }
                 
@@ -10136,8 +10136,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUIQ6ZAFGasYX+qFYZxQ7Uvwtw
-# reOgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU7Vhw9vxuM/BhQiBliNimqPzE
+# cNmgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -10194,11 +10194,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFDTiPQsQVUJaK1GO
-# 7ubKs1qlKMtVMA0GCSqGSIb3DQEBAQUABIIBABWEasyKQ/Gg7C45wVqRS8iFzSlG
-# g7cEbYZX/uzu5Q1WENnY7j51QQd24pcVmm1xXeNzPRCpL8Cu4+0KsuwWZUWn2wlz
-# qnI9MUiB2L7bfyaWvKnqDs592iJdpJUszEA2Eh4QgPkqJHoWoljf/CwgiQoArVLu
-# zs62hfMSX6HL1BV6NBxP5aQnInt5Ro8c20J6YfLqXvGX+MaalG4bEgnfMb7VFAh4
-# YWj/tfh/UkcBtqBXl3tMsungzMHMY+0JUGiFUKwoQsznQZq8WK/vXiqt0Bq9S615
-# MlSk/NcFhMfrr8WpCrfMNsC5x6qtaVymdVsx5f/YKbzHDrV88p88lhQidFg=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFG4AVVuDlnsb/Mcd
+# imMSkAXQiD9pMA0GCSqGSIb3DQEBAQUABIIBAFzvnJQdo0i5J3sWGhfH6F6CcsSx
+# YokcHRHJ+sMgd63Hle/g7larsUX4Y2qg7i9qyKVu+vJ+PZnGXFtNNTWRzrFmoiy9
+# XX11QdDwwyG7WgkGlASk/7s+UPweFgni2WCVBqkbxHrsRjjgA7QHGLui5bJyxO1g
+# QJil4MfokFGT5NDKD0V8xois/8ZjSpC06VfhQoc66u8JuAJru9/BLrkxuKCZ7yPf
+# n82Qht1vwG2+mNY6HD3flivzdW8uzHEnnLwLKoIrV7RK2GcKi2zWggkIlSnqnwq5
+# HlhshMrAxy4JgSEXHrQWVsjnQIoQ+GKpmLHUaqhcDPOIuGjlsxCwDFTCgqo=
 # SIG # End signature block

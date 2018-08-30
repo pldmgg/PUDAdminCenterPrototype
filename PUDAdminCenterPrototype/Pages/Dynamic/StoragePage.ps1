@@ -424,7 +424,7 @@ $StoragePageContent = {
         }
 
         # Volume Summary
-        $VolumeSummaryProperties = @("Name","DiskNumber","BootVolume","DriveType","FileSystem","Health","SizeRemaining","Size")
+        $VolumeSummaryProperties = @("Name","DiskNumber","BootVolume","DriveType","FileSystem","Health","SpaceRemaining","Size")
         $VolumeSummaryUDGridSplatParams = @{
             Title           = "Volume Summary"
             Headers         = $VolumeSummaryProperties
