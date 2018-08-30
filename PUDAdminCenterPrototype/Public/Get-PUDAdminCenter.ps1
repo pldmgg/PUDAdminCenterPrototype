@@ -9024,23 +9024,31 @@ function Get-PUDAdminCenter {
                     }
                 }
                 $Session:DiskSummaryStatic = foreach ($obj in $StaticInfo.DiskSummary) {
+                    $Health = switch ($obj.HealthStatus) {
+                        '0'     {"Healthy"}
+                        '1'     {"Warning"}
+                        '2'     {"Unhealthy"}
+                        '5'     {"Unknown"}
+                        Default {$null}
+                    }
+    
                     [pscustomobject]@{
                         Number          = $obj.Number
                         Name            = $obj.FriendlyName
-                        Health          = if ($obj.HealthStatus -eq 0) {"Healthy"} else {"Unhealthy"}
+                        Health          = $Health
                         Status          = if ($obj.isOffline) {"Offline"} else {"Online"}
                         Unallocated     = [Math]::Round($($($obj.Size - $obj.AllocatedSize) / 1GB),2).ToString() + 'GB'
                         Capacity        = [Math]::Round($($obj.Size / 1GB),2).ToString() + 'GB'
                         BootDisk        = if ($obj.isBoot) {"True"} else {"False"}
                     }
                 }
-                #$PUDRSSyncHT."$RemoteHost`Info".Storage.DiskSummary = $Session:DiskSummaryStatic
+                $PUDRSSyncHT."$RemoteHost`Info".Storage.DiskSummary = $Session:DiskSummaryStatic
                 
                 $Session:DiskSummaryStatic | Out-UDGridData
             }
     
             # Volume Summary
-            $VolumeSummaryProperties = @("Name","DiskNumber","DriveType","FileSystem","HealthStatus","SizeRemaining","Size")
+            $VolumeSummaryProperties = @("Name","DiskNumber","BootVolume","DriveType","FileSystem","Health","SizeRemaining","Size")
             $VolumeSummaryUDGridSplatParams = @{
                 Title           = "Volume Summary"
                 Headers         = $VolumeSummaryProperties
@@ -9062,14 +9070,44 @@ function Get-PUDAdminCenter {
                         VolumeSummary       = $VolumeSummary | foreach {[pscustomobject]$_}
                     }
                 }
-                $Session:VolumeSummaryStatic = $StaticInfo.VolumeSummary
+                $Session:VolumeSummaryStatic = foreach ($obj in $StaticInfo.VolumeSummary) {
+                    $Health = switch ($obj.HealthStatus) {
+                        '0'     {"Healthy"}
+                        '1'     {"Warning"}
+                        '2'     {"Unhealthy"}
+                        '5'     {"Unknown"}
+                        Default {$null}
+                    }
+    
+                    $DriveType = switch ($obj.DriveType) {
+                        '0'     {"Unknown"}
+                        '1'     {"No Root Directory"}
+                        '2'     {"Removeable Disk"}
+                        '3'     {"Local Disk"}
+                        '4'     {"Network Drive"}
+                        '5'     {"Compact Disk"}
+                        '6'     {"RAM Disk"}
+                        Default {$null}
+                    }
+    
+                    [pscustomobject]@{
+                        Name            = $obj.Name
+                        DiskNumber      = $obj.DiskNumber
+                        BootVolume      = $obj.isBoot.ToString()
+                        DriveType       = $DriveType
+                        FileSystem      = $obj.FileSystem
+                        Health          = $Health
+                        SpaceRemaining  = [Math]::Round($($obj.SizeRemaining / 1GB),2).ToString() + 'GB'
+                        Size            = [Math]::Round($($obj.Size / 1GB),2).ToString() + 'GB'
+                    }
+                }
                 $PUDRSSyncHT."$RemoteHost`Info".Storage.VolumeSummary = $Session:VolumeSummaryStatic
                 
                 $Session:VolumeSummaryStatic | Out-UDGridData
             }
     
             # FileShare Summary
-            $FileShareSummaryProperties = @("Name","HealthStatus","ShareStatus","FileSharingProtocol","EncryptData")
+            $FileShareSummaryProperties = @("Name","Health","ShareState","FileSharingProtocol","EncryptData","isHidden")
             $FileShareSummaryUDGridSplatParams = @{
                 Title           = "FileShare Summary"
                 Headers         = $FileShareSummaryProperties
@@ -9091,7 +9129,39 @@ function Get-PUDAdminCenter {
                         FileShareSummary    = $FileShareSummary | foreach {[pscustomobject]$_}
                     }
                 }
-                $Session:FileShareSummaryStatic = $StaticInfo.FileShareSummary
+                # See: https://docs.microsoft.com/en-us/previous-versions/windows/desktop/stormgmt/msft-fileshare
+                $Session:FileShareSummaryStatic = foreach ($obj in $StaticInfo.FileShareSummary) {
+                    $Health = switch ($obj.HealthStatus) {
+                        '0'     {"Healthy"}
+                        '1'     {"Warning"}
+                        '2'     {"Unhealthy"}
+                        '5'     {"Unknown"}
+                        Default {$null}
+                    }
+    
+                    $ShareState = switch ($obj.ShareState) {
+                        '0'     {"Pending"}
+                        '1'     {"Online"}
+                        '2'     {"Offline"}
+                        Default {$null}
+                    }
+    
+                    $FileSharingProtocol = switch ($obj.FileSharingProtocol) {
+                        '2'     {"NFS"}
+                        '3'     {"CIFS(SMB)"}
+                        Default {$null}
+                    }
+    
+                    [pscustomobject]@{
+                        Name                = $obj.Name
+                        Health              = $Health
+                        ShareState          = $ShareState
+                        FileSharingProtocol = $FileSharingProtocol
+                        EncryptData         = $obj.EncryptData.ToString()
+                        Hidden              = $obj.isHidden.ToString()
+                    }
+                }
+                
                 $PUDRSSyncHT."$RemoteHost`Info".Storage.FileShareSummary = $Session:FileShareSummaryStatic
                 
                 $Session:FileShareSummaryStatic | Out-UDGridData
@@ -10066,8 +10136,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUkCfCLcv9hqHvkWbfM9SLm+nB
-# XJ+gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUIQ6ZAFGasYX+qFYZxQ7Uvwtw
+# reOgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -10124,11 +10194,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFOQLYlSSHzi+j6kn
-# zUuR0THYPVIGMA0GCSqGSIb3DQEBAQUABIIBAKW1T57xaUCzTFtPNItL1bQqBdz2
-# jDllP6sNaa5fkHiqC6a397xZhyadRrxwCn8sajO9pQFvhzH2ILOuXrmWinwlf7zX
-# sJJ461ySaRpNgC/DVqdMxunpVL/e0+bav7HLhXyIKEwWQefUyeGO2sYJuZl7MTws
-# vBu3Q0xsGnBzFAXNRNZN1yTL8zCmwt0X83SWPd0xcq/1qHO+RTXCySAyZgfPGCAN
-# kD1pFQb25FeZPr9z8nMBPRG/p5Ywhlt9NQx/jqaul67uCETrbkirz90msJdvBn4y
-# pWWQj22DuVnXYV8m96XpgBIQt4TP08x0g1gv8LDYjq+iG1oz9Pr9HqH2Zj4=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFDTiPQsQVUJaK1GO
+# 7ubKs1qlKMtVMA0GCSqGSIb3DQEBAQUABIIBABWEasyKQ/Gg7C45wVqRS8iFzSlG
+# g7cEbYZX/uzu5Q1WENnY7j51QQd24pcVmm1xXeNzPRCpL8Cu4+0KsuwWZUWn2wlz
+# qnI9MUiB2L7bfyaWvKnqDs592iJdpJUszEA2Eh4QgPkqJHoWoljf/CwgiQoArVLu
+# zs62hfMSX6HL1BV6NBxP5aQnInt5Ro8c20J6YfLqXvGX+MaalG4bEgnfMb7VFAh4
+# YWj/tfh/UkcBtqBXl3tMsungzMHMY+0JUGiFUKwoQsznQZq8WK/vXiqt0Bq9S615
+# MlSk/NcFhMfrr8WpCrfMNsC5x6qtaVymdVsx5f/YKbzHDrV88p88lhQidFg=
 # SIG # End signature block

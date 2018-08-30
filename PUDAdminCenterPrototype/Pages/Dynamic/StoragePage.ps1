@@ -400,23 +400,31 @@ $StoragePageContent = {
                 }
             }
             $Session:DiskSummaryStatic = foreach ($obj in $StaticInfo.DiskSummary) {
+                $Health = switch ($obj.HealthStatus) {
+                    '0'     {"Healthy"}
+                    '1'     {"Warning"}
+                    '2'     {"Unhealthy"}
+                    '5'     {"Unknown"}
+                    Default {$null}
+                }
+
                 [pscustomobject]@{
                     Number          = $obj.Number
                     Name            = $obj.FriendlyName
-                    Health          = if ($obj.HealthStatus -eq 0) {"Healthy"} else {"Unhealthy"}
+                    Health          = $Health
                     Status          = if ($obj.isOffline) {"Offline"} else {"Online"}
                     Unallocated     = [Math]::Round($($($obj.Size - $obj.AllocatedSize) / 1GB),2).ToString() + 'GB'
                     Capacity        = [Math]::Round($($obj.Size / 1GB),2).ToString() + 'GB'
                     BootDisk        = if ($obj.isBoot) {"True"} else {"False"}
                 }
             }
-            #$PUDRSSyncHT."$RemoteHost`Info".Storage.DiskSummary = $Session:DiskSummaryStatic
+            $PUDRSSyncHT."$RemoteHost`Info".Storage.DiskSummary = $Session:DiskSummaryStatic
             
             $Session:DiskSummaryStatic | Out-UDGridData
         }
 
         # Volume Summary
-        $VolumeSummaryProperties = @("Name","DiskNumber","DriveType","FileSystem","HealthStatus","SizeRemaining","Size")
+        $VolumeSummaryProperties = @("Name","DiskNumber","BootVolume","DriveType","FileSystem","Health","SizeRemaining","Size")
         $VolumeSummaryUDGridSplatParams = @{
             Title           = "Volume Summary"
             Headers         = $VolumeSummaryProperties
@@ -438,14 +446,44 @@ $StoragePageContent = {
                     VolumeSummary       = $VolumeSummary | foreach {[pscustomobject]$_}
                 }
             }
-            $Session:VolumeSummaryStatic = $StaticInfo.VolumeSummary
+            $Session:VolumeSummaryStatic = foreach ($obj in $StaticInfo.VolumeSummary) {
+                $Health = switch ($obj.HealthStatus) {
+                    '0'     {"Healthy"}
+                    '1'     {"Warning"}
+                    '2'     {"Unhealthy"}
+                    '5'     {"Unknown"}
+                    Default {$null}
+                }
+
+                $DriveType = switch ($obj.DriveType) {
+                    '0'     {"Unknown"}
+                    '1'     {"No Root Directory"}
+                    '2'     {"Removeable Disk"}
+                    '3'     {"Local Disk"}
+                    '4'     {"Network Drive"}
+                    '5'     {"Compact Disk"}
+                    '6'     {"RAM Disk"}
+                    Default {$null}
+                }
+
+                [pscustomobject]@{
+                    Name            = $obj.Name
+                    DiskNumber      = $obj.DiskNumber
+                    BootVolume      = $obj.isBoot.ToString()
+                    DriveType       = $DriveType
+                    FileSystem      = $obj.FileSystem
+                    Health          = $Health
+                    SpaceRemaining  = [Math]::Round($($obj.SizeRemaining / 1GB),2).ToString() + 'GB'
+                    Size            = [Math]::Round($($obj.Size / 1GB),2).ToString() + 'GB'
+                }
+            }
             $PUDRSSyncHT."$RemoteHost`Info".Storage.VolumeSummary = $Session:VolumeSummaryStatic
             
             $Session:VolumeSummaryStatic | Out-UDGridData
         }
 
         # FileShare Summary
-        $FileShareSummaryProperties = @("Name","HealthStatus","ShareStatus","FileSharingProtocol","EncryptData")
+        $FileShareSummaryProperties = @("Name","Health","ShareState","FileSharingProtocol","EncryptData","Hidden")
         $FileShareSummaryUDGridSplatParams = @{
             Title           = "FileShare Summary"
             Headers         = $FileShareSummaryProperties
@@ -467,7 +505,39 @@ $StoragePageContent = {
                     FileShareSummary    = $FileShareSummary | foreach {[pscustomobject]$_}
                 }
             }
-            $Session:FileShareSummaryStatic = $StaticInfo.FileShareSummary
+            # See: https://docs.microsoft.com/en-us/previous-versions/windows/desktop/stormgmt/msft-fileshare
+            $Session:FileShareSummaryStatic = foreach ($obj in $StaticInfo.FileShareSummary) {
+                $Health = switch ($obj.HealthStatus) {
+                    '0'     {"Healthy"}
+                    '1'     {"Warning"}
+                    '2'     {"Unhealthy"}
+                    '5'     {"Unknown"}
+                    Default {$null}
+                }
+
+                $ShareState = switch ($obj.ShareState) {
+                    '0'     {"Pending"}
+                    '1'     {"Online"}
+                    '2'     {"Offline"}
+                    Default {$null}
+                }
+
+                $FileSharingProtocol = switch ($obj.FileSharingProtocol) {
+                    '2'     {"NFS"}
+                    '3'     {"CIFS(SMB)"}
+                    Default {$null}
+                }
+
+                [pscustomobject]@{
+                    Name                = $obj.Name
+                    Health              = $Health
+                    ShareState          = $ShareState
+                    FileSharingProtocol = $FileSharingProtocol
+                    EncryptData         = $obj.EncryptData.ToString()
+                    Hidden              = $obj.IsHidden.ToString()
+                }
+            }
+            
             $PUDRSSyncHT."$RemoteHost`Info".Storage.FileShareSummary = $Session:FileShareSummaryStatic
             
             $Session:FileShareSummaryStatic | Out-UDGridData
