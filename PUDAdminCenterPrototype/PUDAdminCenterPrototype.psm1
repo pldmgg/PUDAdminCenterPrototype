@@ -1648,6 +1648,99 @@ function Get-Networks {
 }
 
 
+<#    
+    .SYNOPSIS   
+        Retrieves the updates waiting to be installed from WSUS
+        
+    .DESCRIPTION   
+        Retrieves the updates waiting to be installed from WSUS
+        
+    .PARAMETER Computername 
+        Computer or computers to find updates for.
+
+    .EXAMPLE   
+        Get-PendingUpdates 
+
+        Description
+        -----------
+        Retrieves the updates that are available to install on the local system
+    
+    .NOTES
+        Author: Boe Prox
+#>
+Function Get-PendingUpdates {
+    [CmdletBinding(DefaultParameterSetName = 'computer')] 
+    Param ( 
+        [Parameter(ValueFromPipeline = $True)] 
+        [string[]]$ComputerName = $env:COMPUTERNAME
+    )
+
+    Process {
+        foreach ($computer in $Computername) {
+            If (Test-Connection -ComputerName $computer -Count 1 -Quiet) {
+                Try {
+                    # Create Session COM object
+                    Write-Verbose "Creating COM object for WSUS Session"
+                    $updatesession =  [activator]::CreateInstance([type]::GetTypeFromProgID("Microsoft.Update.Session",$computer))
+                }
+                Catch {
+                    Write-Warning "$($Error[0])"
+                    Break
+                } 
+ 
+                # Configure Session COM Object
+                Write-Verbose "Creating COM object for WSUS update Search"
+                $updatesearcher = $updatesession.CreateUpdateSearcher()
+ 
+                # Configure Searcher object to look for Updates awaiting installation
+                Write-Verbose "Searching for WSUS updates on client"
+                $searchresult = $updatesearcher.Search("IsInstalled=0")
+             
+                # Verify if Updates need installed
+                Write-Verbose "Verifing that updates are available to install"
+                If ($searchresult.Updates.Count -gt 0) {
+                    # Updates are waiting to be installed
+                    Write-Verbose "Found $($searchresult.Updates.Count) update\s!"
+                    # Cache the count to make the For loop run faster
+                    $count = $searchresult.Updates.Count
+                 
+                    # Begin iterating through Updates available for installation
+                    Write-Verbose "Iterating through list of updates"
+                    For ($i=0; $i -lt $Count; $i++) {
+                        # Create object holding update
+                        $Update = $searchresult.Updates.Item($i)
+                        [pscustomobject]@{
+                            Computername        = $Computer
+                            Title               = $Update.Title
+                            KB                  = $($Update.KBArticleIDs)
+                            SecurityBulletin    = $($Update.SecurityBulletinIDs)
+                            MsrcSeverity        = $Update.MsrcSeverity
+                            IsDownloaded        = $Update.IsDownloaded
+                            Url                 = $($Update.MoreInfoUrls)
+                            Categories          = ($Update.Categories | Select-Object -ExpandProperty Name)
+                            BundledUpdates      = @($Update.BundledUpdates) | foreach {
+                               [pscustomobject]@{
+                                    Title = $_.Title
+                                    DownloadUrl = @($_.DownloadContents).DownloadUrl
+                                }
+                            }
+                        } 
+                    }
+                } 
+                Else { 
+                    #Nothing to install at this time
+                    Write-Verbose "No updates to install."
+                }
+            }
+            Else {
+                #Nothing to install at this time
+                Write-Warning "$($c): Offline"
+            }
+        }
+    }
+}
+
+
 <#
     
     .SYNOPSIS
@@ -11227,6 +11320,418 @@ function Get-PUDAdminCenter {
     
     #endregion >> Tool Select Page
     
+    $UpdatesPageContent = {
+        param($RemoteHost)
+    
+        $PUDRSSyncHT = $global:PUDRSSyncHT
+    
+        # Load PUDAdminCenter Module Functions Within ScriptBlock
+        $ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
+    
+        # For some reason, scriptblocks defined earlier can't be used directly here. They need to be a different objects before
+        # they actually behave as expected. Not sure why.
+        #$RecreatedDisconnectedPageContent = [scriptblock]::Create($DisconnectedPageContentString)
+    
+        $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+    
+        #region >> Ensure $RemoteHost is Valid
+    
+        if ($PUDRSSyncHT.RemoteHostList.HostName -notcontains $RemoteHost) {
+            $ErrorText = "The Remote Host $($RemoteHost.ToUpper()) is not a valid Host Name!"
+        }
+    
+        if ($ErrorText) {
+            New-UDRow -Columns {
+                New-UDColumn -Size 4 -Content {
+                    New-UDHeading -Text ""
+                }
+                New-UDColumn -Size 4 -Content {
+                    New-UDHeading -Text $ErrorText -Size 6
+                }
+                New-UDColumn -Size 4 -Content {
+                    New-UDHeading -Text ""
+                }
+            }
+        }
+    
+        # If $RemoteHost isn't valid, don't load anything else
+        if ($ErrorText) {
+            return
+        }
+    
+        #endregion >> Ensure $RemoteHost is Valid
+    
+        #region >> Loading Indicator
+    
+        New-UDRow -Columns {
+            New-UDColumn -Endpoint {
+                $Session:UpdatesPageLoadingTracker = [System.Collections.ArrayList]::new()
+            }
+            New-UDColumn -AutoRefresh -RefreshInterval 5 -Endpoint {
+                if ($Session:UpdatesPageLoadingTracker -notcontains "FinishedLoading") {
+                    New-UDHeading -Text "Loading...Please wait..." -Size 5
+                    New-UDPreloader -Size small
+                }
+            }
+        }
+    
+        #endregion >> Loading Indicator
+    
+        # Master Endpoint - All content will be within this Endpoint so that we can reference $Cache: and $Session: scope variables
+        New-UDColumn -Size 12 -Endpoint {
+            #region >> Ensure We Are Connected / Can Connect to $RemoteHost
+    
+            $PUDRSSyncHT = $global:PUDRSSyncHT
+    
+            # Load PUDAdminCenter Module Functions Within ScriptBlock
+            $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
+    
+            # For some reason, scriptblocks defined earlier can't be used directly here. They need to be a different objects before
+            # they actually behave as expected. Not sure why.
+            #$RecreatedDisconnectedPageContent = [scriptblock]::Create($DisconnectedPageContentString)
+    
+            $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+    
+            if ($Session:CredentialHT.$RemoteHost.PSRemotingCreds -eq $null) {
+                Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
+            }
+    
+            try {
+                $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+            }
+            catch {
+                $ConnectionStatus = "Disconnected"
+            }
+    
+            # If we're not connected to $RemoteHost, don't load anything else
+            if ($ConnectionStatus -ne "Connected") {
+                #Invoke-Command -ScriptBlock $RecreatedDisconnectedPageContent -ArgumentList $RemoteHost
+                Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
+            }
+            else {
+                New-UDRow -EndPoint {
+                    New-UDColumn -Size 3 -Content {
+                        New-UDHeading -Text ""
+                    }
+                    New-UDColumn -Size 6 -Endpoint {
+                        New-UDTable -Id "TrackingTable" -Headers @("RemoteHost","Status","DateTime") -AutoRefresh -RefreshInterval 2 -Endpoint {
+                            $PUDRSSyncHT = $global:PUDRSSyncHT
+    
+                            # Load PUDAdminCenter Module Functions Within ScriptBlock
+                            $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
+                            
+                            $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+    
+                            $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
+                            $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
+    
+                            if ($WSMan5985Available -or $WSMan5986Available) {
+                                $TableData = @{
+                                    RemoteHost      = $RemoteHost.ToUpper()
+                                    Status          = "Connected"
+                                }
+                            }
+                            else {
+                                Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
+                            }
+    
+                            # SUPER IMPORTANT NOTE: ALL Real-Time Enpoints on the Page reference LiveOutputClone!
+                            if ($PUDRSSyncHT."$RemoteHost`Info".Updates.LiveDataRSInfo.LiveOutput.Count -gt 0) {
+                                if ($PUDRSSyncHT."$RemoteHost`Info".Updates.LiveDataTracker.Previous -eq $null) {
+                                    $PUDRSSyncHT."$RemoteHost`Info".Updates.LiveDataTracker.Previous = $PUDRSSyncHT."$RemoteHost`Info".Updates.LiveDataRSInfo.LiveOutput.Clone()
+                                }
+                                if ($PUDRSSyncHT."$RemoteHost`Info".Updates.LiveDataTracker.Current.Count -gt 0) {
+                                    $PUDRSSyncHT."$RemoteHost`Info".Updates.LiveDataTracker.Previous = $PUDRSSyncHT."$RemoteHost`Info".Updates.LiveDataTracker.Current.Clone()
+                                }
+                                $PUDRSSyncHT."$RemoteHost`Info".Updates.LiveDataTracker.Current = $PUDRSSyncHT."$RemoteHost`Info".Updates.LiveDataRSInfo.LiveOutput.Clone()
+                            }
+    
+                            $TableData.Add("DateTime",$(Get-Date -Format MM-dd-yy_hh:mm:sstt))
+    
+                            [PSCustomObject]$TableData | Out-UDTableData -Property @("RemoteHost","Status","DateTime")
+                        }
+                    }
+                    New-UDColumn -Size 3 -Content {
+                        New-UDHeading -Text ""
+                    }
+                }
+            }
+    
+            #endregion >> Ensure We Are Connected / Can Connect to $RemoteHost
+    
+            #region >> Gather Some Initial Info From $RemoteHost
+    
+            $GetWUAHistoryFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-WUAHistory" -and $_ -notmatch "function Get-PUDAdminCenter"}
+            $GetPendingUpdatesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-PendingUpdates" -and $_ -notmatch "function Get-PUDAdminCenter"}
+            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                Invoke-Expression $using:GetPendingUpdatesFunc
+                Invoke-Expression $using:GetWUAHistoryFunc
+                
+                $UpdatesHistory = Get-WUAHistory
+                $PendingUpdates = Get-PendingUpdates
+    
+                [pscustomobject]@{
+                    UpdatesHistory      = $UpdatesHistory
+                    PendingUpdates      = $PendingUpdates
+                }
+            }
+            $Session:UpdatesHistoryStatic = $StaticInfo.UpdatesHistory
+            $Session:PendingUpdatesStatic = $StaticInfo.PendingUpdates
+            if ($PUDRSSyncHT."$RemoteHost`Info".Updates.Keys -notcontains "UpdatesHistory") {
+                $PUDRSSyncHT."$RemoteHost`Info".Updates.Add("UpdatesHistory",$Session:UpdatesHistoryStatic)
+            }
+            else {
+                $PUDRSSyncHT."$RemoteHost`Info".Updates.UpdatesHistory = $Session:UpdatesHistoryStatic
+            }
+            if ($PUDRSSyncHT."$RemoteHost`Info".Updates.Keys -notcontains "PendingUpdates") {
+                $PUDRSSyncHT."$RemoteHost`Info".Updates.Add("PendingUpdates",$Session:PendingUpdatesStatic)
+            }
+            else {
+                $PUDRSSyncHT."$RemoteHost`Info".Updates.PendingUpdates = $Session:PendingUpdatesStatic
+            }
+    
+            #endregion >> Gather Some Initial Info From $RemoteHost
+    
+            #region >> Page Name and Horizontal Nav
+    
+            New-UDRow -Endpoint {
+                New-UDColumn -Content {
+                    New-UDHeading -Text "Updates (In Progress)" -Size 3
+                    New-UDHeading -Text "NOTE: Domain Group Policy trumps controls with an asterisk (*)" -Size 6
+                }
+            }
+            New-UDRow -Endpoint {
+                New-UDColumn -Size 12 -Content {
+                    New-UDCollapsible -Items {
+                        New-UDCollapsibleItem -Title "More Tools" -Icon laptop -Active -Endpoint {
+                            New-UDRow -Endpoint {
+                                foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
+                                    New-UDColumn -Endpoint {
+                                        New-UDLink -Text $ToolName -Url "/$ToolName/$RemoteHost" -Icon dashboard
+                                    }
+                                }
+                                #New-UDCard -Links $Links
+                            }
+                        }
+                    }
+                }
+            }
+    
+            #endregion >> Page Name and Horizontal Nav
+    
+            #region >> Setup LiveData
+    
+            <#
+            New-UDColumn -Endpoint {
+                $PUDRSSyncHT = $global:PUDRSSyncHT
+    
+                $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
+    
+                $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+    
+                # Remove Existing Runspace for LiveDataRSInfo if it exists as well as the PSSession Runspace within
+                if ($PUDRSSyncHT."$RemoteHost`Info".Updates.LiveDataRSInfo -ne $null) {
+                    $PSSessionRunspacePrep = @(
+                        Get-Runspace | Where-Object {
+                            $_.RunspaceIsRemote -and
+                            $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".Updates.LiveDataRSInfo.ThisRunspace.Id -and
+                            $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
+                        }
+                    )
+                    if ($PSSessionRunspacePrep.Count -gt 0) {
+                        $PSSessionRunspace = $($PSSessionRunspacePrep | Sort-Object -Property Id)[0]
+                    }
+                    $PSSessionRunspace.Dispose()
+                    $PUDRSSyncHT."$RemoteHost`Info".Updates.LiveDataRSInfo.ThisRunspace.Dispose()
+                }
+    
+                # Create a Runspace that creates a PSSession to $RemoteHost that is used once every second to re-gather data from $RemoteHost
+                $GetUpdatesOverviewFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-UpdatesOverview" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                $GetUpdatesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-Updates" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                $LiveDataFunctionsToLoad = @($GetUpdatesOverviewFunc,$GetUpdatesFunc)
+                
+                # The New-Runspace function handles scope for you behind the scenes, so just pretend that everything within -ScriptBlock {} is in the current scope
+                New-Runspace -RunspaceName "Updates$RemoteHost`LiveData" -ScriptBlock {
+                    $PUDRSSyncHT = $global:PUDRSSyncHT
+                
+                    $LiveDataPSSession = New-PSSession -Name "Updates$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
+    
+                    # Load needed functions in the PSSession
+                    Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
+                        $using:LiveDataFunctionsToLoad | foreach {Invoke-Expression $_}
+                    }
+    
+                    $RSLoopCounter = 0
+    
+                    while ($PUDRSSyncHT) {
+                        # $LiveOutput is a special ArrayList created and used by the New-Runspace function that collects output as it occurs
+                        # We need to limit the number of elements this ArrayList holds so we don't exhaust memory
+                        if ($LiveOutput.Count -gt 1000) {
+                            $LiveOutput.RemoveRange(0,800)
+                        }
+    
+                        # Stream Results to $PUDRSSyncHT."$RemoteHost`Info".Updates.LiveDataRSInfo.LiveOutput
+                        Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
+                            # Place most resource intensive operations first
+    
+                            # Operations that you only want running once every 30 seconds go within this 'if; block
+                            # Adjust the timing as needed with deference to $RemoteHost resource efficiency.
+                            if ($using:RSLoopCounter -eq 0 -or $($using:RSLoopCounter % 30) -eq 0) {
+                                #@{AllUpdatess = Get-Updates}
+                            }
+    
+                            # Operations that you want to run once every second go here
+                            @{UpdatesSummary = Get-UpdatesOverview -channel "Microsoft-Windows-UpdateservicesClient-Lifecycle-System*"}
+    
+                        } | foreach {$null = $LiveOutput.Add($_)}
+    
+                        $RSLoopCounter++
+    
+                        [GC]::Collect()
+    
+                        Start-Sleep -Seconds 1
+                    }
+                }
+                # The New-Runspace function outputs / continually updates a Global Scope variable called $global:RSSyncHash. The results of
+                # the Runspace we just created can be found in $global:RSSyncHash's "Updates$RemoteHost`LiveDataResult" Property - which is just
+                # the -RunspaceName value plus the word 'Info'. By setting $PUDRSSyncHT."$RemoteHost`Info".Updates.LiveDataRSInfo equal to
+                # $RSSyncHash."Updates$RemoteHost`LiveDataResult", we can now reference $PUDRSSyncHT."$RemoteHost`Info".Updates.LiveDataRSInfo.LiveOutput
+                # to get the latest data from $RemoteHost.
+                $PUDRSSyncHT."$RemoteHost`Info".Updates.LiveDataRSInfo = $RSSyncHash."Updates$RemoteHost`LiveDataResult"
+            }
+            #>
+    
+            #endregion >> Setup LiveData
+    
+            #region >> Controls
+    
+            # Static Data Element Example
+    
+            <#
+                PS C:\Users\zeroadmin> $testWUAHist[0]
+    
+                Result              : Succeeded
+                UpdateId            : 7aea2f20-80a5-44b7-aab1-f1f491651c13
+                RevisionNumber      : 200
+                Product             : Windows Defender
+                Operation           : 1
+                ResultCode          : 2
+                HResult             : 0
+                Date                : 8/29/2018 9:36:50 PM
+                UpdateIdentity      : System.__ComObject
+                Title               : Definition Update for Windows Defender Antivirus - KB2267602 (Definition 1.275.400.0)
+                Description         : Install this update to revise the definition files that are used to detect viruses, spyware, and other potentially unwanted software. Once you have installed this item, it cannot be removed.
+                UnmappedResultCode  : 0
+                ClientApplicationID : Windows Defender (77BDAF73-B396-481F-9042-AD358843EC24)
+                ServerSelection     : 2
+                ServiceID           :
+                UninstallationSteps : System.__ComObject
+                UninstallationNotes :
+                SupportUrl          : https://go.microsoft.com/fwlink/?LinkId=52661
+                Categories          : System.__ComObject
+    
+    
+                PS C:\Users\zeroadmin> $testPendUp[0]
+    
+                Computername     : ZEROTESTING
+                Title            : Windows Malicious Software Removal Tool x64 - August 2018 (KB890830)
+                KB               : 890830
+                SecurityBulletin :
+                MsrcSeverity     :
+                IsDownloaded     : False
+                Url              : http://support.microsoft.com/kb/890830
+                Categories       : {Update Rollups, Windows Server 2016}
+                BundledUpdates   : @{Title=Windows Malicious Software Removal Tool - August 2018 (KB890830) Multi-Lingual - Delta 5;
+                                DownloadUrl=http://download.windowsupdate.com/c/msdownload/update/software/uprl/2018/08/windows-kb890830-x64-v5.63-delta_6ba4a8c5a8bd8441bbbca3dcbf38f337fefc1a82.exe}
+            
+            #>
+    
+            $UpdatesHistoryProperties = @("Title","Result","Product","KB","Date","Description","SupportUrl")
+            $UpdatesHistoryUDGridSplatParams = @{
+                Title           = "Updates History"
+                Headers         = $UpdatesHistoryProperties
+                Properties      = $UpdatesHistoryProperties
+                PageSize        = 10
+            }
+            New-UDGrid @UpdatesHistoryUDGridSplatParams -Endpoint {
+                $PUDRSSyncHT = $global:PUDRSSyncHT
+    
+                $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+    
+                $GetWUAHistoryFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-WUAHistory" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                    Invoke-Expression $using:GetWUAHistoryFunc
+                    
+                    $UpdatesHistory = Get-WUAHistory
+    
+                    [pscustomobject]@{
+                        UpdatesHistory      = $UpdatesHistory
+                    }
+                }
+                $Session:UpdatesHistoryStatic = foreach ($obj in $StaticInfo.UpdatesHistory) {
+                    [pscustomobject]@{
+                        Title       = $obj.Title
+                        Result      = $obj.Result
+                        Product     = $obj.Product
+                        KB          = $($obj.Title | Select-String -Pattern "KB[0-9]+").Matches.Value
+                        Date        = Get-Date $obj.Date -Format MM-dd-yy_hh:mm:sstt
+                        Description = $obj.Description
+                        SupportUrl  = $obj.SupportUrl
+                    }
+                }
+                $PUDRSSyncHT."$RemoteHost`Info".Updates.UpdatesHistory = $Session:UpdatesHistoryStatic
+                
+                $Session:UpdatesHistoryStatic | Out-UDGridData
+            }
+    
+            $PendingUpdatesProperties = @("Title","KB","MsrcSeverity","IsDownloaded","Url","Categories")
+            $PendingUpdatesUDGridSplatParams = @{
+                Title           = "Pending Updates"
+                Headers         = $PendingUpdatesProperties
+                Properties      = $PendingUpdatesProperties
+                PageSize        = 10
+            }
+            New-UDGrid @PendingUpdatesUDGridSplatParams -Endpoint {
+                $PUDRSSyncHT = $global:PUDRSSyncHT
+    
+                $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+    
+                $GetPendingUpdatesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-PendingUpdates" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                    Invoke-Expression $using:GetPendingUpdatesFunc
+                    
+                    $PendingUpdates = Get-PendingUpdates
+    
+                    [pscustomobject]@{
+                        PendingUpdates      = $PendingUpdates
+                    }
+                }
+                $Session:PendingUpdatesStatic = foreach ($obj in $StaticInfo.PendingUpdates) {
+                    [pscustomobject]@{
+                        Title               = $obj.Title
+                        KB                  = 'KB' + $obj.KB
+                        MsrcSeverity        = $obj.MsrcSeverity
+                        IsDownloaded        = $obj.IsDownloaded
+                        Url                 = $obj.Url
+                        Categories          = $obj.Categories -join ", "
+                    }
+                }
+                $PUDRSSyncHT."$RemoteHost`Info".Updates.PendingUpdates = $Session:PendingUpdatesStatic
+                
+                $Session:PendingUpdatesStatic | Out-UDGridData
+            }
+    
+            # Live Data Element Example
+    
+            # Remove the Loading  Indicator
+            $null = $Session:UpdatesPageLoadingTracker.Add("FinishedLoading")
+    
+            #endregion >> Controls
+        }
+    }
+    $Page = New-UDPage -Url "/Updates/:RemoteHost" -Endpoint $UpdatesPageContent
+    $null = $Pages.Add($Page)
+    
     $UsersAndGroupsPageContent = {
         param($RemoteHost)
     
@@ -13136,6 +13641,50 @@ function Get-StorageVolume {
 }
 
 
+# From: https://stackoverflow.com/a/41626130
+function Get-WuaHistory {
+    #region >> Helper Functions
+
+    function Convert-WuaResultCodeToName {
+        param(
+            [Parameter(Mandatory=$True)]
+            [int]$ResultCode
+        )
+    
+        $Result = $ResultCode
+        switch($ResultCode) {
+          2 {$Result = "Succeeded"}
+          3 {$Result = "Succeeded With Errors"}
+          4 {$Result = "Failed"}
+        }
+    
+        return $Result
+    }
+
+    #endregion >> Helper Functions
+
+    # Get a WUA Session
+    $session = (New-Object -ComObject 'Microsoft.Update.Session')
+
+    # Query the latest 1000 History starting with the first recordp     
+    $history = $session.QueryHistory("",0,1000) | foreach {
+        $Result = Convert-WuaResultCodeToName -ResultCode $_.ResultCode
+
+        # Make the properties hidden in com properties visible.
+        $_ | Add-Member -MemberType NoteProperty -Value $Result -Name Result
+        $Product = $_.Categories | Where-Object {$_.Type -eq 'Product'} | Select-Object -First 1 -ExpandProperty Name
+        $_ | Add-Member -MemberType NoteProperty -Value $_.UpdateIdentity.UpdateId -Name UpdateId
+        $_ | Add-Member -MemberType NoteProperty -Value $_.UpdateIdentity.RevisionNumber -Name RevisionNumber
+        $_ | Add-Member -MemberType NoteProperty -Value $Product -Name Product -PassThru
+
+        Write-Output $_
+    } 
+
+    #Remove null records and only return the fields we want
+    $history | Where-Object {![String]::IsNullOrWhiteSpace($_.title)}
+}
+
+
 <#
     
     .SYNOPSIS
@@ -14208,6 +14757,7 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
     ${Function:Get-LocalUserBelongGroups}.Ast.Extent.Text
     ${Function:Get-LocalUsers}.Ast.Extent.Text
     ${Function:Get-Networks}.Ast.Extent.Text
+    ${Function:Get-PendingUpdates}.Ast.Extent.Text
     ${Function:Get-Processes}.Ast.Extent.Text
     ${Function:Get-PUDAdminCenter}.Ast.Extent.Text
     ${Function:Get-RegistrySubKeys}.Ast.Extent.Text
@@ -14218,6 +14768,7 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
     ${Function:Get-StorageDisk}.Ast.Extent.Text
     ${Function:Get-StorageFileShare}.Ast.Extent.Text
     ${Function:Get-StorageVolume}.Ast.Extent.Text
+    ${Function:Get-WUAHistory}.Ast.Extent.Text
     ${Function:New-EnvironmentVariable}.Ast.Extent.Text
     ${Function:New-Runspace}.Ast.Extent.Text
     ${Function:Remove-EnvironmentVariable}.Ast.Extent.Text
@@ -14231,8 +14782,8 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUo0CpFscPRtYfngI64X4fJCRn
-# PYCgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUAAkqDdOUDAiVBymnr+L2ElXi
+# oFugggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -14289,11 +14840,11 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFDzfa6/yd6ED+dW7
-# ymwE1grtGJEsMA0GCSqGSIb3DQEBAQUABIIBACdNE8YmwkeIdNtc872cf8xZRtc4
-# dLU1kDDA0mtVX/VKeVQMLKD4rtTOMl4rXxqnSLeId9KX3v0hYL2BonyZ/PtKeRlh
-# +VonPFiUwvK8ANbvCNCi09qG2pcsx0QZHrZoWTK4IFHwmsKxImpsTrvBMcY6bzgQ
-# mUeiOGnhq9V5Z2LVW8DuCY7eHU4rfylkupskeltfYj+Ii/wq/n0g92N9yBEhe122
-# 0qL48u6ADh9j2lpNw0ltRn4ig+Z3ZARGXuBg9SmOGf3eAh0bWUDsEYy6BbKM+q4t
-# mKxD0rou8Pe7VXRz8nfumj4PMgfm9d0lg7NAnK0MLJARvuKMdEyl15XPp8M=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFMh3aJ0dumnjLVhS
+# 2y7TdpJuDWolMA0GCSqGSIb3DQEBAQUABIIBAMMPJRQbe5MkQ44Ulywf1t5qOk+L
+# zL9kAF/HkBLyJJui52QvX/vSsxcwaqt3eA+76QGGT21pZ+ibZg4CnECfig9hJZG/
+# sKp0hcvkN5hnbmrlfxfPRy+x8uZ87102He3SSncOKGqzial5tpnI0y5kOYIo4nJY
+# XgNxAGHGj/TeRKrjW8cT/if2CrN9AMo4ESJKaKUQYgFUqNEF0vZsvr82OaaDNXEN
+# Z0e/MPvE9jhqRUnkbkvirmGePfqqKgRrQpC440c/bvs9CzZEur+H/PomrUzjDvQg
+# EuqISEIhshSyR6/1cQcE5s0kNTBdon/Hjw7+SbqBfq7GJ2NjpCEQiuCXXmM=
 # SIG # End signature block

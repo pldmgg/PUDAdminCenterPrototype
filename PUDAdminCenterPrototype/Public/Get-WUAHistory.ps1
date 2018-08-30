@@ -1,64 +1,51 @@
-[System.Collections.ArrayList]$script:FunctionsForSBUse = @(
-    ${Function:AddWinRMTrustedHost}.Ast.Extent.Text
-    ${Function:AddWinRMTrustLocalHost}.Ast.Extent.Text
-    ${Function:EnableWinRMViaRPC}.Ast.Extent.Text
-    ${Function:GetComputerObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetDomainController}.Ast.Extent.Text
-    ${Function:GetElevation}.Ast.Extent.Text
-    ${Function:GetGroupObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetModuleDependencies}.Ast.Extent.Text
-    ${Function:GetNativePath}.Ast.Extent.Text
-    ${Function:GetUserObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetWorkingCredentials}.Ast.Extent.Text
-    ${Function:InstallFeatureDism}.Ast.Extent.Text
-    ${Function:InvokeModuleDependencies}.Ast.Extent.Text
-    ${Function:InvokePSCompatibility}.Ast.Extent.Text
-    ${Function:ManualPSGalleryModuleInstall}.Ast.Extent.Text
-    ${Function:NewUniqueString}.Ast.Extent.Text
-    ${Function:ResolveHost}.Ast.Extent.Text
-    ${Function:TestIsValidIPAddress}.Ast.Extent.Text
-    ${Function:TestLDAP}.Ast.Extent.Text
-    ${Function:TestPort}.Ast.Extent.Text
-    ${Function:UnzipFile}.Ast.Extent.Text
-    ${Function:Get-CertificateOverview}.Ast.Extent.Text
-    ${Function:Get-Certificates}.Ast.Extent.Text
-    ${Function:Get-CimPnpEntity}.Ast.Extent.Text
-    ${Function:Get-EnvironmentVariables}.Ast.Extent.Text
-    ${Function:Get-EventLogSummary}.Ast.Extent.Text
-    ${Function:Get-FirewallProfile}.Ast.Extent.Text
-    ${Function:Get-FirewallRules}.Ast.Extent.Text
-    ${Function:Get-LocalGroups}.Ast.Extent.Text
-    ${Function:Get-LocalGroupUsers}.Ast.Extent.Text
-    ${Function:Get-LocalUserBelongGroups}.Ast.Extent.Text
-    ${Function:Get-LocalUsers}.Ast.Extent.Text
-    ${Function:Get-Networks}.Ast.Extent.Text
-    ${Function:Get-PendingUpdates}.Ast.Extent.Text
-    ${Function:Get-Processes}.Ast.Extent.Text
-    ${Function:Get-PUDAdminCenter}.Ast.Extent.Text
-    ${Function:Get-RegistrySubKeys}.Ast.Extent.Text
-    ${Function:Get-RegistryValues}.Ast.Extent.Text
-    ${Function:Get-RemoteDesktop}.Ast.Extent.Text
-    ${Function:Get-ScheduledTasks}.Ast.Extent.Text
-    ${Function:Get-ServerInventory}.Ast.Extent.Text
-    ${Function:Get-StorageDisk}.Ast.Extent.Text
-    ${Function:Get-StorageFileShare}.Ast.Extent.Text
-    ${Function:Get-StorageVolume}.Ast.Extent.Text
-    ${Function:Get-WUAHistory}.Ast.Extent.Text
-    ${Function:New-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:New-Runspace}.Ast.Extent.Text
-    ${Function:Remove-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:Set-ComputerIdentification}.Ast.Extent.Text
-    ${Function:Set-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:Set-RemoteDesktop}.Ast.Extent.Text
-    ${Function:Start-DiskPerf}.Ast.Extent.Text
-    ${Function:Stop-DiskPerf}.Ast.Extent.Text
-)
+# From: https://stackoverflow.com/a/41626130
+function Get-WuaHistory {
+    #region >> Helper Functions
+
+    function Convert-WuaResultCodeToName {
+        param(
+            [Parameter(Mandatory=$True)]
+            [int]$ResultCode
+        )
+    
+        $Result = $ResultCode
+        switch($ResultCode) {
+          2 {$Result = "Succeeded"}
+          3 {$Result = "Succeeded With Errors"}
+          4 {$Result = "Failed"}
+        }
+    
+        return $Result
+    }
+
+    #endregion >> Helper Functions
+
+    # Get a WUA Session
+    $session = (New-Object -ComObject 'Microsoft.Update.Session')
+
+    # Query the latest 1000 History starting with the first recordp     
+    $history = $session.QueryHistory("",0,1000) | foreach {
+        $Result = Convert-WuaResultCodeToName -ResultCode $_.ResultCode
+
+        # Make the properties hidden in com properties visible.
+        $_ | Add-Member -MemberType NoteProperty -Value $Result -Name Result
+        $Product = $_.Categories | Where-Object {$_.Type -eq 'Product'} | Select-Object -First 1 -ExpandProperty Name
+        $_ | Add-Member -MemberType NoteProperty -Value $_.UpdateIdentity.UpdateId -Name UpdateId
+        $_ | Add-Member -MemberType NoteProperty -Value $_.UpdateIdentity.RevisionNumber -Name RevisionNumber
+        $_ | Add-Member -MemberType NoteProperty -Value $Product -Name Product -PassThru
+
+        Write-Output $_
+    } 
+
+    #Remove null records and only return the fields we want
+    $history | Where-Object {![String]::IsNullOrWhiteSpace($_.title)}
+}
 
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUAsL9WuyxQGtENPIrLjeCSwuY
-# 2xSgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZUN0YKTWFbqKg2IERG19U7Gp
+# 9bKgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -115,11 +102,11 @@
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFGutZz1SRGSp2zae
-# WML8NN+yypwxMA0GCSqGSIb3DQEBAQUABIIBAKN8f1wXJzJtWsBe2tifdppu9XAe
-# hgUbP6YyqI5ZcsIK6+wAr3PSH1KnLc08davqKowe9VPeKslVA2dBuEBmGL3lFDy2
-# Ipqnxl995xAbrVb3ZMwLevduV+DsK41nTkjVxU4NeheFwsa12ARvUVZLPhhMtHHo
-# fevicWKM4MTOwlZTs75Lvr9ZB2q2VqxiUh9jVVF2Dy5yL36rDRMrLQBIL4bsWABY
-# FtYGHIm/j4z1CaskWggzY4LRgiD7n/pUyXHD4SvCJGepRu6SMRm+aUhIuV7KVAFk
-# cqp1PBLAB767uvz2LqxYnZgemlfoWltzBOr0mHHVKS5p2XQdffXcQ49QiMc=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFIJNMYLxHOAV+sSw
+# B5CCjvlCpVPaMA0GCSqGSIb3DQEBAQUABIIBALPzd3K7z6MUgnxn212xZYxHKp6K
+# 3nXb1+Sg5U5sJ3DcgamQ9P6S7zhdOR3gpC+reA3BfuedRopx+7CSQr+syfQ4C+Fb
+# uZRbnQFcvAqqx0xvRDYlvaeyVHj6R2mCJrwzlpyl+GtCIkiATJWWEtYw1/UqPD57
+# 9DMYTTo/x2hoxriL+Rzu7HixxsCJoP8x2iB76M8ZBNkkzcaJURn/MrTCTjlGFeP9
+# FMlHLCoNmO4WnHRn4r6HNS1uhcyC5h/455vR8h4XaFTUC+eoQn/KmIaOW6/l1Hx6
+# aVDz6+8LZDQH36AI00M2WaMO8O+j/EvmehQMvyvsQPauPYlUkzQPyNmVSww=
 # SIG # End signature block
