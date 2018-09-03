@@ -14,8 +14,10 @@
         DependencyType  = 'PSGalleryNuget'
         Version         = 'Latest'
     }
+    <#
     'UniversalDashboard.Community' = @{
         DependencyType  = 'PSGalleryNuget'
         Version         = 'PreRelease'
     }
+    #>
 }

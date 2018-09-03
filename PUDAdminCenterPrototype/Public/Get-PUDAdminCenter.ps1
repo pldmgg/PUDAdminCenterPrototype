@@ -153,7 +153,9 @@ function Get-PUDAdminCenter {
         try {
             $RemoteHostNetworkInfo = ResolveHost -HostNameOrIP $HName -ErrorAction Stop
 
-            $null = $InitialRemoteHostList.Add($RemoteHostNetworkInfo)
+            if ($InitialRemoteHostList.FQDN -notcontains $RemoteHostNetworkInfo.FQDN) {
+                $null = $InitialRemoteHostList.Add($RemoteHostNetworkInfo)
+            }
         }
         catch {
             continue
@@ -3282,8 +3284,298 @@ function Get-PUDAdminCenter {
                         }
                     }
                 }
-                # Edit Computer ID
+    
+                # Disable CredSSP
                 New-UDColumn -Size 3 -Endpoint {
+                    $CollapsibleId = $RemoteHost + "DisableCredSSP"
+                    New-UDCollapsible -Id $CollapsibleId -Items {
+                        New-UDCollapsibleItem -Title "Disable CredSSP*" -Icon laptop -Endpoint {
+                            New-UDElement -Id "DisableCredSSPMsg" -Tag div -EndPoint {
+                                if ($Session:DisableCredSSP) {
+                                    New-UDHeading -Text $Session:DisableCredSSPMsg -Size 6
+                                }
+                            }
+                            New-UDButton -Text "Disable" -OnClick {
+                                $Session:DisableCredSSPMsg = $null
+                                $Session:DisableCredSSP = $True
+    
+                                $CredSSPChanges = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                    $Output = @{}
+                                    $GetCredSSPStatus = Get-WSManCredSSP
+                                    if ($GetCredSSPStatus -match "The machine is configured to allow delegating fresh credentials.") {
+                                        Disable-WSManCredSSP -Role Client
+                                        $Output.Add("CredSSPClientChange",$True)
+                                    }
+                                    else {
+                                        $Output.Add("CredSSPClientChange",$False)
+                                    }
+                                    if ($GetCredSSPStatus -match "This computer is configured to receive credentials from a remote client computer.") {
+                                        Disable-WSManCredSSP -Role Server
+                                        $Output.Add("CredSSPServerChange",$True)
+                                    }
+                                    else {
+                                        $Output.Add("CredSSPServerChange",$False)
+                                    }
+                                    [PSCustomObject]$Output
+                                }
+    
+                                [System.Collections.ArrayList]$ToastMessage = @()
+                                if ($CredSSPChanges.CredSSPClientChange -eq $True) {
+                                    $null = $ToastMessage.Add("Disabled CredSSP Client.")
+                                }
+                                else {
+                                    $null = $ToastMessage.Add("CredSSP Client is already disabled.")
+                                }
+                                if ($CredSSPChanges.CredSSPServerChange -eq $True) {
+                                    $null = $ToastMessage.Add("Disabled CredSSP Server.")
+                                }
+                                else {
+                                    $null = $ToastMessage.Add("CredSSP Server is already disabled.")
+                                }
+                                $Session:DisableCredSSPMsg = $ToastMessage -join " "
+    
+                                Sync-UDElement -Id "DisableCredSSPMsg"
+                            }
+    
+                            <#
+                            New-UDInput -SubmitText "Disable CredSSP" -Id "DisableCredSSPForm" -Content {
+                                $HName = $PUDRSSyncHT."$RemoteHost`Info".Overview.ServerInventoryStatic.ComputerSystem.Name
+                                New-UDInputField -Name "Disable_CredSSP" -Type select -Values @($HName) -DefaultValue $HName
+                            } -Endpoint {
+                                param($Disable_CredSSP)
+    
+                                #region >> Check Connection
+    
+                                $PUDRSSyncHT = $global:PUDRSSyncHT
+    
+                                $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+    
+                                #endregion >> Check Connection
+    
+                                #region >> Main
+    
+                                $CredSSPChanges = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                    $Output = @{}
+                                    $GetCredSSPStatus = Get-WSManCredSSP
+                                    if ($GetCredSSPStatus -match "The machine is configured to allow delegating fresh credentials.") {
+                                        Disable-WSManCredSSP -Role Client
+                                        $Output.Add("CredSSPClientChange",$True)
+                                    }
+                                    else {
+                                        $Output.Add("CredSSPClientChange",$False)
+                                    }
+                                    if ($GetCredSSPStatus -match "This computer is configured to receive credentials from a remote client computer.") {
+                                        Disable-WSManCredSSP -Role Server
+                                        $Output.Add("CredSSPServerChange",$True)
+                                    }
+                                    else {
+                                        $Output.Add("CredSSPServerChange",$False)
+                                    }
+                                    [PSCustomObject]$Output
+                                }
+    
+                                [System.Collections.ArrayList]$ToastMessage = @()
+                                if ($CredSSPChanges.CredSSPClientChange -eq $True) {
+                                    $null = $ToastMessage.Add("Disabled CredSSP Client.")
+                                }
+                                else {
+                                    $null = $ToastMessage.Add("CredSSP Client is already disabled.")
+                                }
+                                if ($CredSSPChanges.CredSSPServerChange -eq $True) {
+                                    $null = $ToastMessage.Add("Disabled CredSSP Server.")
+                                }
+                                else {
+                                    $null = $ToastMessage.Add("CredSSP Server is already disabled.")
+                                }
+                                $ToastMessageFinal = $ToastMessage -join " "
+    
+                                New-UDInputAction -Toast $ToastMessageFinal -Duration 2000
+                                Start-Sleep -Seconds 2
+    
+                                #Sync-UDElement -Id 'TrackingTable'
+    
+                                #New-UDInputAction -RedirectUrl "/Overview/$RemoteHost"
+    
+                                Invoke-UDRedirect -Url "/Overview/$RemoteHost"
+    
+                                #endregion >> Main
+                            }
+                            #>
+                        }
+                    }
+                }
+            }
+            New-UDRow -Endpoint {
+                # Remote Desktop
+                New-UDColumn -Size 3 -Endpoint {
+                    $CollapsibleId = $RemoteHost + "RemoteDesktop"
+                    New-UDCollapsible -Id $CollapsibleId -Items {
+                        New-UDCollapsibleItem -Title "Remote Desktop*" -Icon laptop -Endpoint {
+                            New-UDRow -Endpoint {
+                                New-UDColumn -Endpoint {
+                                    New-UDElement -Id "EnableRemoteDesktopMsg" -Tag div -EndPoint {
+                                        if ($Session:EnableRemoteDesktop) {
+                                            New-UDHeading -Text $Session:EnableRemoteDesktopMsg -Size 6
+                                        }
+                                    }
+                                    New-UDButton -Text "Enable" -OnClick {
+                                        $Session:EnableRemoteDesktopMsg = "Enabling Remote Desktop on $($RemoteHost.ToUpper())..."
+                                        $Session:EnableRemoteDesktop = $True
+                                        Sync-UDElement -Id "EnableRemoteDesktopMsg"
+    
+                                        $SetRemoteDesktopSplatParams = @{
+                                            AllowRemoteDesktop        = $True
+                                            AllowRemoteDesktopWithNLA = $True
+                                        }
+                                        $SetRDFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Set-RemoteDesktop" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                                        $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                            Invoke-Expression $using:SetRDFunc
+    
+                                            $SplatParams = $args[0]
+                                            Set-RemoteDesktop @SplatParams
+                                        } -ArgumentList $SetRemoteDesktopSplatParams
+                                    }
+                                }
+                                
+                                New-UDColumn -Endpoint {
+                                    New-UDElement -Id "DisableRemoteDesktopMsg" -Tag div -EndPoint {
+                                        if ($Session:DisableRemoteDesktop) {
+                                            New-UDHeading -Text $Session:DisableRemoteDesktopMsg -Size 6
+                                        }
+                                    }
+                                    New-UDButton -Text "Disable" -OnClick {
+                                        $Session:DisableRemoteDesktopMsg = "Disabling Remote Desktop on $($RemoteHost.ToUpper())..."
+                                        $Session:DisableRemoteDesktop = $True
+                                        Sync-UDElement -Id "DisableRemoteDesktopMsg"
+    
+                                        $SetRemoteDesktopSplatParams = @{
+                                            AllowRemoteDesktop        = $False
+                                            AllowRemoteDesktopWithNLA = $False
+                                        }
+                                        $SetRDFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Set-RemoteDesktop" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                                        $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                            Invoke-Expression $using:SetRDFunc
+    
+                                            $SplatParams = $args[0]
+                                            Set-RemoteDesktop @SplatParams
+                                        } -ArgumentList $SetRemoteDesktopSplatParams
+                                    }
+    
+                                    <#
+                                    New-UDInput -SubmitText "Submit" -Id "RemoteDesktopForm" -Content {
+                                        $GetRDFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RemoteDesktop" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                                        $RemoteDesktopSettings = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                            Invoke-Expression $using:GetRDFunc
+                                            Get-RemoteDesktop
+                                        } -HideComputerName
+                                        $DefaultValue = if ($RemoteDesktopSettings.allowRemoteDesktop) {"Enabled"} else {"Disabled"}
+                                        New-UDInputField -Name "Remote_Desktop_Setting" -Type select -Values @("Enabled","Disabled") -DefaultValue $DefaultValue
+                                    } -Endpoint {
+                                        param($Remote_Desktop_Setting)
+    
+                                        #region >> Check Connection
+    
+                                        $PUDRSSyncHT = $global:PUDRSSyncHT
+    
+                                        $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+    
+                                        $SetRDFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Set-RemoteDesktop" -and $_ -notmatch "function Get-PUDAdminCenter"}
+    
+                                        #endregion >> Check Connection
+    
+                                        #region >> Main
+    
+                                        if ($Remote_Desktop_Setting -eq "Enabled") {
+                                            $SetRemoteDesktopSplatParams = @{
+                                                AllowRemoteDesktop        = $True
+                                                AllowRemoteDesktopWithNLA = $True
+                                            }
+                                            $ToastMessage = "Remote Desktop Enabled for $RemoteHost!"
+                                        }
+                                        else {
+                                            $SetRemoteDesktopSplatParams = @{
+                                                AllowRemoteDesktop        = $False
+                                                AllowRemoteDesktopWithNLA = $False
+                                            }
+                                            $ToastMessage = "Remote Desktop Disabled for $RemoteHost!"
+                                        }
+    
+                                        try {
+                                            $SetRemoteDesktopResult = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                                Set-ItemProperty -Path "HKLM:\SYSTEM\Currentcontrolset\control\Terminal Server" -Name TSServerDrainMode -Value 1
+                                            } -ArgumentList $SetRemoteDesktopSplatParams
+    
+                                            New-UDInputAction -Toast $ToastMessage -Duration 2000
+                                        }
+                                        catch {
+                                            New-UDInputAction -Toast $_.Exception.Message -Duration 2000
+                                        }
+                                        Start-Sleep -Seconds 2
+    
+                                        Invoke-UDRedirect -Url "/Overview/$RemoteHost"
+    
+                                        #region >> Main
+                                    }
+                                    #>
+                                }
+                            }
+                        }
+                    }
+                }
+    
+                # Enable SSH
+                New-UDColumn -Size 3 -Endpoint {
+                    $CollapsibleId = $RemoteHost + "SSH"
+                    New-UDCollapsible -Id $CollapsibleId -Items {
+                        New-UDCollapsibleItem -Title "SSH" -Icon laptop -Endpoint {
+                            New-UDRow -Endpoint {
+                                New-UDColumn -Endpoint {
+                                    New-UDElement -Id "EnableSSHMsg" -Tag div -EndPoint {
+                                        if ($Session:EnableSSH) {
+                                            New-UDHeading -Text $Session:EnableSSHMsg -Size 6
+                                        }
+                                    }
+                                    New-UDButton -Text "Enable" -OnClick {
+                                        $Session:EnableSSHMsg = "Enabling SSH and SSHD on $($RemoteHost.ToUpper())..."
+                                        $Session:EnableSSH = $True
+                                        Sync-UDElement -Id "EnableSSHMsg"
+    
+    
+                                        $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                            if ($(Get-Module -ListAvailable).Name -notcontains "WinSSH") {Install-Module WinSSH}
+                                            if ($(Get-Module "WinSSH").Name -notcontains "WinSSH") {Import-Module WinSSH}
+    
+                                            Install-WinSSH -GiveWinSSHBinariesPathPriority -ConfigureSSHDOnLocalHost -DefaultShell pwsh
+                                        }
+                                    }
+                                }
+                                
+                                New-UDColumn -Endpoint {
+                                    New-UDElement -Id "DisableSSHMsg" -Tag div -EndPoint {
+                                        if ($Session:DisableSSH) {
+                                            New-UDHeading -Text $Session:DisableSSHMsg -Size 6
+                                        }
+                                    }
+                                    New-UDButton -Text "Disable" -OnClick {
+                                        $Session:DisableSSHMsg = "Disabling SSH and SSHD on $($RemoteHost.ToUpper())..."
+                                        $Session:DisableSSH = $True
+                                        Sync-UDElement -Id "DisableSSHMsg"
+    
+                                        $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                            if ($(Get-Module -ListAvailable).Name -notcontains "WinSSH") {Install-Module WinSSH}
+                                            if ($(Get-Module "WinSSH").Name -notcontains "WinSSH") {Import-Module WinSSH}
+    
+                                            Uninstall-WinSSH
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+    
+                # Edit Computer ID
+                New-UDColumn -Size 6 -Endpoint {
                     $CollapsibleId = $RemoteHost + "EditComputerIDMenu"
                     New-UDCollapsible -Id $CollapsibleId -Items {
                         New-UDCollapsibleItem -Title "Edit Computer ID" -Icon laptop -Endpoint {
@@ -3761,293 +4053,6 @@ function Get-PUDAdminCenter {
                                 #endregion >> Join Workgroup AND Rename Computer
     
                                 #endregion >> Main
-                            }
-                        }
-                    }
-                }
-            }
-            New-UDRow -Endpoint {
-                # Disable CredSSP
-                New-UDColumn -Size 3 -Endpoint {
-                    $CollapsibleId = $RemoteHost + "DisableCredSSP"
-                    New-UDCollapsible -Id $CollapsibleId -Items {
-                        New-UDCollapsibleItem -Title "Disable CredSSP*" -Icon laptop -Endpoint {
-                            New-UDElement -Id "DisableCredSSPMsg" -Tag div -EndPoint {
-                                if ($Session:DisableCredSSP) {
-                                    New-UDHeading -Text $Session:DisableCredSSPMsg -Size 6
-                                }
-                            }
-                            New-UDButton -Text "Disable" -OnClick {
-                                $Session:DisableCredSSPMsg = $null
-                                $Session:DisableCredSSP = $True
-    
-                                $CredSSPChanges = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                                    $Output = @{}
-                                    $GetCredSSPStatus = Get-WSManCredSSP
-                                    if ($GetCredSSPStatus -match "The machine is configured to allow delegating fresh credentials.") {
-                                        Disable-WSManCredSSP -Role Client
-                                        $Output.Add("CredSSPClientChange",$True)
-                                    }
-                                    else {
-                                        $Output.Add("CredSSPClientChange",$False)
-                                    }
-                                    if ($GetCredSSPStatus -match "This computer is configured to receive credentials from a remote client computer.") {
-                                        Disable-WSManCredSSP -Role Server
-                                        $Output.Add("CredSSPServerChange",$True)
-                                    }
-                                    else {
-                                        $Output.Add("CredSSPServerChange",$False)
-                                    }
-                                    [PSCustomObject]$Output
-                                }
-    
-                                [System.Collections.ArrayList]$ToastMessage = @()
-                                if ($CredSSPChanges.CredSSPClientChange -eq $True) {
-                                    $null = $ToastMessage.Add("Disabled CredSSP Client.")
-                                }
-                                else {
-                                    $null = $ToastMessage.Add("CredSSP Client is already disabled.")
-                                }
-                                if ($CredSSPChanges.CredSSPServerChange -eq $True) {
-                                    $null = $ToastMessage.Add("Disabled CredSSP Server.")
-                                }
-                                else {
-                                    $null = $ToastMessage.Add("CredSSP Server is already disabled.")
-                                }
-                                $Session:DisableCredSSPMsg = $ToastMessage -join " "
-    
-                                Sync-UDElement -Id "DisableCredSSPMsg"
-                            }
-    
-                            <#
-                            New-UDInput -SubmitText "Disable CredSSP" -Id "DisableCredSSPForm" -Content {
-                                $HName = $PUDRSSyncHT."$RemoteHost`Info".Overview.ServerInventoryStatic.ComputerSystem.Name
-                                New-UDInputField -Name "Disable_CredSSP" -Type select -Values @($HName) -DefaultValue $HName
-                            } -Endpoint {
-                                param($Disable_CredSSP)
-    
-                                #region >> Check Connection
-    
-                                $PUDRSSyncHT = $global:PUDRSSyncHT
-    
-                                $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
-    
-                                #endregion >> Check Connection
-    
-                                #region >> Main
-    
-                                $CredSSPChanges = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                                    $Output = @{}
-                                    $GetCredSSPStatus = Get-WSManCredSSP
-                                    if ($GetCredSSPStatus -match "The machine is configured to allow delegating fresh credentials.") {
-                                        Disable-WSManCredSSP -Role Client
-                                        $Output.Add("CredSSPClientChange",$True)
-                                    }
-                                    else {
-                                        $Output.Add("CredSSPClientChange",$False)
-                                    }
-                                    if ($GetCredSSPStatus -match "This computer is configured to receive credentials from a remote client computer.") {
-                                        Disable-WSManCredSSP -Role Server
-                                        $Output.Add("CredSSPServerChange",$True)
-                                    }
-                                    else {
-                                        $Output.Add("CredSSPServerChange",$False)
-                                    }
-                                    [PSCustomObject]$Output
-                                }
-    
-                                [System.Collections.ArrayList]$ToastMessage = @()
-                                if ($CredSSPChanges.CredSSPClientChange -eq $True) {
-                                    $null = $ToastMessage.Add("Disabled CredSSP Client.")
-                                }
-                                else {
-                                    $null = $ToastMessage.Add("CredSSP Client is already disabled.")
-                                }
-                                if ($CredSSPChanges.CredSSPServerChange -eq $True) {
-                                    $null = $ToastMessage.Add("Disabled CredSSP Server.")
-                                }
-                                else {
-                                    $null = $ToastMessage.Add("CredSSP Server is already disabled.")
-                                }
-                                $ToastMessageFinal = $ToastMessage -join " "
-    
-                                New-UDInputAction -Toast $ToastMessageFinal -Duration 2000
-                                Start-Sleep -Seconds 2
-    
-                                #Sync-UDElement -Id 'TrackingTable'
-    
-                                #New-UDInputAction -RedirectUrl "/Overview/$RemoteHost"
-    
-                                Invoke-UDRedirect -Url "/Overview/$RemoteHost"
-    
-                                #endregion >> Main
-                            }
-                            #>
-                        }
-                    }
-                }
-                # Remote Desktop
-                New-UDColumn -Size 3 -Endpoint {
-                    $CollapsibleId = $RemoteHost + "RemoteDesktop"
-                    New-UDCollapsible -Id $CollapsibleId -Items {
-                        New-UDCollapsibleItem -Title "Remote Desktop*" -Icon laptop -Endpoint {
-                            New-UDRow -Endpoint {
-                                New-UDColumn -Endpoint {
-                                    New-UDElement -Id "EnableRemoteDesktopMsg" -Tag div -EndPoint {
-                                        if ($Session:EnableRemoteDesktop) {
-                                            New-UDHeading -Text $Session:EnableRemoteDesktopMsg -Size 6
-                                        }
-                                    }
-                                    New-UDButton -Text "Enable" -OnClick {
-                                        $Session:EnableRemoteDesktopMsg = "Enabling Remote Desktop on $($RemoteHost.ToUpper())..."
-                                        $Session:EnableRemoteDesktop = $True
-                                        Sync-UDElement -Id "EnableRemoteDesktopMsg"
-    
-                                        $SetRemoteDesktopSplatParams = @{
-                                            AllowRemoteDesktop        = $True
-                                            AllowRemoteDesktopWithNLA = $True
-                                        }
-                                        $SetRDFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Set-RemoteDesktop" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                        $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                                            Invoke-Expression $using:SetRDFunc
-    
-                                            $SplatParams = $args[0]
-                                            Set-RemoteDesktop @SplatParams
-                                        } -ArgumentList $SetRemoteDesktopSplatParams
-                                    }
-                                }
-                                
-                                New-UDColumn -Endpoint {
-                                    New-UDElement -Id "DisableRemoteDesktopMsg" -Tag div -EndPoint {
-                                        if ($Session:DisableRemoteDesktop) {
-                                            New-UDHeading -Text $Session:DisableRemoteDesktopMsg -Size 6
-                                        }
-                                    }
-                                    New-UDButton -Text "Disable" -OnClick {
-                                        $Session:DisableRemoteDesktopMsg = "Disabling Remote Desktop on $($RemoteHost.ToUpper())..."
-                                        $Session:DisableRemoteDesktop = $True
-                                        Sync-UDElement -Id "DisableRemoteDesktopMsg"
-    
-                                        $SetRemoteDesktopSplatParams = @{
-                                            AllowRemoteDesktop        = $False
-                                            AllowRemoteDesktopWithNLA = $False
-                                        }
-                                        $SetRDFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Set-RemoteDesktop" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                        $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                                            Invoke-Expression $using:SetRDFunc
-    
-                                            $SplatParams = $args[0]
-                                            Set-RemoteDesktop @SplatParams
-                                        } -ArgumentList $SetRemoteDesktopSplatParams
-                                    }
-    
-                                    <#
-                                    New-UDInput -SubmitText "Submit" -Id "RemoteDesktopForm" -Content {
-                                        $GetRDFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RemoteDesktop" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                        $RemoteDesktopSettings = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                                            Invoke-Expression $using:GetRDFunc
-                                            Get-RemoteDesktop
-                                        } -HideComputerName
-                                        $DefaultValue = if ($RemoteDesktopSettings.allowRemoteDesktop) {"Enabled"} else {"Disabled"}
-                                        New-UDInputField -Name "Remote_Desktop_Setting" -Type select -Values @("Enabled","Disabled") -DefaultValue $DefaultValue
-                                    } -Endpoint {
-                                        param($Remote_Desktop_Setting)
-    
-                                        #region >> Check Connection
-    
-                                        $PUDRSSyncHT = $global:PUDRSSyncHT
-    
-                                        $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
-    
-                                        $SetRDFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Set-RemoteDesktop" -and $_ -notmatch "function Get-PUDAdminCenter"}
-    
-                                        #endregion >> Check Connection
-    
-                                        #region >> Main
-    
-                                        if ($Remote_Desktop_Setting -eq "Enabled") {
-                                            $SetRemoteDesktopSplatParams = @{
-                                                AllowRemoteDesktop        = $True
-                                                AllowRemoteDesktopWithNLA = $True
-                                            }
-                                            $ToastMessage = "Remote Desktop Enabled for $RemoteHost!"
-                                        }
-                                        else {
-                                            $SetRemoteDesktopSplatParams = @{
-                                                AllowRemoteDesktop        = $False
-                                                AllowRemoteDesktopWithNLA = $False
-                                            }
-                                            $ToastMessage = "Remote Desktop Disabled for $RemoteHost!"
-                                        }
-    
-                                        try {
-                                            $SetRemoteDesktopResult = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                                                Set-ItemProperty -Path "HKLM:\SYSTEM\Currentcontrolset\control\Terminal Server" -Name TSServerDrainMode -Value 1
-                                            } -ArgumentList $SetRemoteDesktopSplatParams
-    
-                                            New-UDInputAction -Toast $ToastMessage -Duration 2000
-                                        }
-                                        catch {
-                                            New-UDInputAction -Toast $_.Exception.Message -Duration 2000
-                                        }
-                                        Start-Sleep -Seconds 2
-    
-                                        Invoke-UDRedirect -Url "/Overview/$RemoteHost"
-    
-                                        #region >> Main
-                                    }
-                                    #>
-                                }
-                            }
-                        }
-                    }
-                }
-                # Enable SSH
-                New-UDColumn -Size 6 -Endpoint {
-                    $CollapsibleId = $RemoteHost + "SSH"
-                    New-UDCollapsible -Id $CollapsibleId -Items {
-                        New-UDCollapsibleItem -Title "SSH" -Icon laptop -Endpoint {
-                            New-UDRow -Endpoint {
-                                New-UDColumn -Endpoint {
-                                    New-UDElement -Id "EnableSSHMsg" -Tag div -EndPoint {
-                                        if ($Session:EnableSSH) {
-                                            New-UDHeading -Text $Session:EnableSSHMsg -Size 6
-                                        }
-                                    }
-                                    New-UDButton -Text "Enable" -OnClick {
-                                        $Session:EnableSSHMsg = "Enabling SSH and SSHD on $($RemoteHost.ToUpper())..."
-                                        $Session:EnableSSH = $True
-                                        Sync-UDElement -Id "EnableSSHMsg"
-    
-    
-                                        $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                                            if ($(Get-Module -ListAvailable).Name -notcontains "WinSSH") {Install-Module WinSSH}
-                                            if ($(Get-Module "WinSSH").Name -notcontains "WinSSH") {Import-Module WinSSH}
-    
-                                            Install-WinSSH -GiveWinSSHBinariesPathPriority -ConfigureSSHDOnLocalHost -DefaultShell pwsh
-                                        }
-                                    }
-                                }
-                                
-                                New-UDColumn -Endpoint {
-                                    New-UDElement -Id "DisableSSHMsg" -Tag div -EndPoint {
-                                        if ($Session:DisableSSH) {
-                                            New-UDHeading -Text $Session:DisableSSHMsg -Size 6
-                                        }
-                                    }
-                                    New-UDButton -Text "Disable" -OnClick {
-                                        $Session:DisableSSHMsg = "Disabling SSH and SSHD on $($RemoteHost.ToUpper())..."
-                                        $Session:DisableSSH = $True
-                                        Sync-UDElement -Id "DisableSSHMsg"
-    
-                                        $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                                            if ($(Get-Module -ListAvailable).Name -notcontains "WinSSH") {Install-Module WinSSH}
-                                            if ($(Get-Module "WinSSH").Name -notcontains "WinSSH") {Import-Module WinSSH}
-    
-                                            Uninstall-WinSSH
-                                        }
-                                    }
-                                }
                             }
                         }
                     }
@@ -5548,11 +5553,13 @@ function Get-PUDAdminCenter {
     $PSRemotingCredsPageContent = {
         param($RemoteHost)
     
+        New-UDColumn -Endpoint {$Session:ThisRemoteHost = $RemoteHost}
+    
         # Add the SyncHash to the Page so that we can pass output to other pages
-        #$PUDRSSyncHT = $global:PUDRSSyncHT
+        $PUDRSSyncHT = $global:PUDRSSyncHT
     
         # Load PUDAdminCenter Module Functions Within ScriptBlock
-        #$ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
+        $ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
     
         #region >> Ensure $RemoteHost is Valid
     
@@ -5587,6 +5594,17 @@ function Get-PUDAdminCenter {
             New-UDColumn -Endpoint {
                 $Session:PSRemotingPageLoadingTracker = [System.Collections.ArrayList]::new()
                 #$PUDRSSyncHT.PSRemotingPageLoadingTracker = $Session:HomePageLoadingTracker
+                $Session:NoCredsEntered = $False
+                $Session:InvalidSSHPubCert = $False
+                $Session:SSHRemotingMethodNoCert = $False
+                $Session:DomainRemotingMethodNoCreds = $False
+                $Session:LocalRemotingMethodNoCreds = $False
+                $Session:UserNameAndPasswordRequired = $False
+                $Session:BadFormatDomainUserName = $False
+                $Session:EnableWinRMFailure = $False
+                $Session:GetWorkingCredsFailure = $False
+                $Session:InvalidCreds = $False
+                $Session:CheckingCredentials = $False
             }
             New-UDHeading -Text "Set Credentials for $($RemoteHost.ToUpper())" -Size 4
         }
@@ -5598,19 +5616,408 @@ function Get-PUDAdminCenter {
                     New-UDPreloader -Size small
                 }
             }
+    
+            New-UDColumn -AutoRefresh -RefreshInterval 1 -Endpoint {
+                New-UDElement -Id "CheckingCredentials" -Tag div -EndPoint {
+                    if ($Session:CheckingCredentials) {
+                        New-UDHeading -Text "Checking Credentials for $Session:ThisRemoteHost...Please wait..." -Size 5
+                        New-UDPreloader -Size small
+                    }
+                }
+            }
+    
+            New-UDColumn -EndPoint {
+                New-UDElement -Id "ValidateCredsMsg" -Tag div -EndPoint {
+                    #New-UDHeading -Text "RemoteHost is $Session:ThisRemoteHost!" -Size 6 -Color red
+    
+                    if ($Session:NoCredsEntered) {
+                        New-UDHeading -Text "You MUST enter UserName/Password for either a Local User or Domain User with access to $Session:ThisRemoteHost!" -Size 6 -Color red
+                        $Session:NoCredsEntered = $False
+                    }
+                    if ($Session:InvalidSSHPubCert) {
+                        New-UDHeading -Text "The string provided is not a valid SSH Public Certificate!" -Size 6 -Color red
+                        $Session:InvalidSSHPubCert = $False
+                    }
+                    if ($Session:SSHRemotingMethodNoCert) {
+                        New-UDHeading -Text "You indicated that SSH is your Preferred_PSRemotingMethod, however, you did not provide a value for Path_To_SSH_Public_Cert!" -Size 6 -Color red
+                        $Session:SSHRemotingMethodNoCert = $False
+                    }
+                    if ($Session:DomainRemotingMethodNoCreds) {
+                        New-UDHeading -Text "You indicated that 'Domain' was your Preferred_PSRemotingCredType, however, you did not provide Domain Credentials!" -Size 6 -Color red
+                        $Session:DomainRemotingMethodNoCreds = $False
+                    }
+                    if ($Session:LocalRemotingMethodNoCreds) {
+                        New-UDHeading -Text "You indicated that 'Local' was your Preferred_PSRemotingCredType, however, you did not provide Local Credentials!" -Size 6 -Color red
+                        $Session:LocalRemotingMethodNoCreds = $False
+                    }
+                    if ($Session:UserNameAndPasswordRequired) {
+                        New-UDHeading -Text "Please enter both a UserName and a Password!" -Size 6 -Color red
+                        $Session:UserNameAndPasswordRequired = $False
+                    }
+                    if ($Session:BadFormatDomainUserName) {
+                        New-UDHeading -Text "Domain_UserName must be in format 'Domain\DomainUser'!" -Size 6 -Color red
+                        $Session:BadFormatDomainUserName = $False
+                    }
+                    if ($Session:EnableWinRMFailure) {
+                        New-UDHeading -Text "Unable to Enable WinRM on $Session:ThisRemoteHost via Invoke-WmiMethod over RPC! Please check your credentials." -Size 6 -Color red
+                        $Session:EnableWinRMFailure = $False
+                    }
+                    if ($Session:GetWorkingCredsFailure) {
+                        New-UDHeading -Text "Unable to test Credentials! Please try again." -Size 6 -Color red
+                        $Session:GetWorkingCredsFailure = $False
+                    }
+                    if ($Session:InvalidCreds) {
+                        New-UDHeading -Text "Invalud Credentials! Please try again." -Size 6 -Color red
+                        $Session:InvalidCreds = $False
+                    }
+                }
+            }
         }
     
         #endregion >> Loading Indicator
     
-        # Mandatory Local Admin or Domain Admin Credentials for PSRemoting
-        New-UDRow -Columns {
-            New-UDColumn -Size 12 -Content {
+        <#
+        New-UDRow -Endpoint {
+            New-UDColumn -Size 2 -Content {}
+            New-UDColumn -Size 8 -Endpoint {
+                New-UDRow -Endpoint {
+                    New-UDTextbox -Id "LocalUserName" -Label "Local UserName" -Type text
+                    New-UDTextbox -Id "LocalPassword" -Label "Local Password" -Type password
+                    New-UDTextbox -Id "DomainUserName" -Label "Domain UserName" -Type text
+                    New-UDTextbox -Id "DomainPassword" -Label "Domain Password" -Type password
+                    New-UDTextbox -Id "SSHPublicCert" -Label "SSH Public Certificate" -Type text
+                    New-UDSelect -Id "PreferredPSRemotingCredType" -Label "Credential Type" -Option {
+                        New-UDSelectOption -Name "Domain" -Value "Domain" -Selected
+                        New-UDSelectOption -Name "Local" -Value "Local"
+                    }
+                    New-UDSelect -Id "PreferredPSRemotingMethod" -Label "PSRemoting Method" -Option {
+                        New-UDSelectOption -Name "WinRM" -Value "WinRM" -Selected
+                        New-UDSelectOption -Name "SSH" -Value "SSH"
+                    }
+                }
+                New-UDRow -EndPoint {
+                    New-UDButton -Text "Set Credentials" -OnClick {
+                        $PUDRSSyncHT = $global:PUDRSSyncHT
+    
+                        $Session:CheckingCredentials = $True
+                        Sync-UDElement -Id "CheckingCredentials"
+    
+                        $LocalUserNameTextBox = Get-UDElement -Id "LocalUserName"
+                        $LocalPasswordTextBox = Get-UDElement -Id "LocalPassword"
+                        $DomainUserNameTextBox = Get-UDElement -Id "DomainUserName"
+                        $DomainPasswordTextBox = Get-UDElement -Id "DomainPassword"
+                        $SSHPublicCertTextBox = Get-UDElement -Id "SSHPublicCert"
+                        $PrefCredTypeSelection = Get-UDElement -Id "PreferredPSRemotingCredType"
+                        $PrefRemotingMethodSelection = Get-UDElement -Id "PreferredPSRemotingMethod"
+                        
+                        $Local_UserName = $LocalUserNameTextBox.Attributes['value']
+                        $Local_Password = $LocalPasswordTextBox.Attributes['value']
+                        $Domain_UserName = $DomainUserNameTextBox.Attributes['value']
+                        $Domain_Password = $DomainPasswordTextBox.Attributes['value']
+                        $SSHPublicCertString = $SSHPublicCertTextBox.Attributes['value']
+                        $Preferred_PSRemotingCredType = $($PrefCredTypeSelection.Content | foreach {
+                            $_.ToString() | ConvertFrom-Json
+                        } | Where-Object {$_.attributes.selected.isPresent}).attributes.value
+                        $Preferred_PSRemotingMethod = $($PrefRemotingMethodSelection.Content | foreach {
+                            $_.ToString() | ConvertFrom-Json
+                        } | Where-Object {$_.attributes.selected.isPresent}).attributes.value
+    
+                        $TestingCredsObj = [pscustomobject]@{
+                            LocalUserNameTextBox            = $LocalUserNameTextBox
+                            LocalPasswordTextBox            = $LocalPasswordTextBox
+                            DomainUserNameTextBox           = $DomainUserNameTextBox
+                            DomainPasswordTextBox           = $DomainPasswordTextBox
+                            SSHPublicCertTextBox            = $SSHPublicCertTextBox
+                            PrefCredTypeSelection           = $PrefCredTypeSelection
+                            PrefRemotingMethodSelection     = $PrefRemotingMethodSelection
+                            Local_UserName                  = $Local_UserName
+                            Local_Password                  = $Local_Password
+                            Domain_UserName                 = $Domain_UserName
+                            Domain_Password                 = $Domain_Password
+                            SSHPublicCertString             = $SSHPublicCertString
+                            Preferred_PSRemotingCredType    = $Preferred_PSRemotingCredType
+                            Preferred_PSRemotingMethod      = $Preferred_PSRemotingMethod
+                            RemoteHost                      = $Session:ThisRemoteHost
+                        }
+    
+                        if ($Session:CredentialHT.Keys -notcontains $Session:ThisRemoteHost) {
+                            #New-UDInputAction -Toast "`$Session:CredentialHT is not defined!" -Duration 10000
+                            $Session:CredentialHT = @{}
+                            $RHostCredHT = @{
+                                DomainCreds         = $null
+                                LocalCreds          = $null
+                                SSHCertPath         = $null
+                                PSRemotingCredType  = $null
+                                PSRemotingMethod    = $null
+                                PSRemotingCreds     = $null
+                            }
+                            $Session:CredentialHT.Add($Session:ThisRemoteHost,$RHostCredHT)
+    
+                            # TODO: Need to remove this when finished testing
+                            $PUDRSSyncHT."$Session:ThisRemoteHost`Info".CredHT = $Session:CredentialHT
+    
+                            #New-UDInputAction -Toast "`$Session:CredentialHT was null" -Duration 10000
+                        }
+    
+                        # In case this page was refreshed or redirected to from itself, check $Session:CredentialHT for existing values
+                        if (!$Local_UserName -and $Session:CredentialHT.$Session:ThisRemoteHost.LocalCreds -ne $null) {
+                            $Local_UserName = $Session:CredentialHT.$Session:ThisRemoteHost.LocalCreds.UserName
+                        }
+                        if (!$Local_Password -and $Session:CredentialHT.$Session:ThisRemoteHost.LocalCreds -ne $null) {
+                            $Local_Password = $Session:CredentialHT.$Session:ThisRemoteHost.LocalCreds.GetNetworkCredential().Password
+                        }
+                        if (!$Domain_UserName -and $Session:CredentialHT.$Session:ThisRemoteHost.DomainCreds -ne $null) {
+                            $Domain_UserName = $Session:CredentialHT.$Session:ThisRemoteHost.DomainCreds.UserName
+                        }
+                        if (!$Domain_Password -and $Session:CredentialHT.$Session:ThisRemoteHost.DomainCreds -ne $null) {
+                            $Domain_Password = $Session:CredentialHT.$Session:ThisRemoteHost.DomainCreds.GetNetworkCredential().Password
+                        }
+                        if (!$SSHPublicCertString -and $Session:CredentialHT.$Session:ThisRemoteHost.SSHCertPath -ne $null) {
+                            $SSHPublicCertString = $Session:CredentialHT.$Session:ThisRemoteHost.SSHCertPath
+                        }
+                        if (!$Preferred_PSRemotingCredType -and $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCredType -ne $null) {
+                            $Preferred_PSRemotingCredType = $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCredType
+                        }
+                        if (!$Preferred_PSRemotingMethod -and $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingMethod -ne $null) {
+                            $Preferred_PSRemotingMethod = $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingMethod
+                        }
+    
+                        if (!$Local_UserName -and !$Local_Password -and !$Domain_UserName -and !$Domain_Password -and !$SSHPublicCertString) {
+                            $Session:NoCredsEntered = $True
+                            Sync-UDElement -Id "ValidateCredsMsg"
+                            $Session:CheckingCredentials = $False
+                            Sync-UDElement -Id "CheckingCredentials"
+                            return
+                        }
+    
+                        if ($SSHPublicCertString) {
+                            # TODO: Validate the provided string is a SSH Public Cert
+                            if ($BadSSHPubCert) {
+                                $Session:InvalidSSHPubCert = $True
+                                Sync-UDElement -Id "ValidateCredsMsg"
+                                $Session:CheckingCredentials = $False
+                                Sync-UDElement -Id "CheckingCredentials"
+                                return
+                            }
+                        }
+    
+                        if (!$Preferred_PSRemotingMethod -and $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingMethod) {
+                            $Preferred_PSRemotingMethod = $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingMethod
+                        }
+                        if ($Preferred_PSRemotingMethod -eq "SSH" -and !$SSHPublicCertString) {
+                            $Session:SSHRemotingMethodNoCert = $True
+                            Sync-UDElement -Id "ValidateCredsMsg"
+                            $Session:CheckingCredentials = $False
+                            Sync-UDElement -Id "CheckingCredentials"
+                            return
+                        }
+    
+                        if (!$Preferred_PSRemotingCredType -and $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCredType) {
+                            $Preferred_PSRemotingCredType = $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCredType
+                        }
+                        if ($Preferred_PSRemotingCredType -eq "Domain" -and $(!$Domain_UserName -or !$Domain_Password)) {
+                            $Session:DomainRemotingMethodNoCreds = $True
+                            Sync-UDElement -Id "ValidateCredsMsg"
+                            $Session:CheckingCredentials = $False
+                            Sync-UDElement -Id "CheckingCredentials"
+                            return
+                        }
+    
+                        if ($Preferred_PSRemotingCredType -eq "Local" -and $(!$Local_UserName -or !$Local_Password)) {
+                            $Session:LocalRemotingMethodNoCreds = $True
+                            Sync-UDElement -Id "ValidateCredsMsg"
+                            $Session:CheckingCredentials = $False
+                            Sync-UDElement -Id "CheckingCredentials"
+                            return
+                        }
+    
+                        if ($($Local_UserName -and !$Local_Password) -or $(!$Local_UserName -and $Local_Password) -or
+                        $($Domain_UserName -and !$Domain_Password) -or $(!$Domain_UserName -and $Domain_Password)
+                        ) {
+                            $Session:UserNameAndPasswordRequired = $True
+                            Sync-UDElement -Id "ValidateCredsMsg"
+                            $Session:CheckingCredentials = $False
+                            Sync-UDElement -Id "CheckingCredentials"
+                            return
+                        }
+    
+                        if ($Local_UserName -and $Local_Password) {
+                            # Make sure the $Local_UserName is in format $Session:ThisRemoteHost\$Local_UserName
+                            if ($Local_UserName -notmatch "^$Session:ThisRemoteHost\\[a-zA-Z0-9]+$") {
+                                $Local_UserName = "$Session:ThisRemoteHost\$Local_UserName"
+                            }
+    
+                            $LocalPwdSecureString = ConvertTo-SecureString $Local_Password -AsPlainText -Force
+                            $LocalAdminCreds = [pscredential]::new($Local_UserName,$LocalPwdSecureString)
+                        }
+    
+                        if ($Domain_UserName -and $Domain_Password) {
+                            $DomainShortName = $($PUDRSSyncHT."$Session:ThisRemoteHost`Info".NetworkInfo.Domain -split "\.")[0]
+                            # Make sure the $Domain_UserName is in format $Session:ThisRemoteHost\$Domain_UserName
+                            if ($Domain_UserName -notmatch "^$DomainShortName\\[a-zA-Z0-9]+$") {
+                                $Session:BadFormatDomainUserName = $True
+                                Sync-UDElement -Id "ValidateCredsMsg"
+                                $Session:CheckingCredentials = $False
+                                Sync-UDElement -Id "CheckingCredentials"
+                                return
+                            }
+    
+                            $DomainPwdSecureString = ConvertTo-SecureString $Domain_Password -AsPlainText -Force
+                            $DomainAdminCreds = [pscredential]::new($Domain_UserName,$DomainPwdSecureString)
+                        }
+    
+                        # Test the Credentials
+                        [System.Collections.ArrayList]$CredentialsToTest = @()
+                        if ($LocalAdminCreds) {
+                            $PSObj = [pscustomobject]@{CredType = "LocalUser"; PSCredential = $LocalAdminCreds}
+                            $null = $CredentialsToTest.Add($PSObj)
+                        }
+                        if ($DomainAdminCreds) {
+                            $PSObj = [pscustomobject]@{CredType = "DomainUser"; PSCredential = $DomainAdminCreds}
+                            $null = $CredentialsToTest.Add($PSObj)
+                        }
+    
+                        [System.Collections.ArrayList]$FailedCredentialsA = @()
+                        foreach ($CredObj in $CredentialsToTest) {
+                            try {
+                                $GetWorkingCredsResult = GetWorkingCredentials -RemoteHostNameOrIP $Session:ThisRemoteHost -AltCredentials $CredObj.PSCredential -ErrorAction Stop
+                
+                                if ($GetWorkingCredsResult.DeterminedCredsThatWorkedOnRemoteHost) {
+                                    if ($GetWorkingCredsResult.WorkingCredentials.GetType().FullName -ne "System.Management.Automation.PSCredential") {
+                                        $null = $FailedCredentialsA.Add($CredObj)
+                                    }
+                                }
+                                else {
+                                    $null = $FailedCredentialsA.Add($CredObj)
+                                }
+                            }
+                            catch {}
+                        }
+    
+                        if ($($CredentialsToTest.Count -eq 2 -and $FailedCredentialsA.Count -eq 2) -or 
+                        $($CredentialsToTest.Count -eq 1 -and $FailedCredentialsA.Count -eq 1)
+                        ) {
+                            # Since WinRM failed, try and enable WinRM Remotely via Invoke-WmiMethod over RPC Port 135 (if it's open)
+                            $RPCPortOpen = $(TestPort -HostName $Session:ThisRemoteHost -Port 135).Open
+    
+                            [System.Collections.ArrayList]$EnableWinRMSuccess = @()
+                            foreach ($CredObj in $CredentialsToTest) {
+                                if ($RPCPortOpen) {
+                                    try {
+                                        $null = EnableWinRMViaRPC -RemoteHostNameOrIP $Session:ThisRemoteHost -Credential $CredObj.PSCredential
+                                        $null = $EnableWinRMSuccess.Add($CredObj)
+                                        break
+                                    }
+                                    catch {
+                                        #New-UDInputAction -Toast "Failed to enable WinRM Remotely using Credentials $($CredObj.PSCredential.UserName)" -Duration 10000
+                                    }
+                                }
+                            }
+    
+                            if ($EnableWinRMSuccess.Count -eq 0) {
+                                $Session:EnableWinRMFailure = $True
+                                Sync-UDElement -Id "ValidateCredsMsg"
+                                $Session:CheckingCredentials = $False
+                                Sync-UDElement -Id "CheckingCredentials"
+                                return
+                            }
+                            else {
+                                [System.Collections.ArrayList]$FailedCredentialsB = @()
+                                foreach ($CredObj in $CredentialsToTest) {
+                                    try {
+                                        $GetWorkingCredsResult = GetWorkingCredentials -RemoteHostNameOrIP $Session:ThisRemoteHost -AltCredentials $CredObj.PSCredential -ErrorAction Stop
+                        
+                                        if ($GetWorkingCredsResult.WorkingCredentials.GetType().FullName -ne "System.Management.Automation.PSCredential") {
+                                            #New-UDInputAction -Toast "$($CredObj.CredType) Credentials are not valid! Please try again." -Duration 10000
+                                            $null = $FailedCredentialsB.Add($CredObj)
+                                        }
+                                    }
+                                    catch {
+                                        $Session:GetWorkingCredsFailure = $True
+                                        Sync-UDElement -Id "ValidateCredsMsg"
+                                        $Session:CheckingCredentials = $False
+                                        Sync-UDElement -Id "CheckingCredentials"
+                                        return
+                                        
+                                        #Show-UDToast -Message $_.Exception.Message -Duration 10
+                                    }
+                                }
+                            }
+                        }
+    
+                        if ($FailedCredentialsA.Count -gt 0 -or $FailedCredentialsB.Count -gt 0) {
+                            if ($FailedCredentialsB.Count -gt 0) {
+                                foreach ($CredObj in $FailedCredentialsB) {
+                                    $Session:GetWorkingCredsFailure = $True
+                                    Sync-UDElement -Id "ValidateCredsMsg"
+                                    #$Session:CredentialHT.$Session:ThisRemoteHost."$CredType`Creds" = $null
+                                }
+                                $Session:CheckingCredentials = $False
+                                Sync-UDElement -Id "CheckingCredentials"
+                                return
+                            }
+                            if ($FailedCredentialsA.Count -gt 0 -and $FailedCredentialsB.Count -eq 0) {
+                                foreach ($CredObj in $FailedCredentialsA) {
+                                    $Session:GetWorkingCredsFailure = $True
+                                    Sync-UDElement -Id "ValidateCredsMsg"
+                                }
+                                $Session:CheckingCredentials = $False
+                                Sync-UDElement -Id "CheckingCredentials"
+                                return
+                            }
+                        }
+    
+                        if ($DomainAdminCreds) {
+                            $Session:CredentialHT.$Session:ThisRemoteHost.DomainCreds = $DomainAdminCreds
+                        }
+                        if ($LocalAdminCreds) {
+                            $Session:CredentialHT.$Session:ThisRemoteHost.LocalCreds = $LocalAdminCreds
+                        }
+                        if ($SSHPublicCertString) {
+                            $Session:CredentialHT.$Session:ThisRemoteHost.SSHCertPath = $SSHPublicCertString
+                        }
+                        if ($Preferred_PSRemotingCredType) {
+                            $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCredType = $Preferred_PSRemotingCredType
+                        }
+                        if ($Preferred_PSRemotingMethod) {
+                            $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingMethod = $Preferred_PSRemotingMethod
+                        }
+    
+                        # Determine $PSRemotingCreds
+                        if ($Preferred_PSRemotingCredType -eq "Local") {
+                            $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCreds = $Session:CredentialHT.$Session:ThisRemoteHost.LocalCreds
+                        }
+                        if ($Preferred_PSRemotingCredType -eq "Domain") {
+                            $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCreds = $Session:CredentialHT.$Session:ThisRemoteHost.DomainCreds
+                        }
+    
+                        Invoke-UDRedirect -Url "/ToolSelect/$Session:ThisRemoteHost"
+                    }
+                }
+                New-UDColumn -AutoRefresh -RefreshInterval 1 -Endpoint {
+                    try {
+                        $null = $Session:PSRemotingPageLoadingTracker.Add("FinishedLoading")
+                    }
+                    catch {
+                        Write-Verbose "`$Session:PSRemotingPageLoadingTracker hasn't been set yet..."
+                    }
+                }
+            }
+            New-UDColumn -Size 2 -Content {}
+        }
+        #>
+    
+        New-UDRow -Endpoint {
+            New-UDColumn -Size 2 -EndPoint {}
+            New-UDColumn -Size 8 -EndPoint {
+                $PUDRSSyncHT = $global:PUDRSSyncHT
+    
                 $Cache:CredsForm = New-UDInput -SubmitText "Set Credentials" -Id "CredsForm" -Content {
-                    New-UDInputField -Type textbox -Name 'Local_UserName'
-                    New-UDInputField -Type password -Name 'Local_Password'
-                    New-UDInputField -Type textbox -Name 'Domain_UserName'
-                    New-UDInputField -Type password -Name 'Domain_Password'
-                    New-UDInputField -Type textarea -Name 'SSH_Public_Cert'
+                    New-UDInputField -Type textbox -Name 'Local_UserName' -Value $null
+                    New-UDInputField -Type password -Name 'Local_Password' -Value $null
+                    New-UDInputField -Type textbox -Name 'Domain_UserName' -Value $null
+                    New-UDInputField -Type password -Name 'Domain_Password' -Value $null
+                    New-UDInputField -Type textarea -Name 'SSH_Public_Cert' -Value $null
                     New-UDInputField -Type select -Name 'Preferred_PSRemotingCredType' -Values @("Local","Domain") -DefaultValue "Domain"
                     New-UDInputField -Type select -Name 'Preferred_PSRemotingMethod' -Values @("WinRM","SSH") -DefaultValue "WinRM"
                 } -Endpoint {
@@ -5619,7 +6026,7 @@ function Get-PUDAdminCenter {
                         [string]$Local_Password,
                         [string]$Domain_UserName,
                         [string]$Domain_Password,
-                        [string]$Path_To_SSH_Public_Cert,
+                        [string]$SSHPublicCertString,
                         [string]$Preferred_PSRemotingCredType,
                         [string]$Preferred_PSRemotingMethod
                     )
@@ -5630,7 +6037,7 @@ function Get-PUDAdminCenter {
                     # Load PUDAdminCenter Module Functions Within ScriptBlock
                     $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
     
-                    if ($Session:CredentialHT.Keys -notcontains $RemoteHost) {
+                    if ($Session:CredentialHT.Keys -notcontains $Session:ThisRemoteHost) {
                         #New-UDInputAction -Toast "`$Session:CredentialHT is not defined!" -Duration 10000
                         $Session:CredentialHT = @{}
                         $RHostCredHT = @{
@@ -5641,99 +6048,97 @@ function Get-PUDAdminCenter {
                             PSRemotingMethod    = $null
                             PSRemotingCreds     = $null
                         }
-                        $Session:CredentialHT.Add($RemoteHost,$RHostCredHT)
-    
-                        # TODO: Need to remove this when finished testing
-                        #$PUDRSSyncHT."$RemoteHost`Info".CredHT = $Session:CredentialHT
-    
-                        #New-UDInputAction -Toast "`$Session:CredentialHT was null" -Duration 10000
+                        $Session:CredentialHT.Add($Session:ThisRemoteHost,$RHostCredHT)
                     }
+    
+                    # TODO: Need to remove this when finished testing
+                    $PUDRSSyncHT."$Session:ThisRemoteHost`Info".CredHT = $Session:CredentialHT
     
                     # In case this page was refreshed or redirected to from itself, check $Session:CredentialHT for existing values
-                    if (!$Local_UserName -and $Session:CredentialHT.$RemoteHost.LocalCreds -ne $null) {
-                        $Local_UserName = $Session:CredentialHT.$RemoteHost.LocalCreds.UserName
+                    if (!$Local_UserName -and $Session:CredentialHT.$Session:ThisRemoteHost.LocalCreds -ne $null) {
+                        $Local_UserName = $Session:CredentialHT.$Session:ThisRemoteHost.LocalCreds.UserName
                     }
-                    if (!$Local_Password -and $Session:CredentialHT.$RemoteHost.LocalCreds -ne $null) {
-                        $Local_Password = $Session:CredentialHT.$RemoteHost.LocalCreds.GetNetworkCredential().Password
+                    if (!$Local_Password -and $Session:CredentialHT.$Session:ThisRemoteHost.LocalCreds -ne $null) {
+                        $Local_Password = $Session:CredentialHT.$Session:ThisRemoteHost.LocalCreds.GetNetworkCredential().Password
                     }
-                    if (!$Domain_UserName -and $Session:CredentialHT.$RemoteHost.DomainCreds -ne $null) {
-                        $Domain_UserName = $Session:CredentialHT.$RemoteHost.DomainCreds.UserName
+                    if (!$Domain_UserName -and $Session:CredentialHT.$Session:ThisRemoteHost.DomainCreds -ne $null) {
+                        $Domain_UserName = $Session:CredentialHT.$Session:ThisRemoteHost.DomainCreds.UserName
                     }
-                    if (!$Domain_Password -and $Session:CredentialHT.$RemoteHost.DomainCreds -ne $null) {
-                        $Domain_Password = $Session:CredentialHT.$RemoteHost.DomainCreds.GetNetworkCredential().Password
+                    if (!$Domain_Password -and $Session:CredentialHT.$Session:ThisRemoteHost.DomainCreds -ne $null) {
+                        $Domain_Password = $Session:CredentialHT.$Session:ThisRemoteHost.DomainCreds.GetNetworkCredential().Password
                     }
-                    if (!$Path_To_SSH_Public_Cert -and $Session:CredentialHT.$RemoteHost.SSHCertPath -ne $null) {
-                        $Path_To_SSH_Public_Cert = $Session:CredentialHT.$RemoteHost.SSHCertPath
+                    if (!$SSHPublicCertString -and $Session:CredentialHT.$Session:ThisRemoteHost.SSHCertPath -ne $null) {
+                        $SSHPublicCertString = $Session:CredentialHT.$Session:ThisRemoteHost.SSHCertPath
                     }
-                    if (!$Preferred_PSRemotingCredType -and $Session:CredentialHT.$RemoteHost.PSRemotingCredType -ne $null) {
-                        $Preferred_PSRemotingCredType = $Session:CredentialHT.$RemoteHost.PSRemotingCredType
+                    if (!$Preferred_PSRemotingCredType -and $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCredType -ne $null) {
+                        $Preferred_PSRemotingCredType = $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCredType
                     }
-                    if (!$Preferred_PSRemotingMethod -and $Session:CredentialHT.$RemoteHost.PSRemotingMethod -ne $null) {
-                        $Preferred_PSRemotingMethod = $Session:CredentialHT.$RemoteHost.PSRemotingMethod
+                    if (!$Preferred_PSRemotingMethod -and $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingMethod -ne $null) {
+                        $Preferred_PSRemotingMethod = $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingMethod
                     }
     
-                    if ($($PSBoundParameters.GetEnumerator()).Value -eq $null) {
-                        New-UDInputAction -Toast "You MUST enter UserName/Password for either a Local User or Domain User with access to $RemoteHost!" -Duration 10000
-                        #$null = $Session:PSRemotingPageLoadingTracker.Add("DoneCheckingCredentials")
-                        #New-UDInputAction -RedirectUrl "/PSRemotingCreds/$RemoteHost"
-                        New-UDInputAction -Content $Cache:CredsForm
+                    if (!$Local_UserName -and !$Local_Password -and !$Domain_UserName -and !$Domain_Password -and !$SSHPublicCertString) {
+                        #$Session:NoCredsEntered = $True
+                        #Sync-UDElement -Id "ValidateCredsMsg"
+                        New-UDInputAction -Toast "You MUST enter UserName/Password for either a Local User or Domain User with access to $Session:ThisRemoteHost!" -Duration 10000
+                        Sync-UDElement -Id "CredsForm"
                         return
                     }
     
-                    if ($Path_To_SSH_Public_Cert) {
-                        if (!$(Test-Path $Path_To_SSH_Public_Cert)) {
-                            New-UDInputAction -Toast "The path '$Path_To_SSH_Public_Cert' does not exist on $env:ComputerName!" -Duration 10000
-                            #$null = $Session:PSRemotingPageLoadingTracker.Add("DoneCheckingCredentials")
-                            #New-UDInputAction -RedirectUrl "/PSRemotingCreds/$RemoteHost"
-                            New-UDInputAction -Content $Cache:CredsForm
+                    if ($SSHPublicCertString) {
+                        if (!$(Test-Path $SSHPublicCertString)) {
+                            #$Session:InvalidSSHPubCert = $True
+                            #Sync-UDElement -Id "ValidateCredsMsg"
+                            New-UDInputAction -Toast "The string '$SSHPublicCertString' is not a falid SSH Public Cert!" -Duration 10000
+                            Sync-UDElement -Id "CredsForm"
                             return
                         }
                     }
     
-                    if (!$Preferred_PSRemotingMethod -and $Session:CredentialHT.$RemoteHost.PSRemotingMethod) {
-                        $Preferred_PSRemotingMethod = $Session:CredentialHT.$RemoteHost.PSRemotingMethod
+                    if (!$Preferred_PSRemotingMethod -and $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingMethod) {
+                        $Preferred_PSRemotingMethod = $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingMethod
                     }
-                    if ($Preferred_PSRemotingMethod -eq "SSH" -and !$Path_To_SSH_Public_Cert) {
+                    if ($Preferred_PSRemotingMethod -eq "SSH" -and !$SSHPublicCertString) {
+                        #$Session:SSHRemotingMethodNoCert = $True
+                        #Sync-UDElement -Id "ValidateCredsMsg"
                         New-UDInputAction -Toast "You indicated that SSH is your Preferred_PSRemotingMethod, however, you did not provide a value for Path_To_SSH_Public_Cert!" -Duration 10000
-                        #$null = $Session:PSRemotingPageLoadingTracker.Add("DoneCheckingCredentials")
-                        #New-UDInputAction -RedirectUrl "/PSRemotingCreds/$RemoteHost"
-                        New-UDInputAction -Content $Cache:CredsForm
+                        Sync-UDElement -Id "CredsForm"
                         return
                     }
     
-                    if (!$Preferred_PSRemotingCredType -and $Session:CredentialHT.$RemoteHost.PSRemotingCredType) {
-                        $Preferred_PSRemotingCredType = $Session:CredentialHT.$RemoteHost.PSRemotingCredType
+                    if (!$Preferred_PSRemotingCredType -and $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCredType) {
+                        $Preferred_PSRemotingCredType = $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCredType
                     }
                     if ($Preferred_PSRemotingCredType -eq "Domain" -and $(!$Domain_UserName -or !$Domain_Password)) {
+                        #$Session:DomainRemotingMethodNoCreds = $True
+                        #Sync-UDElement -Id "ValidateCredsMsg"
                         New-UDInputAction -Toast "You indicated that 'Domain' was your Preferred_PSRemotingCredType, however, you did not provide Domain Credentials!" -Duration 10000
-                        #$null = $Session:PSRemotingPageLoadingTracker.Add("DoneCheckingCredentials")
-                        #New-UDInputAction -RedirectUrl "/PSRemotingCreds/$RemoteHost"
-                        New-UDInputAction -Content $Cache:CredsForm
+                        Sync-UDElement -Id "CredsForm"
                         return
                     }
     
                     if ($Preferred_PSRemotingCredType -eq "Local" -and $(!$Local_UserName -or !$Local_Password)) {
+                        #$Session:LocalRemotingMethodNoCreds = $True
+                        #Sync-UDElement -Id "ValidateCredsMsg"
                         New-UDInputAction -Toast "You indicated that 'Local' was your Preferred_PSRemotingCredType, however, you did not provide Local Credentials!" -Duration 10000
-                        #$null = $Session:PSRemotingPageLoadingTracker.Add("DoneCheckingCredentials")
-                        #New-UDInputAction -RedirectUrl "/PSRemotingCreds/$RemoteHost"
-                        New-UDInputAction -Content $Cache:CredsForm
+                        Sync-UDElement -Id "CredsForm"
                         return
                     }
     
                     if ($($Local_UserName -and !$Local_Password) -or $(!$Local_UserName -and $Local_Password) -or
                     $($Domain_UserName -and !$Domain_Password) -or $(!$Domain_UserName -and $Domain_Password)
                     ) {
+                        #$Session:UserNameAndPasswordRequired = $True
+                        #Sync-UDElement -Id "ValidateCredsMsg"
                         New-UDInputAction -Toast "Please enter both a UserName and a Password!" -Duration 10000
-                        #$null = $Session:PSRemotingPageLoadingTracker.Add("DoneCheckingCredentials")
-                        #New-UDInputAction -RedirectUrl "/PSRemotingCreds/$RemoteHost"
-                        New-UDInputAction -Content $Cache:CredsForm
+                        Sync-UDElement -Id "CredsForm"
                         return
                     }
     
                     if ($Local_UserName -and $Local_Password) {
-                        # Make sure the $Local_UserName is in format $RemoteHost\$Local_UserName
-                        if ($Local_UserName -notmatch "^$RemoteHost\\[a-zA-Z0-9]+$") {
-                            $Local_UserName = "$RemoteHost\$Local_UserName"
+                        # Make sure the $Local_UserName is in format $Session:ThisRemoteHost\$Local_UserName
+                        if ($Local_UserName -notmatch "^$Session:ThisRemoteHost\\[a-zA-Z0-9]+$") {
+                            $Local_UserName = "$Session:ThisRemoteHost\$Local_UserName"
                         }
     
                         $LocalPwdSecureString = ConvertTo-SecureString $Local_Password -AsPlainText -Force
@@ -5741,14 +6146,13 @@ function Get-PUDAdminCenter {
                     }
     
                     if ($Domain_UserName -and $Domain_Password) {
-                        $DomainShortName = $($PUDRSSyncHT."$RemoteHost`Info".NetworkInfo.Domain -split "\.")[0]
-                        # Make sure the $Domain_UserName is in format $RemoteHost\$Domain_UserName
+                        $DomainShortName = $($PUDRSSyncHT."$Session:ThisRemoteHost`Info".NetworkInfo.Domain -split "\.")[0]
+                        # Make sure the $Domain_UserName is in format $Session:ThisRemoteHost\$Domain_UserName
                         if ($Domain_UserName -notmatch "^$DomainShortName\\[a-zA-Z0-9]+$") {
+                            #$Session:BadFormatDomainUserName = $True
+                            #Sync-UDElement -Id "ValidateCredsMsg"
                             New-UDInputAction -Toast "Domain_UserName must be in format 'Domain\DomainUser'!" -Duration 10000
-                            $Session:CredentialHT.$RemoteHost.DomainCreds = $null
-                            #$null = $Session:PSRemotingPageLoadingTracker.Add("DoneCheckingCredentials")
-                            #New-UDInputAction -RedirectUrl "/PSRemotingCreds/$RemoteHost"
-                            New-UDInputAction -Content $Cache:CredsForm
+                            Sync-UDElement -Id "CredsForm"
                             return
                         }
     
@@ -5770,7 +6174,7 @@ function Get-PUDAdminCenter {
                     [System.Collections.ArrayList]$FailedCredentialsA = @()
                     foreach ($CredObj in $CredentialsToTest) {
                         try {
-                            $GetWorkingCredsResult = GetWorkingCredentials -RemoteHostNameOrIP $RemoteHost -AltCredentials $CredObj.PSCredential -ErrorAction Stop
+                            $GetWorkingCredsResult = GetWorkingCredentials -RemoteHostNameOrIP $Session:ThisRemoteHost -AltCredentials $CredObj.PSCredential -ErrorAction Stop
             
                             if ($GetWorkingCredsResult.DeterminedCredsThatWorkedOnRemoteHost) {
                                 if ($GetWorkingCredsResult.WorkingCredentials.GetType().FullName -ne "System.Management.Automation.PSCredential") {
@@ -5785,7 +6189,7 @@ function Get-PUDAdminCenter {
                         catch {
                             #New-UDInputAction -Toast $_.Exception.Message -Duration 10000
                             #New-UDInputAction -Toast "Unable to test $($CredObj.CredType) Credentials! Refreshing page..." -Duration 10000
-                            #New-UDInputAction -RedirectUrl "/PSRemotingCreds/$RemoteHost"
+                            #New-UDInputAction -RedirectUrl "/PSRemotingCreds/$Session:ThisRemoteHost"
                         }
                     }
     
@@ -5793,13 +6197,13 @@ function Get-PUDAdminCenter {
                     $($CredentialsToTest.Count -eq 1 -and $FailedCredentialsA.Count -eq 1)
                     ) {
                         # Since WinRM failed, try and enable WinRM Remotely via Invoke-WmiMethod over RPC Port 135 (if it's open)
-                        $RPCPortOpen = $(TestPort -HostName $RemoteHost -Port 135).Open
+                        $RPCPortOpen = $(TestPort -HostName $Session:ThisRemoteHost -Port 135).Open
     
                         [System.Collections.ArrayList]$EnableWinRMSuccess = @()
                         foreach ($CredObj in $CredentialsToTest) {
                             if ($RPCPortOpen) {
                                 try {
-                                    $null = EnableWinRMViaRPC -RemoteHostNameOrIP $RemoteHost -Credential $CredObj.PSCredential
+                                    $null = EnableWinRMViaRPC -RemoteHostNameOrIP $Session:ThisRemoteHost -Credential $CredObj.PSCredential
                                     $null = $EnableWinRMSuccess.Add($CredObj)
                                     break
                                 }
@@ -5810,17 +6214,17 @@ function Get-PUDAdminCenter {
                         }
     
                         if ($EnableWinRMSuccess.Count -eq 0) {
-                            New-UDInputAction -Toast "Unable to Enable WinRM on $RemoteHost via Invoke-WmiMethod over RPC! Please check your credentials." -Duration 10000
-                            #$null = $Session:PSRemotingPageLoadingTracker.Add("DoneCheckingCredentials")
-                            #New-UDInputAction -RedirectUrl "/PSRemotingCreds/$RemoteHost"
-                            New-UDInputAction -Content $Cache:CredsForm
+                            #$Session:EnableWinRMFailure = $True
+                            #Sync-UDElement -Id "ValidateCredsMsg"
+                            New-UDInputAction -Toast "Unable to Enable WinRM on $Session:ThisRemoteHost via Invoke-WmiMethod over RPC! Please check your credentials." -Duration 10000
+                            Sync-UDElement -Id "CredsForm"
                             return
                         }
                         else {
                             [System.Collections.ArrayList]$FailedCredentialsB = @()
                             foreach ($CredObj in $CredentialsToTest) {
                                 try {
-                                    $GetWorkingCredsResult = GetWorkingCredentials -RemoteHostNameOrIP $RemoteHost -AltCredentials $CredObj.PSCredential -ErrorAction Stop
+                                    $GetWorkingCredsResult = GetWorkingCredentials -RemoteHostNameOrIP $Session:ThisRemoteHost -AltCredentials $CredObj.PSCredential -ErrorAction Stop
                     
                                     if ($GetWorkingCredsResult.WorkingCredentials.GetType().FullName -ne "System.Management.Automation.PSCredential") {
                                         #New-UDInputAction -Toast "$($CredObj.CredType) Credentials are not valid! Please try again." -Duration 10000
@@ -5828,11 +6232,11 @@ function Get-PUDAdminCenter {
                                     }
                                 }
                                 catch {
+                                    #$Session:GetWorkingCredsFailure = $True
+                                    #Sync-UDElement -Id "ValidateCredsMsg"
                                     New-UDInputAction -Toast $_.Exception.Message -Duration 10000
                                     New-UDInputAction -Toast "Unable to test $($CredObj.CredType) Credentials! Please try again." -Duration 10000
-                                    #$null = $Session:PSRemotingPageLoadingTracker.Add("DoneCheckingCredentials")
-                                    #New-UDInputAction -RedirectUrl "/PSRemotingCreds/$RemoteHost"
-                                    New-UDInputAction -Content $Cache:CredsForm
+                                    Sync-UDElement -Id "CredsForm"
                                     return
                                 }
                             }
@@ -5841,52 +6245,52 @@ function Get-PUDAdminCenter {
     
                     if ($FailedCredentialsA.Count -gt 0 -or $FailedCredentialsB.Count -gt 0) {
                         if ($FailedCredentialsB.Count -gt 0) {
+                            #$Session:InvalidCreds = $True
+                            #Sync-UDElement -Id "ValidateCredsMsg"
                             foreach ($CredObj in $FailedCredentialsB) {
                                 New-UDInputAction -Toast "$($CredObj.CredType) Credentials are not valid! Please try again." -Duration 10000
-                                $Session:CredentialHT.$RemoteHost."$CredType`Creds" = $null
+                                $Session:CredentialHT.$Session:ThisRemoteHost."$CredType`Creds" = $null
                             }
-                            #$null = $Session:PSRemotingPageLoadingTracker.Add("DoneCheckingCredentials")
-                            #New-UDInputAction -RedirectUrl "/PSRemotingCreds/$RemoteHost"
-                            New-UDInputAction -Content $Cache:CredsForm
+                            Sync-UDElement -Id "CredsForm"
                             return
                         }
                         if ($FailedCredentialsA.Count -gt 0 -and $FailedCredentialsB.Count -eq 0) {
+                            #$Session:InvalidCreds = $True
+                            #Sync-UDElement -Id "ValidateCredsMsg"
                             foreach ($CredObj in $FailedCredentialsA) {
                                 New-UDInputAction -Toast "$($CredObj.CredType) Credentials are not valid! Please try again." -Duration 10000
-                                $Session:CredentialHT.$RemoteHost."$CredType`Creds" = $null
+                                $Session:CredentialHT.$Session:ThisRemoteHost."$CredType`Creds" = $null
                             }
-                            #$null = $Session:PSRemotingPageLoadingTracker.Add("DoneCheckingCredentials")
-                            #New-UDInputAction -RedirectUrl "/PSRemotingCreds/$RemoteHost"
-                            New-UDInputAction -Content $Cache:CredsForm
+                            Sync-UDElement -Id "CredsForm"
                             return
                         }
                     }
     
                     if ($DomainAdminCreds) {
-                        $Session:CredentialHT.$RemoteHost.DomainCreds = $DomainAdminCreds
+                        $Session:CredentialHT.$Session:ThisRemoteHost.DomainCreds = $DomainAdminCreds
                     }
                     if ($LocalAdminCreds) {
-                        $Session:CredentialHT.$RemoteHost.LocalCreds = $LocalAdminCreds
+                        $Session:CredentialHT.$Session:ThisRemoteHost.LocalCreds = $LocalAdminCreds
                     }
-                    if ($Path_To_SSH_Public_Cert) {
-                        $Session:CredentialHT.$RemoteHost.SSHCertPath = $Path_To_SSH_Public_Cert
+                    if ($SSHPublicCertString) {
+                        $Session:CredentialHT.$Session:ThisRemoteHost.SSHCertPath = $SSHPublicCertString
                     }
                     if ($Preferred_PSRemotingCredType) {
-                        $Session:CredentialHT.$RemoteHost.PSRemotingCredType = $Preferred_PSRemotingCredType
+                        $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCredType = $Preferred_PSRemotingCredType
                     }
                     if ($Preferred_PSRemotingMethod) {
-                        $Session:CredentialHT.$RemoteHost.PSRemotingMethod = $Preferred_PSRemotingMethod
+                        $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingMethod = $Preferred_PSRemotingMethod
                     }
     
                     # Determine $PSRemotingCreds
                     if ($Preferred_PSRemotingCredType -eq "Local") {
-                        $Session:CredentialHT.$RemoteHost.PSRemotingCreds = $Session:CredentialHT.$RemoteHost.LocalCreds
+                        $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCreds = $Session:CredentialHT.$Session:ThisRemoteHost.LocalCreds
                     }
                     if ($Preferred_PSRemotingCredType -eq "Domain") {
-                        $Session:CredentialHT.$RemoteHost.PSRemotingCreds = $Session:CredentialHT.$RemoteHost.DomainCreds
+                        $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCreds = $Session:CredentialHT.$Session:ThisRemoteHost.DomainCreds
                     }
     
-                    New-UDInputAction -RedirectUrl "/ToolSelect/$RemoteHost"
+                    New-UDInputAction -RedirectUrl "/ToolSelect/$Session:ThisRemoteHost"
                 }
                 $Cache:CredsForm
     
@@ -5899,6 +6303,7 @@ function Get-PUDAdminCenter {
                     }
                 }
             }
+            New-UDColumn -Size 2 -EndPoint {}
         }
     }
     $Page = New-UDPage -Url "/PSRemotingCreds/:RemoteHost" -Endpoint $PSRemotingCredsPageContent
@@ -9389,6 +9794,8 @@ function Get-PUDAdminCenter {
     $ToolSelectPageContent = {
         param($RemoteHost)
     
+        New-UDColumn -Endpoint {$Session:ThisRemoteHost = $RemoteHost}
+    
         $PUDRSSyncHT = $global:PUDRSSyncHT
     
         # Load PUDAdminCenter Module Functions Within ScriptBlock
@@ -9459,45 +9866,44 @@ function Get-PUDAdminCenter {
             # they actually behave as expected. Not sure why.
             $RecreatedDisconnectedPageContent = [scriptblock]::Create($DisconnectedPageContentString)
     
-            $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+            $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $Session:ThisRemoteHost}).IPAddressList[0]
     
-            if ($Session:CredentialHT.$RemoteHost.PSRemotingCreds -eq $null) {
-                Invoke-UDRedirect -Url "/PSRemotingCreds/$RemoteHost"
-                #Write-Error "Session:CredentialHT.$RemoteHost.PSRemotingCreds is null"
+            if ($Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCreds -eq $null) {
+                Invoke-UDRedirect -Url "/PSRemotingCreds/$Session:ThisRemoteHost"
+                #Write-Error "Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCreds is null"
             }
             else {
-                # Check $Session:CredentialHT.$RemoteHost.PSRemotingCreds Credentials. If they don't work, redirect to "/PSRemotingCreds/$RemoteHost"
+                # Check $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCreds Credentials. If they don't work, redirect to "/PSRemotingCreds/$Session:ThisRemoteHost"
                 try {
-                    $GetWorkingCredsResult = GetWorkingCredentials -RemoteHostNameOrIP $RHostIP -AltCredentials $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ErrorAction Stop
+                    $GetWorkingCredsResult = GetWorkingCredentials -RemoteHostNameOrIP $RHostIP -AltCredentials $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCreds -ErrorAction Stop
     
                     if ($GetWorkingCredsResult.DeterminedCredsThatWorkedOnRemoteHost) {
                         if ($GetWorkingCredsResult.WorkingCredentials.GetType().FullName -ne "System.Management.Automation.PSCredential") {
-                            Invoke-UDRedirect -Url "/PSRemotingCreds/$RemoteHost"
+                            Invoke-UDRedirect -Url "/PSRemotingCreds/$Session:ThisRemoteHost"
                             #Write-Error "GetWorkingCredentials A"
                         }
                     }
                     else {
-                        Invoke-UDRedirect -Url "/PSRemotingCreds/$RemoteHost"
+                        Invoke-UDRedirect -Url "/PSRemotingCreds/$Session:ThisRemoteHost"
                         #Write-Error "GetWorkingCredentials B"
                     }
                 }
                 catch {
-                    Invoke-UDRedirect -Url "/PSRemotingCreds/$RemoteHost"
+                    Invoke-UDRedirect -Url "/PSRemotingCreds/$Session:ThisRemoteHost"
                     #Write-Error $_
                 }
             }
     
             try {
-                $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+                $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
             }
             catch {
                 $ConnectionStatus = "Disconnected"
             }
     
-            # If we're not connected to $RemoteHost, don't load anything else
+            # If we're not connected to $Session:ThisRemoteHost, don't load anything else
             if ($ConnectionStatus -ne "Connected") {
-                #Invoke-Command -ScriptBlock $RecreatedDisconnectedPageContent -ArgumentList $RemoteHost
-                Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
+                Invoke-UDRedirect -Url "/Disconnected/$Session:ThisRemoteHost"
             }
             else {
                 New-UDRow -EndPoint {
@@ -9511,28 +9917,28 @@ function Get-PUDAdminCenter {
                             # Load PUDAdminCenter Module Functions Within ScriptBlock
                             $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
                             
-                            $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+                            $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $Session:ThisRemoteHost}).IPAddressList[0]
     
                             $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
                             $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
     
                             if ($WSMan5985Available -or $WSMan5986Available) {
                                 $TableData = @{
-                                    RemoteHost      = $RemoteHost.ToUpper()
+                                    RemoteHost      = $Session:ThisRemoteHost.ToUpper()
                                     Status          = "Connected"
                                 }
                             }
                             else {
                                 <#
                                 $TableData = @{
-                                    RemoteHost      = $RemoteHost.ToUpper()
+                                    RemoteHost      = $Session:ThisRemoteHost.ToUpper()
                                     Status          = "Disconnected"
                                 }
                                 #>
-                                Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
+                                Invoke-UDRedirect -Url "/Disconnected/$Session:ThisRemoteHost"
                             }
     
-                            #region >> Gather Some Initial Info From $RemoteHost
+                            #region >> Gather Some Initial Info From $Session:ThisRemoteHost
     
                             $GetServerInventoryFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-ServerInventory" -and $_ -notmatch "function Get-PUDAdminCenter"}
                             $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
@@ -9541,23 +9947,23 @@ function Get-PUDAdminCenter {
                                 [pscustomobject]@{ServerInventoryStatic = Get-ServerInventory}
                             }
                             $Session:ServerInventoryStatic = $StaticInfo.ServerInventoryStatic
-                            $PUDRSSyncHT."$RemoteHost`Info".ServerInventoryStatic = $Session:ServerInventoryStatic
+                            $PUDRSSyncHT."$Session:ThisRemoteHost`Info".ServerInventoryStatic = $Session:ServerInventoryStatic
     
-                            #endregion >> Gather Some Initial Info From $RemoteHost
+                            #endregion >> Gather Some Initial Info From $Session:ThisRemoteHost
     
                             # SUPER IMPORTANT NOTE: ALL Real-Time Enpoints on the Page reference LiveOutputClone!
                             # SUPER IMPORTANT NOTE: ALL Real-Time Enpoints on the Page reference LiveOutputClone!
-                            if ($PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Count -gt 0) {
-                                if ($PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous -eq $null) {
-                                    $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Clone()
+                            if ($PUDRSSyncHT."$Session:ThisRemoteHost`Info".LiveDataRSInfo.LiveOutput.Count -gt 0) {
+                                if ($PUDRSSyncHT."$Session:ThisRemoteHost`Info".LiveDataTracker.Previous -eq $null) {
+                                    $PUDRSSyncHT."$Session:ThisRemoteHost`Info".LiveDataTracker.Previous = $PUDRSSyncHT."$Session:ThisRemoteHost`Info".LiveDataRSInfo.LiveOutput.Clone()
                                 }
-                                if ($PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Current.Count -gt 0) {
-                                    $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous = $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Current.Clone()
+                                if ($PUDRSSyncHT."$Session:ThisRemoteHost`Info".LiveDataTracker.Current.Count -gt 0) {
+                                    $PUDRSSyncHT."$Session:ThisRemoteHost`Info".LiveDataTracker.Previous = $PUDRSSyncHT."$Session:ThisRemoteHost`Info".LiveDataTracker.Current.Clone()
                                 }
-                                $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Current = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Clone()
+                                $PUDRSSyncHT."$Session:ThisRemoteHost`Info".LiveDataTracker.Current = $PUDRSSyncHT."$Session:ThisRemoteHost`Info".LiveDataRSInfo.LiveOutput.Clone()
                             }
                             
-                            if ($PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.Count -eq 0) {
+                            if ($PUDRSSyncHT."$Session:ThisRemoteHost`Info".LiveDataTracker.Previous.Count -eq 0) {
                                 if ($Session:ServerInventoryStatic.IsCredSSPEnabled) {
                                     $CredSSPStatus = "Enabled"
                                 }
@@ -9565,8 +9971,8 @@ function Get-PUDAdminCenter {
                                     $CredSSPStatus = "Disabled"
                                 }
                             }
-                            elseif (@($PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.ServerInventory).Count -gt 0) {
-                                if (@($PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.ServerInventory)[-1].IsCredSSPEnabled) {
+                            elseif (@($PUDRSSyncHT."$Session:ThisRemoteHost`Info".LiveDataTracker.Previous.ServerInventory).Count -gt 0) {
+                                if (@($PUDRSSyncHT."$Session:ThisRemoteHost`Info".LiveDataTracker.Previous.ServerInventory)[-1].IsCredSSPEnabled) {
                                     $CredSSPStatus = "Enabled"
                                 }
                                 else {
@@ -9589,7 +9995,7 @@ function Get-PUDAdminCenter {
                 }
             }
     
-            #endregion >> Ensure We Are Connected to $RemoteHost
+            #endregion >> Ensure We Are Connected to $Session:ThisRemoteHost
     
             #region >> Create the Tool Select Content
             
@@ -9619,7 +10025,7 @@ function Get-PUDAdminCenter {
                             $CardId = $DynPageNoSpace + "Card"
                             New-UDColumn -Size 4 -Endpoint {
                                 if ($DynPage -ne $null) {
-                                    $Links = @(New-UDLink -Text $DynPage -Url "/$DynPageNoSpace/$RemoteHost" -Icon dashboard)
+                                    $Links = @(New-UDLink -Text $DynPage -Url "/$DynPageNoSpace/$Session:ThisRemoteHost" -Icon dashboard)
                                     New-UDCard -Title $DynPage -Id $CardId -Text "$DynPage Info" -Links $Links
                                 }
                             }
@@ -10730,8 +11136,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUgg/dowkMrsKicNYgGcWEk9Zr
-# LUWgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUW4JZsooerrel8kncQsr4ZmCY
+# rougggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -10788,11 +11194,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFFZw11EiwxBjoyF4
-# nJ757jP8fF0WMA0GCSqGSIb3DQEBAQUABIIBAHaUZDuL6ecOZ34MqNAr8UU5Dmu7
-# qUzQFtEud4cSRHsNEmJen9tyL6jH/GK5ORsu3cXE8uyEeK+IVBRCGw2BycXhFCnO
-# 8R6+UEMxNEIJWon5jmq7Ke8hEZljegUW4Jre6mUlb5f3ew/vasv1Uf6Us5VF8HV4
-# 2Z3BQw/h4Lwi7Brg07PZ4h/WagDEhvZQC+X5aDHxh5ZyN4ys+mnYnH/BidJ/9QKq
-# YzERUAlRo8nN6ljxP4DyNm6sD0McnoYPS4rpRUuW7l1fci9D6ExfHZqMq8FdYMb8
-# DXxd0CNjtv4KP9WYqrN53rrDz+PBws1xNsnncmtckWuumtJtNA41zLFt1Js=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFHTat7UFBYDLTAaG
+# PKhW/JFaeJMOMA0GCSqGSIb3DQEBAQUABIIBAJPiUvP9AvExL2hrVJ5Vab0ks8z1
+# H/8vMn/jnWjfiBHfQvvuepH6X78YJa8ulEG59YWSPcIEM8RFzuQ+bFRbuuvXpmyi
+# kPBHjFgfAFkN1HQBFL4piXbaNNjLiioNF6bBI4hYpWBjd8ggSog2xZ5+rE4JC/ZT
+# 9KqGc5OkdEJoTxw2dx2NseH11sJWOX7XhIpEWbwpBuRCD7c7YBs8QfLVeXjwpY7j
+# xxaYweKO1iwNuT3PJbvVyWhh1H3tAAH623BQOoBA4Do2I7GZsN+RHFnSpkpCIIrG
+# iw03PGZh2IqtFeFya0X8G7Oaxv9fAL3ksDjsqyV7j8sXY2dmVhY5xj9bMmA=
 # SIG # End signature block

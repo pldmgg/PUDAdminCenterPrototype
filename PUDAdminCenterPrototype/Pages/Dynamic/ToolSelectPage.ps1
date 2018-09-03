@@ -3,6 +3,8 @@
 $ToolSelectPageContent = {
     param($RemoteHost)
 
+    New-UDColumn -Endpoint {$Session:ThisRemoteHost = $RemoteHost}
+
     $PUDRSSyncHT = $global:PUDRSSyncHT
 
     # Load PUDAdminCenter Module Functions Within ScriptBlock
@@ -73,45 +75,44 @@ $ToolSelectPageContent = {
         # they actually behave as expected. Not sure why.
         $RecreatedDisconnectedPageContent = [scriptblock]::Create($DisconnectedPageContentString)
 
-        $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+        $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $Session:ThisRemoteHost}).IPAddressList[0]
 
-        if ($Session:CredentialHT.$RemoteHost.PSRemotingCreds -eq $null) {
-            Invoke-UDRedirect -Url "/PSRemotingCreds/$RemoteHost"
-            #Write-Error "Session:CredentialHT.$RemoteHost.PSRemotingCreds is null"
+        if ($Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCreds -eq $null) {
+            Invoke-UDRedirect -Url "/PSRemotingCreds/$Session:ThisRemoteHost"
+            #Write-Error "Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCreds is null"
         }
         else {
-            # Check $Session:CredentialHT.$RemoteHost.PSRemotingCreds Credentials. If they don't work, redirect to "/PSRemotingCreds/$RemoteHost"
+            # Check $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCreds Credentials. If they don't work, redirect to "/PSRemotingCreds/$Session:ThisRemoteHost"
             try {
-                $GetWorkingCredsResult = GetWorkingCredentials -RemoteHostNameOrIP $RHostIP -AltCredentials $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ErrorAction Stop
+                $GetWorkingCredsResult = GetWorkingCredentials -RemoteHostNameOrIP $RHostIP -AltCredentials $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCreds -ErrorAction Stop
 
                 if ($GetWorkingCredsResult.DeterminedCredsThatWorkedOnRemoteHost) {
                     if ($GetWorkingCredsResult.WorkingCredentials.GetType().FullName -ne "System.Management.Automation.PSCredential") {
-                        Invoke-UDRedirect -Url "/PSRemotingCreds/$RemoteHost"
+                        Invoke-UDRedirect -Url "/PSRemotingCreds/$Session:ThisRemoteHost"
                         #Write-Error "GetWorkingCredentials A"
                     }
                 }
                 else {
-                    Invoke-UDRedirect -Url "/PSRemotingCreds/$RemoteHost"
+                    Invoke-UDRedirect -Url "/PSRemotingCreds/$Session:ThisRemoteHost"
                     #Write-Error "GetWorkingCredentials B"
                 }
             }
             catch {
-                Invoke-UDRedirect -Url "/PSRemotingCreds/$RemoteHost"
+                Invoke-UDRedirect -Url "/PSRemotingCreds/$Session:ThisRemoteHost"
                 #Write-Error $_
             }
         }
 
         try {
-            $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+            $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
         }
         catch {
             $ConnectionStatus = "Disconnected"
         }
 
-        # If we're not connected to $RemoteHost, don't load anything else
+        # If we're not connected to $Session:ThisRemoteHost, don't load anything else
         if ($ConnectionStatus -ne "Connected") {
-            #Invoke-Command -ScriptBlock $RecreatedDisconnectedPageContent -ArgumentList $RemoteHost
-            Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
+            Invoke-UDRedirect -Url "/Disconnected/$Session:ThisRemoteHost"
         }
         else {
             New-UDRow -EndPoint {
@@ -125,28 +126,28 @@ $ToolSelectPageContent = {
                         # Load PUDAdminCenter Module Functions Within ScriptBlock
                         $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
                         
-                        $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+                        $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $Session:ThisRemoteHost}).IPAddressList[0]
 
                         $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
                         $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
 
                         if ($WSMan5985Available -or $WSMan5986Available) {
                             $TableData = @{
-                                RemoteHost      = $RemoteHost.ToUpper()
+                                RemoteHost      = $Session:ThisRemoteHost.ToUpper()
                                 Status          = "Connected"
                             }
                         }
                         else {
                             <#
                             $TableData = @{
-                                RemoteHost      = $RemoteHost.ToUpper()
+                                RemoteHost      = $Session:ThisRemoteHost.ToUpper()
                                 Status          = "Disconnected"
                             }
                             #>
-                            Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
+                            Invoke-UDRedirect -Url "/Disconnected/$Session:ThisRemoteHost"
                         }
 
-                        #region >> Gather Some Initial Info From $RemoteHost
+                        #region >> Gather Some Initial Info From $Session:ThisRemoteHost
 
                         $GetServerInventoryFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-ServerInventory" -and $_ -notmatch "function Get-PUDAdminCenter"}
                         $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
@@ -155,23 +156,23 @@ $ToolSelectPageContent = {
                             [pscustomobject]@{ServerInventoryStatic = Get-ServerInventory}
                         }
                         $Session:ServerInventoryStatic = $StaticInfo.ServerInventoryStatic
-                        $PUDRSSyncHT."$RemoteHost`Info".ServerInventoryStatic = $Session:ServerInventoryStatic
+                        $PUDRSSyncHT."$Session:ThisRemoteHost`Info".ServerInventoryStatic = $Session:ServerInventoryStatic
 
-                        #endregion >> Gather Some Initial Info From $RemoteHost
+                        #endregion >> Gather Some Initial Info From $Session:ThisRemoteHost
 
                         # SUPER IMPORTANT NOTE: ALL Real-Time Enpoints on the Page reference LiveOutputClone!
                         # SUPER IMPORTANT NOTE: ALL Real-Time Enpoints on the Page reference LiveOutputClone!
-                        if ($PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Count -gt 0) {
-                            if ($PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous -eq $null) {
-                                $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Clone()
+                        if ($PUDRSSyncHT."$Session:ThisRemoteHost`Info".LiveDataRSInfo.LiveOutput.Count -gt 0) {
+                            if ($PUDRSSyncHT."$Session:ThisRemoteHost`Info".LiveDataTracker.Previous -eq $null) {
+                                $PUDRSSyncHT."$Session:ThisRemoteHost`Info".LiveDataTracker.Previous = $PUDRSSyncHT."$Session:ThisRemoteHost`Info".LiveDataRSInfo.LiveOutput.Clone()
                             }
-                            if ($PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Current.Count -gt 0) {
-                                $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous = $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Current.Clone()
+                            if ($PUDRSSyncHT."$Session:ThisRemoteHost`Info".LiveDataTracker.Current.Count -gt 0) {
+                                $PUDRSSyncHT."$Session:ThisRemoteHost`Info".LiveDataTracker.Previous = $PUDRSSyncHT."$Session:ThisRemoteHost`Info".LiveDataTracker.Current.Clone()
                             }
-                            $PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Current = $PUDRSSyncHT."$RemoteHost`Info".LiveDataRSInfo.LiveOutput.Clone()
+                            $PUDRSSyncHT."$Session:ThisRemoteHost`Info".LiveDataTracker.Current = $PUDRSSyncHT."$Session:ThisRemoteHost`Info".LiveDataRSInfo.LiveOutput.Clone()
                         }
                         
-                        if ($PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.Count -eq 0) {
+                        if ($PUDRSSyncHT."$Session:ThisRemoteHost`Info".LiveDataTracker.Previous.Count -eq 0) {
                             if ($Session:ServerInventoryStatic.IsCredSSPEnabled) {
                                 $CredSSPStatus = "Enabled"
                             }
@@ -179,8 +180,8 @@ $ToolSelectPageContent = {
                                 $CredSSPStatus = "Disabled"
                             }
                         }
-                        elseif (@($PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.ServerInventory).Count -gt 0) {
-                            if (@($PUDRSSyncHT."$RemoteHost`Info".LiveDataTracker.Previous.ServerInventory)[-1].IsCredSSPEnabled) {
+                        elseif (@($PUDRSSyncHT."$Session:ThisRemoteHost`Info".LiveDataTracker.Previous.ServerInventory).Count -gt 0) {
+                            if (@($PUDRSSyncHT."$Session:ThisRemoteHost`Info".LiveDataTracker.Previous.ServerInventory)[-1].IsCredSSPEnabled) {
                                 $CredSSPStatus = "Enabled"
                             }
                             else {
@@ -203,7 +204,7 @@ $ToolSelectPageContent = {
             }
         }
 
-        #endregion >> Ensure We Are Connected to $RemoteHost
+        #endregion >> Ensure We Are Connected to $Session:ThisRemoteHost
 
         #region >> Create the Tool Select Content
         
@@ -233,7 +234,7 @@ $ToolSelectPageContent = {
                         $CardId = $DynPageNoSpace + "Card"
                         New-UDColumn -Size 4 -Endpoint {
                             if ($DynPage -ne $null) {
-                                $Links = @(New-UDLink -Text $DynPage -Url "/$DynPageNoSpace/$RemoteHost" -Icon dashboard)
+                                $Links = @(New-UDLink -Text $DynPage -Url "/$DynPageNoSpace/$Session:ThisRemoteHost" -Icon dashboard)
                                 New-UDCard -Title $DynPage -Id $CardId -Text "$DynPage Info" -Links $Links
                             }
                         }

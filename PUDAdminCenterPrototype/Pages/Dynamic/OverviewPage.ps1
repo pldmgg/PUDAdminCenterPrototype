@@ -580,8 +580,298 @@ $OverviewPageContent = {
                     }
                 }
             }
-            # Edit Computer ID
+
+            # Disable CredSSP
             New-UDColumn -Size 3 -Endpoint {
+                $CollapsibleId = $RemoteHost + "DisableCredSSP"
+                New-UDCollapsible -Id $CollapsibleId -Items {
+                    New-UDCollapsibleItem -Title "Disable CredSSP*" -Icon laptop -Endpoint {
+                        New-UDElement -Id "DisableCredSSPMsg" -Tag div -EndPoint {
+                            if ($Session:DisableCredSSP) {
+                                New-UDHeading -Text $Session:DisableCredSSPMsg -Size 6
+                            }
+                        }
+                        New-UDButton -Text "Disable" -OnClick {
+                            $Session:DisableCredSSPMsg = $null
+                            $Session:DisableCredSSP = $True
+
+                            $CredSSPChanges = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                $Output = @{}
+                                $GetCredSSPStatus = Get-WSManCredSSP
+                                if ($GetCredSSPStatus -match "The machine is configured to allow delegating fresh credentials.") {
+                                    Disable-WSManCredSSP -Role Client
+                                    $Output.Add("CredSSPClientChange",$True)
+                                }
+                                else {
+                                    $Output.Add("CredSSPClientChange",$False)
+                                }
+                                if ($GetCredSSPStatus -match "This computer is configured to receive credentials from a remote client computer.") {
+                                    Disable-WSManCredSSP -Role Server
+                                    $Output.Add("CredSSPServerChange",$True)
+                                }
+                                else {
+                                    $Output.Add("CredSSPServerChange",$False)
+                                }
+                                [PSCustomObject]$Output
+                            }
+
+                            [System.Collections.ArrayList]$ToastMessage = @()
+                            if ($CredSSPChanges.CredSSPClientChange -eq $True) {
+                                $null = $ToastMessage.Add("Disabled CredSSP Client.")
+                            }
+                            else {
+                                $null = $ToastMessage.Add("CredSSP Client is already disabled.")
+                            }
+                            if ($CredSSPChanges.CredSSPServerChange -eq $True) {
+                                $null = $ToastMessage.Add("Disabled CredSSP Server.")
+                            }
+                            else {
+                                $null = $ToastMessage.Add("CredSSP Server is already disabled.")
+                            }
+                            $Session:DisableCredSSPMsg = $ToastMessage -join " "
+
+                            Sync-UDElement -Id "DisableCredSSPMsg"
+                        }
+
+                        <#
+                        New-UDInput -SubmitText "Disable CredSSP" -Id "DisableCredSSPForm" -Content {
+                            $HName = $PUDRSSyncHT."$RemoteHost`Info".Overview.ServerInventoryStatic.ComputerSystem.Name
+                            New-UDInputField -Name "Disable_CredSSP" -Type select -Values @($HName) -DefaultValue $HName
+                        } -Endpoint {
+                            param($Disable_CredSSP)
+
+                            #region >> Check Connection
+
+                            $PUDRSSyncHT = $global:PUDRSSyncHT
+
+                            $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+
+                            #endregion >> Check Connection
+
+                            #region >> Main
+
+                            $CredSSPChanges = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                $Output = @{}
+                                $GetCredSSPStatus = Get-WSManCredSSP
+                                if ($GetCredSSPStatus -match "The machine is configured to allow delegating fresh credentials.") {
+                                    Disable-WSManCredSSP -Role Client
+                                    $Output.Add("CredSSPClientChange",$True)
+                                }
+                                else {
+                                    $Output.Add("CredSSPClientChange",$False)
+                                }
+                                if ($GetCredSSPStatus -match "This computer is configured to receive credentials from a remote client computer.") {
+                                    Disable-WSManCredSSP -Role Server
+                                    $Output.Add("CredSSPServerChange",$True)
+                                }
+                                else {
+                                    $Output.Add("CredSSPServerChange",$False)
+                                }
+                                [PSCustomObject]$Output
+                            }
+
+                            [System.Collections.ArrayList]$ToastMessage = @()
+                            if ($CredSSPChanges.CredSSPClientChange -eq $True) {
+                                $null = $ToastMessage.Add("Disabled CredSSP Client.")
+                            }
+                            else {
+                                $null = $ToastMessage.Add("CredSSP Client is already disabled.")
+                            }
+                            if ($CredSSPChanges.CredSSPServerChange -eq $True) {
+                                $null = $ToastMessage.Add("Disabled CredSSP Server.")
+                            }
+                            else {
+                                $null = $ToastMessage.Add("CredSSP Server is already disabled.")
+                            }
+                            $ToastMessageFinal = $ToastMessage -join " "
+
+                            New-UDInputAction -Toast $ToastMessageFinal -Duration 2000
+                            Start-Sleep -Seconds 2
+
+                            #Sync-UDElement -Id 'TrackingTable'
+
+                            #New-UDInputAction -RedirectUrl "/Overview/$RemoteHost"
+
+                            Invoke-UDRedirect -Url "/Overview/$RemoteHost"
+
+                            #endregion >> Main
+                        }
+                        #>
+                    }
+                }
+            }
+        }
+        New-UDRow -Endpoint {
+            # Remote Desktop
+            New-UDColumn -Size 3 -Endpoint {
+                $CollapsibleId = $RemoteHost + "RemoteDesktop"
+                New-UDCollapsible -Id $CollapsibleId -Items {
+                    New-UDCollapsibleItem -Title "Remote Desktop*" -Icon laptop -Endpoint {
+                        New-UDRow -Endpoint {
+                            New-UDColumn -Endpoint {
+                                New-UDElement -Id "EnableRemoteDesktopMsg" -Tag div -EndPoint {
+                                    if ($Session:EnableRemoteDesktop) {
+                                        New-UDHeading -Text $Session:EnableRemoteDesktopMsg -Size 6
+                                    }
+                                }
+                                New-UDButton -Text "Enable" -OnClick {
+                                    $Session:EnableRemoteDesktopMsg = "Enabling Remote Desktop on $($RemoteHost.ToUpper())..."
+                                    $Session:EnableRemoteDesktop = $True
+                                    Sync-UDElement -Id "EnableRemoteDesktopMsg"
+
+                                    $SetRemoteDesktopSplatParams = @{
+                                        AllowRemoteDesktop        = $True
+                                        AllowRemoteDesktopWithNLA = $True
+                                    }
+                                    $SetRDFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Set-RemoteDesktop" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                                    $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                        Invoke-Expression $using:SetRDFunc
+
+                                        $SplatParams = $args[0]
+                                        Set-RemoteDesktop @SplatParams
+                                    } -ArgumentList $SetRemoteDesktopSplatParams
+                                }
+                            }
+                            
+                            New-UDColumn -Endpoint {
+                                New-UDElement -Id "DisableRemoteDesktopMsg" -Tag div -EndPoint {
+                                    if ($Session:DisableRemoteDesktop) {
+                                        New-UDHeading -Text $Session:DisableRemoteDesktopMsg -Size 6
+                                    }
+                                }
+                                New-UDButton -Text "Disable" -OnClick {
+                                    $Session:DisableRemoteDesktopMsg = "Disabling Remote Desktop on $($RemoteHost.ToUpper())..."
+                                    $Session:DisableRemoteDesktop = $True
+                                    Sync-UDElement -Id "DisableRemoteDesktopMsg"
+
+                                    $SetRemoteDesktopSplatParams = @{
+                                        AllowRemoteDesktop        = $False
+                                        AllowRemoteDesktopWithNLA = $False
+                                    }
+                                    $SetRDFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Set-RemoteDesktop" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                                    $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                        Invoke-Expression $using:SetRDFunc
+
+                                        $SplatParams = $args[0]
+                                        Set-RemoteDesktop @SplatParams
+                                    } -ArgumentList $SetRemoteDesktopSplatParams
+                                }
+
+                                <#
+                                New-UDInput -SubmitText "Submit" -Id "RemoteDesktopForm" -Content {
+                                    $GetRDFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RemoteDesktop" -and $_ -notmatch "function Get-PUDAdminCenter"}
+                                    $RemoteDesktopSettings = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                        Invoke-Expression $using:GetRDFunc
+                                        Get-RemoteDesktop
+                                    } -HideComputerName
+                                    $DefaultValue = if ($RemoteDesktopSettings.allowRemoteDesktop) {"Enabled"} else {"Disabled"}
+                                    New-UDInputField -Name "Remote_Desktop_Setting" -Type select -Values @("Enabled","Disabled") -DefaultValue $DefaultValue
+                                } -Endpoint {
+                                    param($Remote_Desktop_Setting)
+
+                                    #region >> Check Connection
+
+                                    $PUDRSSyncHT = $global:PUDRSSyncHT
+
+                                    $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
+
+                                    $SetRDFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Set-RemoteDesktop" -and $_ -notmatch "function Get-PUDAdminCenter"}
+
+                                    #endregion >> Check Connection
+
+                                    #region >> Main
+
+                                    if ($Remote_Desktop_Setting -eq "Enabled") {
+                                        $SetRemoteDesktopSplatParams = @{
+                                            AllowRemoteDesktop        = $True
+                                            AllowRemoteDesktopWithNLA = $True
+                                        }
+                                        $ToastMessage = "Remote Desktop Enabled for $RemoteHost!"
+                                    }
+                                    else {
+                                        $SetRemoteDesktopSplatParams = @{
+                                            AllowRemoteDesktop        = $False
+                                            AllowRemoteDesktopWithNLA = $False
+                                        }
+                                        $ToastMessage = "Remote Desktop Disabled for $RemoteHost!"
+                                    }
+
+                                    try {
+                                        $SetRemoteDesktopResult = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                            Set-ItemProperty -Path "HKLM:\SYSTEM\Currentcontrolset\control\Terminal Server" -Name TSServerDrainMode -Value 1
+                                        } -ArgumentList $SetRemoteDesktopSplatParams
+
+                                        New-UDInputAction -Toast $ToastMessage -Duration 2000
+                                    }
+                                    catch {
+                                        New-UDInputAction -Toast $_.Exception.Message -Duration 2000
+                                    }
+                                    Start-Sleep -Seconds 2
+
+                                    Invoke-UDRedirect -Url "/Overview/$RemoteHost"
+
+                                    #region >> Main
+                                }
+                                #>
+                            }
+                        }
+                    }
+                }
+            }
+
+            # Enable SSH
+            New-UDColumn -Size 3 -Endpoint {
+                $CollapsibleId = $RemoteHost + "SSH"
+                New-UDCollapsible -Id $CollapsibleId -Items {
+                    New-UDCollapsibleItem -Title "SSH" -Icon laptop -Endpoint {
+                        New-UDRow -Endpoint {
+                            New-UDColumn -Endpoint {
+                                New-UDElement -Id "EnableSSHMsg" -Tag div -EndPoint {
+                                    if ($Session:EnableSSH) {
+                                        New-UDHeading -Text $Session:EnableSSHMsg -Size 6
+                                    }
+                                }
+                                New-UDButton -Text "Enable" -OnClick {
+                                    $Session:EnableSSHMsg = "Enabling SSH and SSHD on $($RemoteHost.ToUpper())..."
+                                    $Session:EnableSSH = $True
+                                    Sync-UDElement -Id "EnableSSHMsg"
+
+
+                                    $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                        if ($(Get-Module -ListAvailable).Name -notcontains "WinSSH") {Install-Module WinSSH}
+                                        if ($(Get-Module "WinSSH").Name -notcontains "WinSSH") {Import-Module WinSSH}
+
+                                        Install-WinSSH -GiveWinSSHBinariesPathPriority -ConfigureSSHDOnLocalHost -DefaultShell pwsh
+                                    }
+                                }
+                            }
+                            
+                            New-UDColumn -Endpoint {
+                                New-UDElement -Id "DisableSSHMsg" -Tag div -EndPoint {
+                                    if ($Session:DisableSSH) {
+                                        New-UDHeading -Text $Session:DisableSSHMsg -Size 6
+                                    }
+                                }
+                                New-UDButton -Text "Disable" -OnClick {
+                                    $Session:DisableSSHMsg = "Disabling SSH and SSHD on $($RemoteHost.ToUpper())..."
+                                    $Session:DisableSSH = $True
+                                    Sync-UDElement -Id "DisableSSHMsg"
+
+                                    $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                        if ($(Get-Module -ListAvailable).Name -notcontains "WinSSH") {Install-Module WinSSH}
+                                        if ($(Get-Module "WinSSH").Name -notcontains "WinSSH") {Import-Module WinSSH}
+
+                                        Uninstall-WinSSH
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            # Edit Computer ID
+            New-UDColumn -Size 6 -Endpoint {
                 $CollapsibleId = $RemoteHost + "EditComputerIDMenu"
                 New-UDCollapsible -Id $CollapsibleId -Items {
                     New-UDCollapsibleItem -Title "Edit Computer ID" -Icon laptop -Endpoint {
@@ -1059,293 +1349,6 @@ $OverviewPageContent = {
                             #endregion >> Join Workgroup AND Rename Computer
 
                             #endregion >> Main
-                        }
-                    }
-                }
-            }
-        }
-        New-UDRow -Endpoint {
-            # Disable CredSSP
-            New-UDColumn -Size 3 -Endpoint {
-                $CollapsibleId = $RemoteHost + "DisableCredSSP"
-                New-UDCollapsible -Id $CollapsibleId -Items {
-                    New-UDCollapsibleItem -Title "Disable CredSSP*" -Icon laptop -Endpoint {
-                        New-UDElement -Id "DisableCredSSPMsg" -Tag div -EndPoint {
-                            if ($Session:DisableCredSSP) {
-                                New-UDHeading -Text $Session:DisableCredSSPMsg -Size 6
-                            }
-                        }
-                        New-UDButton -Text "Disable" -OnClick {
-                            $Session:DisableCredSSPMsg = $null
-                            $Session:DisableCredSSP = $True
-
-                            $CredSSPChanges = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                                $Output = @{}
-                                $GetCredSSPStatus = Get-WSManCredSSP
-                                if ($GetCredSSPStatus -match "The machine is configured to allow delegating fresh credentials.") {
-                                    Disable-WSManCredSSP -Role Client
-                                    $Output.Add("CredSSPClientChange",$True)
-                                }
-                                else {
-                                    $Output.Add("CredSSPClientChange",$False)
-                                }
-                                if ($GetCredSSPStatus -match "This computer is configured to receive credentials from a remote client computer.") {
-                                    Disable-WSManCredSSP -Role Server
-                                    $Output.Add("CredSSPServerChange",$True)
-                                }
-                                else {
-                                    $Output.Add("CredSSPServerChange",$False)
-                                }
-                                [PSCustomObject]$Output
-                            }
-
-                            [System.Collections.ArrayList]$ToastMessage = @()
-                            if ($CredSSPChanges.CredSSPClientChange -eq $True) {
-                                $null = $ToastMessage.Add("Disabled CredSSP Client.")
-                            }
-                            else {
-                                $null = $ToastMessage.Add("CredSSP Client is already disabled.")
-                            }
-                            if ($CredSSPChanges.CredSSPServerChange -eq $True) {
-                                $null = $ToastMessage.Add("Disabled CredSSP Server.")
-                            }
-                            else {
-                                $null = $ToastMessage.Add("CredSSP Server is already disabled.")
-                            }
-                            $Session:DisableCredSSPMsg = $ToastMessage -join " "
-
-                            Sync-UDElement -Id "DisableCredSSPMsg"
-                        }
-
-                        <#
-                        New-UDInput -SubmitText "Disable CredSSP" -Id "DisableCredSSPForm" -Content {
-                            $HName = $PUDRSSyncHT."$RemoteHost`Info".Overview.ServerInventoryStatic.ComputerSystem.Name
-                            New-UDInputField -Name "Disable_CredSSP" -Type select -Values @($HName) -DefaultValue $HName
-                        } -Endpoint {
-                            param($Disable_CredSSP)
-
-                            #region >> Check Connection
-
-                            $PUDRSSyncHT = $global:PUDRSSyncHT
-
-                            $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
-
-                            #endregion >> Check Connection
-
-                            #region >> Main
-
-                            $CredSSPChanges = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                                $Output = @{}
-                                $GetCredSSPStatus = Get-WSManCredSSP
-                                if ($GetCredSSPStatus -match "The machine is configured to allow delegating fresh credentials.") {
-                                    Disable-WSManCredSSP -Role Client
-                                    $Output.Add("CredSSPClientChange",$True)
-                                }
-                                else {
-                                    $Output.Add("CredSSPClientChange",$False)
-                                }
-                                if ($GetCredSSPStatus -match "This computer is configured to receive credentials from a remote client computer.") {
-                                    Disable-WSManCredSSP -Role Server
-                                    $Output.Add("CredSSPServerChange",$True)
-                                }
-                                else {
-                                    $Output.Add("CredSSPServerChange",$False)
-                                }
-                                [PSCustomObject]$Output
-                            }
-
-                            [System.Collections.ArrayList]$ToastMessage = @()
-                            if ($CredSSPChanges.CredSSPClientChange -eq $True) {
-                                $null = $ToastMessage.Add("Disabled CredSSP Client.")
-                            }
-                            else {
-                                $null = $ToastMessage.Add("CredSSP Client is already disabled.")
-                            }
-                            if ($CredSSPChanges.CredSSPServerChange -eq $True) {
-                                $null = $ToastMessage.Add("Disabled CredSSP Server.")
-                            }
-                            else {
-                                $null = $ToastMessage.Add("CredSSP Server is already disabled.")
-                            }
-                            $ToastMessageFinal = $ToastMessage -join " "
-
-                            New-UDInputAction -Toast $ToastMessageFinal -Duration 2000
-                            Start-Sleep -Seconds 2
-
-                            #Sync-UDElement -Id 'TrackingTable'
-
-                            #New-UDInputAction -RedirectUrl "/Overview/$RemoteHost"
-
-                            Invoke-UDRedirect -Url "/Overview/$RemoteHost"
-
-                            #endregion >> Main
-                        }
-                        #>
-                    }
-                }
-            }
-            # Remote Desktop
-            New-UDColumn -Size 3 -Endpoint {
-                $CollapsibleId = $RemoteHost + "RemoteDesktop"
-                New-UDCollapsible -Id $CollapsibleId -Items {
-                    New-UDCollapsibleItem -Title "Remote Desktop*" -Icon laptop -Endpoint {
-                        New-UDRow -Endpoint {
-                            New-UDColumn -Endpoint {
-                                New-UDElement -Id "EnableRemoteDesktopMsg" -Tag div -EndPoint {
-                                    if ($Session:EnableRemoteDesktop) {
-                                        New-UDHeading -Text $Session:EnableRemoteDesktopMsg -Size 6
-                                    }
-                                }
-                                New-UDButton -Text "Enable" -OnClick {
-                                    $Session:EnableRemoteDesktopMsg = "Enabling Remote Desktop on $($RemoteHost.ToUpper())..."
-                                    $Session:EnableRemoteDesktop = $True
-                                    Sync-UDElement -Id "EnableRemoteDesktopMsg"
-
-                                    $SetRemoteDesktopSplatParams = @{
-                                        AllowRemoteDesktop        = $True
-                                        AllowRemoteDesktopWithNLA = $True
-                                    }
-                                    $SetRDFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Set-RemoteDesktop" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                    $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                                        Invoke-Expression $using:SetRDFunc
-
-                                        $SplatParams = $args[0]
-                                        Set-RemoteDesktop @SplatParams
-                                    } -ArgumentList $SetRemoteDesktopSplatParams
-                                }
-                            }
-                            
-                            New-UDColumn -Endpoint {
-                                New-UDElement -Id "DisableRemoteDesktopMsg" -Tag div -EndPoint {
-                                    if ($Session:DisableRemoteDesktop) {
-                                        New-UDHeading -Text $Session:DisableRemoteDesktopMsg -Size 6
-                                    }
-                                }
-                                New-UDButton -Text "Disable" -OnClick {
-                                    $Session:DisableRemoteDesktopMsg = "Disabling Remote Desktop on $($RemoteHost.ToUpper())..."
-                                    $Session:DisableRemoteDesktop = $True
-                                    Sync-UDElement -Id "DisableRemoteDesktopMsg"
-
-                                    $SetRemoteDesktopSplatParams = @{
-                                        AllowRemoteDesktop        = $False
-                                        AllowRemoteDesktopWithNLA = $False
-                                    }
-                                    $SetRDFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Set-RemoteDesktop" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                    $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                                        Invoke-Expression $using:SetRDFunc
-
-                                        $SplatParams = $args[0]
-                                        Set-RemoteDesktop @SplatParams
-                                    } -ArgumentList $SetRemoteDesktopSplatParams
-                                }
-
-                                <#
-                                New-UDInput -SubmitText "Submit" -Id "RemoteDesktopForm" -Content {
-                                    $GetRDFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RemoteDesktop" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                    $RemoteDesktopSettings = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                                        Invoke-Expression $using:GetRDFunc
-                                        Get-RemoteDesktop
-                                    } -HideComputerName
-                                    $DefaultValue = if ($RemoteDesktopSettings.allowRemoteDesktop) {"Enabled"} else {"Disabled"}
-                                    New-UDInputField -Name "Remote_Desktop_Setting" -Type select -Values @("Enabled","Disabled") -DefaultValue $DefaultValue
-                                } -Endpoint {
-                                    param($Remote_Desktop_Setting)
-
-                                    #region >> Check Connection
-
-                                    $PUDRSSyncHT = $global:PUDRSSyncHT
-
-                                    $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
-
-                                    $SetRDFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Set-RemoteDesktop" -and $_ -notmatch "function Get-PUDAdminCenter"}
-
-                                    #endregion >> Check Connection
-
-                                    #region >> Main
-
-                                    if ($Remote_Desktop_Setting -eq "Enabled") {
-                                        $SetRemoteDesktopSplatParams = @{
-                                            AllowRemoteDesktop        = $True
-                                            AllowRemoteDesktopWithNLA = $True
-                                        }
-                                        $ToastMessage = "Remote Desktop Enabled for $RemoteHost!"
-                                    }
-                                    else {
-                                        $SetRemoteDesktopSplatParams = @{
-                                            AllowRemoteDesktop        = $False
-                                            AllowRemoteDesktopWithNLA = $False
-                                        }
-                                        $ToastMessage = "Remote Desktop Disabled for $RemoteHost!"
-                                    }
-
-                                    try {
-                                        $SetRemoteDesktopResult = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                                            Set-ItemProperty -Path "HKLM:\SYSTEM\Currentcontrolset\control\Terminal Server" -Name TSServerDrainMode -Value 1
-                                        } -ArgumentList $SetRemoteDesktopSplatParams
-
-                                        New-UDInputAction -Toast $ToastMessage -Duration 2000
-                                    }
-                                    catch {
-                                        New-UDInputAction -Toast $_.Exception.Message -Duration 2000
-                                    }
-                                    Start-Sleep -Seconds 2
-
-                                    Invoke-UDRedirect -Url "/Overview/$RemoteHost"
-
-                                    #region >> Main
-                                }
-                                #>
-                            }
-                        }
-                    }
-                }
-            }
-            # Enable SSH
-            New-UDColumn -Size 6 -Endpoint {
-                $CollapsibleId = $RemoteHost + "SSH"
-                New-UDCollapsible -Id $CollapsibleId -Items {
-                    New-UDCollapsibleItem -Title "SSH" -Icon laptop -Endpoint {
-                        New-UDRow -Endpoint {
-                            New-UDColumn -Endpoint {
-                                New-UDElement -Id "EnableSSHMsg" -Tag div -EndPoint {
-                                    if ($Session:EnableSSH) {
-                                        New-UDHeading -Text $Session:EnableSSHMsg -Size 6
-                                    }
-                                }
-                                New-UDButton -Text "Enable" -OnClick {
-                                    $Session:EnableSSHMsg = "Enabling SSH and SSHD on $($RemoteHost.ToUpper())..."
-                                    $Session:EnableSSH = $True
-                                    Sync-UDElement -Id "EnableSSHMsg"
-
-
-                                    $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                                        if ($(Get-Module -ListAvailable).Name -notcontains "WinSSH") {Install-Module WinSSH}
-                                        if ($(Get-Module "WinSSH").Name -notcontains "WinSSH") {Import-Module WinSSH}
-
-                                        Install-WinSSH -GiveWinSSHBinariesPathPriority -ConfigureSSHDOnLocalHost -DefaultShell pwsh
-                                    }
-                                }
-                            }
-                            
-                            New-UDColumn -Endpoint {
-                                New-UDElement -Id "DisableSSHMsg" -Tag div -EndPoint {
-                                    if ($Session:DisableSSH) {
-                                        New-UDHeading -Text $Session:DisableSSHMsg -Size 6
-                                    }
-                                }
-                                New-UDButton -Text "Disable" -OnClick {
-                                    $Session:DisableSSHMsg = "Disabling SSH and SSHD on $($RemoteHost.ToUpper())..."
-                                    $Session:DisableSSH = $True
-                                    Sync-UDElement -Id "DisableSSHMsg"
-
-                                    $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
-                                        if ($(Get-Module -ListAvailable).Name -notcontains "WinSSH") {Install-Module WinSSH}
-                                        if ($(Get-Module "WinSSH").Name -notcontains "WinSSH") {Import-Module WinSSH}
-
-                                        Uninstall-WinSSH
-                                    }
-                                }
-                            }
                         }
                     }
                 }

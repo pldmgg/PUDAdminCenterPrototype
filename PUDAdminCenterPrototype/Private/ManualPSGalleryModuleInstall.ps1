@@ -42,7 +42,7 @@ function ManualPSGalleryModuleInstall {
     }
     if ($PreRelease) {
         if ($ModuleInfo.Count -gt 1) {
-            $ModuleInfo = $($ModuleInfo | Sort-Object -Property Updated)[-1]
+            $ModuleInfo = $($ModuleInfo | Sort-Object -Property Updated | Where-Object {$_.properties.isPrerelease.'#text' -eq 'true'})[-1]
         }
     }
     
@@ -79,8 +79,8 @@ function ManualPSGalleryModuleInstall {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUdyTcv1JpsCJnQ7fEZM9lncUV
-# qsSgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUKehst4FRbIpIf5iTmu6+Y6IV
+# maigggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -137,11 +137,11 @@ function ManualPSGalleryModuleInstall {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFGzAOxKCCq3IN0JE
-# gyTD6vSikcagMA0GCSqGSIb3DQEBAQUABIIBAA6pH2FvfV3K1pouydyVihMGmSlQ
-# 27l/F1cUWpjxfv5zOASUw89uGa6AbNM7kTw7kbGVc1ehLxTBvqegZDF563qojspW
-# thK427nN+GEs7PcXBIe1Z+/8p+lh5qBITN42gYzvecvMnTRJxvtoVRR6pE8IXQv/
-# dbhiA3DvStf3sGURR/t90v10HQVeiMVINwkEyXYGEv2hpaDDU5O1DE+RZUdNAcYX
-# kkpGnscj4YoQ0fYZC9cI+LmtrhtdhXIytfNYUgpStcEvBggSB5MYp9ksk8JaZd55
-# WDdYC+c/NFZ6W5YnOzKVlS4F8Pjz2755AWWWbDxT2BwW19dJu1fOPTCYMRg=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFG2P7uvTxEH17rkh
+# 2UG+pv1iX+6bMA0GCSqGSIb3DQEBAQUABIIBAH6Hm5HLF6QPiFfWK06x8u13CjTo
+# L40m7p1UTfu7MxK+pBNxKxa8C3Bn7UpXqS860RVUIFtTjUUDlXeqkjshFZ0EnKzW
+# LQsuq2lUyXqJq9xm/6TX4zg4ybd60LIhmuRkVTY2FoRKz4bc0NAop6wunjAHyh18
+# ZgHdqU9kiqoaqWhFa1VSK8KP/1a6BEIa3jTuTJYlsHtvg2Rfu2+w4w1wHM2JOV3z
+# 7v1gFHmzZHGkFTzrJoSXH78jhB6Ib5jiTvLGf2T7pfrwp3/MdebcvL1Nj0r1x683
+# c/ID7/4sIp6as84dsgljKrXGST8fZq1orFsBm3GgmZctmyZnLou4LOmJewo=
 # SIG # End signature block

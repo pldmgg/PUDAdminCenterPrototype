@@ -153,7 +153,9 @@ function Get-PUDAdminCenter {
         try {
             $RemoteHostNetworkInfo = ResolveHost -HostNameOrIP $HName -ErrorAction Stop
 
-            $null = $InitialRemoteHostList.Add($RemoteHostNetworkInfo)
+            if ($InitialRemoteHostList.FQDN -notcontains $RemoteHostNetworkInfo.FQDN) {
+                $null = $InitialRemoteHostList.Add($RemoteHostNetworkInfo)
+            }
         }
         catch {
             continue
@@ -214,8 +216,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUYwPY9MdLiDG9p/PYBAdydE8S
-# E5Sgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUk2DJbSiJ9WFIxQyiWOi9Vreo
+# n36gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -272,11 +274,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFBYwEbt3a7d1VAcK
-# 2k9kalycz+34MA0GCSqGSIb3DQEBAQUABIIBABhvxvmhjmvufi6yeZ9rJGkvHCQO
-# Zgepl3F2uu91fQZhu7llji4f3bqWjC4X+GvV7m38K75hoTjg5lpx/WPqFpZ9SfKp
-# jcf3xQdzR8rCg3m1rCCIfS3vtUXb42sxI9FixZrDVpgv0K7fQ/h34ukm9b1KW2KX
-# R3C/2evo8DVyskkxZONGMgqk2x9MFo7xGmjIMVTySvCE+LkBuQBwiDUQaup/6EAj
-# MZKUBqzy1ta7eZirHhDB04vRjbKMHSaYJYq5zRwLhkIM81Ns+bnftGruQLugvlYW
-# tD92bXtrkA5qSKsatcMFvr18gWpdmqSLngXNvaXZ68Ejrbu5uSBmg086LVU=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFCakQMGzO3rgVroY
+# Eu+k/3YOPakYMA0GCSqGSIb3DQEBAQUABIIBACOAPkHRozLKyPVKVQY05hvNvzWk
+# G5RdeMlZ9ga5FqIf5z/qVbczvBqkDjML4oFNRFYlwKAvKX0RTZRlwIIhB7BKI1op
+# dwDKiYDD2F7Q8o2FiMETR+jj+2+ZiY0bF77MZix8zE4jwthwfN6fa9GlvxHAYbjz
+# +mpWfAHijU/Tqv5lYXHEwLheaoqSetGhpIWqe7WBuHpz3trDg82RcQnxmfWCdOmx
+# rlxRPBbM/26QEAks9j5u9id6yHsqfBmvgMO7oC7ifhm0e6F3p0e3sDvttby5vlqQ
+# ndcYnCy7iJeONnmNqjHvUb/SlAdnbC0F9+fAA4JkTfeCCuvQMHMSvDH4MTY=
 # SIG # End signature block
