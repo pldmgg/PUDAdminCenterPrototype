@@ -6201,9 +6201,16 @@ function Get-PUDAdminCenter {
                     # Load PUDAdminCenter Module Functions Within ScriptBlock
                     $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
     
-                    if ($Session:CredentialHT.Keys -notcontains $Session:ThisRemoteHost) {
-                        #New-UDInputAction -Toast "`$Session:CredentialHT is not defined!" -Duration 10000
+                    try {
+                        if ($Session:CredentialHT.GetType().FullName -ne "System.Collections.Hashtable") {
+                            $Session:CredentialHT = @{}
+                        }
+                    }
+                    catch {
                         $Session:CredentialHT = @{}
+                    }
+    
+                    if ($Session:CredentialHT.Keys -notcontains $Session:ThisRemoteHost) {
                         $RHostCredHT = @{
                             DomainCreds         = $null
                             LocalCreds          = $null
@@ -11300,8 +11307,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUkRFci8maCavhUuHsn2KNzb/M
-# fqagggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUBt3TWglqPk73vVnqoaQCW8zW
+# Kg2gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -11358,11 +11365,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFFmA67iqxIr04tK+
-# BOYflIZUsCfDMA0GCSqGSIb3DQEBAQUABIIBADxM4ZLAHnF2fsCyg4z+JUhNE6zY
-# ctl922Rpfh1U6gV46kVMNjN+QD5LQzu/5xyvieBmtOMqer13FF05yYcpbpOZtgPm
-# SA9Roj2wvi7fxYDnxroxwg3XEUnv40CpAhrSfrZWVtD+8ZyYCDlkd1iNHRO7CmWq
-# U+/XnmvyGeru8Y1ve3t9IGnsasnsSZRVaOH0az2k8YZXKH54ZfN/oBRS390GnNp5
-# M2pkgKAjvHMo4lfZimiy2rmr5VNvD3zuPAubFNU9bPRBjNyXRCpwQzWNNPPTFSug
-# 3uQRzJBJXMWodJE0LGd0Vv71Sz5jscj/yis3PzMctZqqZ9MIu3qcDx++0CQ=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFBf3fXUnpcIWjPXG
+# tX5yHNG/yGeOMA0GCSqGSIb3DQEBAQUABIIBAE4GrdQWt/kRdlUnXYRzw5SaBkIU
+# nxHO32Pr+he3T2uf4GrWEQStmNh4DDo/LYpTJwt0RuD30+XudEwPqGjX7Bx0USI4
+# qb0tCJTdTSR1IxMpP9MExh3sXJ24Wh2pFlzFsMVm09pkb67t6YS18AcuDkC2Bt9L
+# usbCzJ42kJXBvcdXB0ILOVSnBC0EhBsG429JJm3Eqt5wDRZTySD0dI5wJcCdJ/Da
+# cJwE9khSkaru0qfKxi3p6d/KKQRZfrs/+fJNMEKXSe4OLiPeb8z51NKkSZOJUbbX
+# SE9yPgHVepIEtHGCogb4ofNs62UjRaDK4ZsKiMlb4Q/Yv1Y+qfVsB53UFR4=
 # SIG # End signature block

@@ -487,9 +487,16 @@ $PSRemotingCredsPageContent = {
                 # Load PUDAdminCenter Module Functions Within ScriptBlock
                 $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
 
-                if ($Session:CredentialHT.Keys -notcontains $Session:ThisRemoteHost) {
-                    #New-UDInputAction -Toast "`$Session:CredentialHT is not defined!" -Duration 10000
+                try {
+                    if ($Session:CredentialHT.GetType().FullName -ne "System.Collections.Hashtable") {
+                        $Session:CredentialHT = @{}
+                    }
+                }
+                catch {
                     $Session:CredentialHT = @{}
+                }
+
+                if ($Session:CredentialHT.Keys -notcontains $Session:ThisRemoteHost) {
                     $RHostCredHT = @{
                         DomainCreds         = $null
                         LocalCreds          = $null
