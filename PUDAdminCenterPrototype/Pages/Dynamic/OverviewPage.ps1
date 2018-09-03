@@ -630,8 +630,11 @@ $OverviewPageContent = {
                             New-UDColumn -Endpoint {
                                 New-UDElement -Id "DisableCredSSPMsg" -Tag div -EndPoint {
                                     if ($Session:DisableCredSSP) {
+                                        if (!$Session:DisableCredSSPMsg) {
+                                            $Session:DisableCredSSPMsg = "Placeholder CredSSP Message"
+                                        }
                                         New-UDHeading -Text $Session:DisableCredSSPMsg -Size 6
-                                        Show-UDToast -Message $Session:DisableCredSSP -Position 'topRight' -Title "CredSSPToast" -Duration 5000
+                                        Show-UDToast -Message $Session:DisableCredSSPMsg -Position 'topRight' -Title "CredSSPToast" -Duration 5000
                                     }
                                 }
                                 New-UDElement -Id "CredSSPState" -Tag div -EndPoint {
@@ -683,7 +686,6 @@ $OverviewPageContent = {
                                     }
 
                                     if ($CredSSPStatus -ne "Disabled") {
-                                        $Session:DisableCredSSPMsg = $null
                                         $Session:DisableCredSSP = $True
 
                                         $CredSSPChanges = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
@@ -724,12 +726,16 @@ $OverviewPageContent = {
                                         Sync-UDElement -Id "DisableCredSSPMsg"
                                     }
                                     else {
+                                        $Session:DisableCredSSP = $True
+
                                         $Session:DisableCredSSPMsg = "CredSSP is already Disabled!"
+
+                                        Sync-UDElement -Id "DisableCredSSPMsg"
                                     }
 
                                     Sync-UDElement -Id "CredSSPState"
 
-                                    Start-Sleep -Seconds 4
+                                    Start-Sleep -Seconds 5
                                     $Session:DisableCredSSP = $False
                                     Sync-UDElement -Id "DisableCredSSPMsg"
                                 }

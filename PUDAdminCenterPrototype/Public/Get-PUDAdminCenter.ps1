@@ -3334,8 +3334,11 @@ function Get-PUDAdminCenter {
                                 New-UDColumn -Endpoint {
                                     New-UDElement -Id "DisableCredSSPMsg" -Tag div -EndPoint {
                                         if ($Session:DisableCredSSP) {
+                                            if (!$Session:DisableCredSSPMsg) {
+                                                $Session:DisableCredSSPMsg = "Placeholder CredSSP Message"
+                                            }
                                             New-UDHeading -Text $Session:DisableCredSSPMsg -Size 6
-                                            Show-UDToast -Message $Session:DisableCredSSP -Position 'topRight' -Title "CredSSPToast" -Duration 5000
+                                            Show-UDToast -Message $Session:DisableCredSSPMsg -Position 'topRight' -Title "CredSSPToast" -Duration 5000
                                         }
                                     }
                                     New-UDElement -Id "CredSSPState" -Tag div -EndPoint {
@@ -3387,7 +3390,6 @@ function Get-PUDAdminCenter {
                                         }
     
                                         if ($CredSSPStatus -ne "Disabled") {
-                                            $Session:DisableCredSSPMsg = $null
                                             $Session:DisableCredSSP = $True
     
                                             $CredSSPChanges = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
@@ -3428,12 +3430,16 @@ function Get-PUDAdminCenter {
                                             Sync-UDElement -Id "DisableCredSSPMsg"
                                         }
                                         else {
+                                            $Session:DisableCredSSP = $True
+    
                                             $Session:DisableCredSSPMsg = "CredSSP is already Disabled!"
+    
+                                            Sync-UDElement -Id "DisableCredSSPMsg"
                                         }
     
                                         Sync-UDElement -Id "CredSSPState"
     
-                                        Start-Sleep -Seconds 4
+                                        Start-Sleep -Seconds 5
                                         $Session:DisableCredSSP = $False
                                         Sync-UDElement -Id "DisableCredSSPMsg"
                                     }
@@ -11294,8 +11300,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUbJclS3PK57a59Z8Au70tItuS
-# 0pugggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUkRFci8maCavhUuHsn2KNzb/M
+# fqagggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -11352,11 +11358,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFHq5IKRP4CMPR6ji
-# 6pLT/mwBFfzxMA0GCSqGSIb3DQEBAQUABIIBACMXtPumG5t115GW8kdNi0UdtB9t
-# ffTmoJyNeVe/8CNN0VzmgFbwy2sq0adimG85sTQ+HvgSwKMemnkfstDCWLk1Yr/9
-# RHSwbrmEsM05x7Rfnd0b2dS6iBjSqwueD2ThcFVzfZl5zhTbdgUQuv8OSAkvIBK8
-# a17o4Nu7Y2yWZ094y0yRF2oNGEz8ll84zWtKc7094SIbw/jkfH+PA2Cb8C5cV93j
-# ohd2xRe1HeprIebdVZecRfe9zayg4GL13vP3iM8pnN0PwCPkKGuWqrguJf8FpZ68
-# uOHv/uj4HKgbg98AS12ll/4pqNKv61F2btjmvRa3VrkJDm6fF+ZGHdl3ShQ=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFFmA67iqxIr04tK+
+# BOYflIZUsCfDMA0GCSqGSIb3DQEBAQUABIIBADxM4ZLAHnF2fsCyg4z+JUhNE6zY
+# ctl922Rpfh1U6gV46kVMNjN+QD5LQzu/5xyvieBmtOMqer13FF05yYcpbpOZtgPm
+# SA9Roj2wvi7fxYDnxroxwg3XEUnv40CpAhrSfrZWVtD+8ZyYCDlkd1iNHRO7CmWq
+# U+/XnmvyGeru8Y1ve3t9IGnsasnsSZRVaOH0az2k8YZXKH54ZfN/oBRS390GnNp5
+# M2pkgKAjvHMo4lfZimiy2rmr5VNvD3zuPAubFNU9bPRBjNyXRCpwQzWNNPPTFSug
+# 3uQRzJBJXMWodJE0LGd0Vv71Sz5jscj/yis3PzMctZqqZ9MIu3qcDx++0CQ=
 # SIG # End signature block
