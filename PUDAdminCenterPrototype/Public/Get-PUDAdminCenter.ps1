@@ -3702,9 +3702,9 @@ function Get-PUDAdminCenter {
     
                                         $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                             if ($(Get-Module -ListAvailable).Name -notcontains "WinSSH") {Install-Module WinSSH}
-                                            if ($(Get-Module "WinSSH").Name -notcontains "WinSSH") {Import-Module WinSSH}
+                                            if ($(Get-Module).Name -notcontains "WinSSH") {Import-Module WinSSH}
     
-                                            Install-WinSSH -GiveWinSSHBinariesPathPriority -ConfigureSSHDOnLocalHost -DefaultShell pwsh
+                                            Install-WinSSH -GiveWinSSHBinariesPathPriority -ConfigureSSHDOnLocalHost -DefaultShell powershell
                                         }
     
                                         Sync-UDElement -Id "SSHState"
@@ -3722,7 +3722,7 @@ function Get-PUDAdminCenter {
     
                                         $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                             if ($(Get-Module -ListAvailable).Name -notcontains "WinSSH") {Install-Module WinSSH}
-                                            if ($(Get-Module "WinSSH").Name -notcontains "WinSSH") {Import-Module WinSSH}
+                                            if ($(Get-Module).Name -notcontains "WinSSH") {Import-Module WinSSH}
     
                                             Uninstall-WinSSH
                                         }
@@ -5878,7 +5878,7 @@ function Get-PUDAdminCenter {
                         $Local_Password = $LocalPasswordTextBox.Attributes['value']
                         $Domain_UserName = $DomainUserNameTextBox.Attributes['value']
                         $Domain_Password = $DomainPasswordTextBox.Attributes['value']
-                        $SSHPublicCertString = $SSHPublicCertTextBox.Attributes['value']
+                        $VaultServerUrl = $SSHPublicCertTextBox.Attributes['value']
                         $Preferred_PSRemotingCredType = $($PrefCredTypeSelection.Content | foreach {
                             $_.ToString() | ConvertFrom-Json
                         } | Where-Object {$_.attributes.selected.isPresent}).attributes.value
@@ -5898,7 +5898,7 @@ function Get-PUDAdminCenter {
                             Local_Password                  = $Local_Password
                             Domain_UserName                 = $Domain_UserName
                             Domain_Password                 = $Domain_Password
-                            SSHPublicCertString             = $SSHPublicCertString
+                            VaultServerUrl             = $VaultServerUrl
                             Preferred_PSRemotingCredType    = $Preferred_PSRemotingCredType
                             Preferred_PSRemotingMethod      = $Preferred_PSRemotingMethod
                             RemoteHost                      = $Session:ThisRemoteHost
@@ -5910,7 +5910,7 @@ function Get-PUDAdminCenter {
                             $RHostCredHT = @{
                                 DomainCreds         = $null
                                 LocalCreds          = $null
-                                SSHCertPath         = $null
+                                SSHCertString         = $null
                                 PSRemotingCredType  = $null
                                 PSRemotingMethod    = $null
                                 PSRemotingCreds     = $null
@@ -5936,8 +5936,8 @@ function Get-PUDAdminCenter {
                         if (!$Domain_Password -and $Session:CredentialHT.$Session:ThisRemoteHost.DomainCreds -ne $null) {
                             $Domain_Password = $Session:CredentialHT.$Session:ThisRemoteHost.DomainCreds.GetNetworkCredential().Password
                         }
-                        if (!$SSHPublicCertString -and $Session:CredentialHT.$Session:ThisRemoteHost.SSHCertPath -ne $null) {
-                            $SSHPublicCertString = $Session:CredentialHT.$Session:ThisRemoteHost.SSHCertPath
+                        if (!$VaultServerUrl -and $Session:CredentialHT.$Session:ThisRemoteHost.SSHCertString -ne $null) {
+                            $VaultServerUrl = $Session:CredentialHT.$Session:ThisRemoteHost.SSHCertString
                         }
                         if (!$Preferred_PSRemotingCredType -and $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCredType -ne $null) {
                             $Preferred_PSRemotingCredType = $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCredType
@@ -5946,7 +5946,7 @@ function Get-PUDAdminCenter {
                             $Preferred_PSRemotingMethod = $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingMethod
                         }
     
-                        if (!$Local_UserName -and !$Local_Password -and !$Domain_UserName -and !$Domain_Password -and !$SSHPublicCertString) {
+                        if (!$Local_UserName -and !$Local_Password -and !$Domain_UserName -and !$Domain_Password -and !$VaultServerUrl) {
                             $Session:NoCredsEntered = $True
                             Sync-UDElement -Id "ValidateCredsMsg"
                             $Session:CheckingCredentials = $False
@@ -5954,7 +5954,7 @@ function Get-PUDAdminCenter {
                             return
                         }
     
-                        if ($SSHPublicCertString) {
+                        if ($VaultServerUrl) {
                             # TODO: Validate the provided string is a SSH Public Cert
                             if ($BadSSHPubCert) {
                                 $Session:InvalidSSHPubCert = $True
@@ -5968,7 +5968,7 @@ function Get-PUDAdminCenter {
                         if (!$Preferred_PSRemotingMethod -and $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingMethod) {
                             $Preferred_PSRemotingMethod = $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingMethod
                         }
-                        if ($Preferred_PSRemotingMethod -eq "SSH" -and !$SSHPublicCertString) {
+                        if ($Preferred_PSRemotingMethod -eq "SSH" -and !$VaultServerUrl) {
                             $Session:SSHRemotingMethodNoCert = $True
                             Sync-UDElement -Id "ValidateCredsMsg"
                             $Session:CheckingCredentials = $False
@@ -6137,8 +6137,8 @@ function Get-PUDAdminCenter {
                         if ($LocalAdminCreds) {
                             $Session:CredentialHT.$Session:ThisRemoteHost.LocalCreds = $LocalAdminCreds
                         }
-                        if ($SSHPublicCertString) {
-                            $Session:CredentialHT.$Session:ThisRemoteHost.SSHCertPath = $SSHPublicCertString
+                        if ($VaultServerUrl) {
+                            $Session:CredentialHT.$Session:ThisRemoteHost.SSHCertString = $VaultServerUrl
                         }
                         if ($Preferred_PSRemotingCredType) {
                             $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCredType = $Preferred_PSRemotingCredType
@@ -6181,7 +6181,7 @@ function Get-PUDAdminCenter {
                     New-UDInputField -Type password -Name 'Local_Password' -Value $null
                     New-UDInputField -Type textbox -Name 'Domain_UserName' -Value $null
                     New-UDInputField -Type password -Name 'Domain_Password' -Value $null
-                    New-UDInputField -Type textarea -Name 'SSH_Public_Cert' -Value $null
+                    New-UDInputField -Type textarea -Name 'VaultServerUrl' -Value $null
                     New-UDInputField -Type select -Name 'Preferred_PSRemotingCredType' -Values @("Local","Domain") -DefaultValue "Domain"
                     New-UDInputField -Type select -Name 'Preferred_PSRemotingMethod' -Values @("WinRM","SSH") -DefaultValue "WinRM"
                 } -Endpoint {
@@ -6190,7 +6190,7 @@ function Get-PUDAdminCenter {
                         [string]$Local_Password,
                         [string]$Domain_UserName,
                         [string]$Domain_Password,
-                        [string]$SSHPublicCertString,
+                        [string]$VaultServerUrl,
                         [string]$Preferred_PSRemotingCredType,
                         [string]$Preferred_PSRemotingMethod
                     )
@@ -6214,7 +6214,7 @@ function Get-PUDAdminCenter {
                         $RHostCredHT = @{
                             DomainCreds         = $null
                             LocalCreds          = $null
-                            SSHCertPath         = $null
+                            SSHCertString         = $null
                             PSRemotingCredType  = $null
                             PSRemotingMethod    = $null
                             PSRemotingCreds     = $null
@@ -6238,8 +6238,8 @@ function Get-PUDAdminCenter {
                     if (!$Domain_Password -and $Session:CredentialHT.$Session:ThisRemoteHost.DomainCreds -ne $null) {
                         $Domain_Password = $Session:CredentialHT.$Session:ThisRemoteHost.DomainCreds.GetNetworkCredential().Password
                     }
-                    if (!$SSHPublicCertString -and $Session:CredentialHT.$Session:ThisRemoteHost.SSHCertPath -ne $null) {
-                        $SSHPublicCertString = $Session:CredentialHT.$Session:ThisRemoteHost.SSHCertPath
+                    if (!$VaultServerUrl -and $Session:CredentialHT.$Session:ThisRemoteHost.SSHCertString -ne $null) {
+                        $VaultServerUrl = $Session:CredentialHT.$Session:ThisRemoteHost.SSHCertString
                     }
                     if (!$Preferred_PSRemotingCredType -and $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCredType -ne $null) {
                         $Preferred_PSRemotingCredType = $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCredType
@@ -6248,7 +6248,7 @@ function Get-PUDAdminCenter {
                         $Preferred_PSRemotingMethod = $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingMethod
                     }
     
-                    if (!$Local_UserName -and !$Local_Password -and !$Domain_UserName -and !$Domain_Password -and !$SSHPublicCertString) {
+                    if (!$Local_UserName -and !$Local_Password -and !$Domain_UserName -and !$Domain_Password -and !$VaultServerUrl) {
                         #$Session:NoCredsEntered = $True
                         #Sync-UDElement -Id "ValidateCredsMsg"
                         New-UDInputAction -Toast "You MUST enter UserName/Password for either a Local User or Domain User with access to $Session:ThisRemoteHost!" -Duration 10000
@@ -6256,25 +6256,154 @@ function Get-PUDAdminCenter {
                         return
                     }
     
-                    if ($SSHPublicCertString) {
-                        if (!$(Test-Path $SSHPublicCertString)) {
-                            #$Session:InvalidSSHPubCert = $True
-                            #Sync-UDElement -Id "ValidateCredsMsg"
-                            New-UDInputAction -Toast "The string '$SSHPublicCertString' is not a falid SSH Public Cert!" -Duration 10000
-                            Sync-UDElement -Id "CredsForm"
-                            return
-                        }
-                    }
-    
                     if (!$Preferred_PSRemotingMethod -and $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingMethod) {
                         $Preferred_PSRemotingMethod = $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingMethod
                     }
-                    if ($Preferred_PSRemotingMethod -eq "SSH" -and !$SSHPublicCertString) {
-                        #$Session:SSHRemotingMethodNoCert = $True
-                        #Sync-UDElement -Id "ValidateCredsMsg"
-                        New-UDInputAction -Toast "You indicated that SSH is your Preferred_PSRemotingMethod, however, you did not provide a value for Path_To_SSH_Public_Cert!" -Duration 10000
-                        Sync-UDElement -Id "CredsForm"
-                        return
+                    if ($Preferred_PSRemotingMethod -eq "SSH") {
+                        if ($Preferred_PSRemotingCredType -ne "Domain") {
+                            New-UDInputAction -Toast "You MUST use 'Domain' credentials if you intend to use SSH as your remoting protocol!" -Duration 10000
+                            Sync-UDElement -Id "CredsForm"
+                            return
+                        }
+                        if (!$VaultServerUrl) {
+                            #$Session:SSHRemotingMethodNoCert = $True
+                            #Sync-UDElement -Id "ValidateCredsMsg"
+                            New-UDInputAction -Toast "You indicated that SSH is your Preferred_PSRemotingMethod, however, you did not provide a value for VaultServerUrl!" -Duration 10000
+                            Sync-UDElement -Id "CredsForm"
+                            return
+                        }
+                        if (!$Domain_UserName -or !$Domain_Password) {
+                            New-UDInputAction -Toast "You must provide a Domain_UserName AND Domain_Password in order to use WinRM over SSH!" -Duration 10000
+                            Sync-UDElement -Id "CredsForm"
+                            return
+                        }
+    
+                        [Net.ServicePointManager]::SecurityProtocol = "tls12, tls11, tls"
+    
+                        # Make sure we can reach the Vault Server and that is in a state where we can actually use it.
+                        try {
+                            $VaultServerUpAndUnsealedCheck = Invoke-RestMethod "$VaultServerBaseUri/sys/health"
+                            if (!$VaultServerUpAndUnsealedCheck -or $VaultServerUpAndUnsealedCheck.initialized -ne $True -or
+                            $VaultServerUpAndUnsealedCheck.sealed -ne $False -or $VaultServerUpAndUnsealedCheck.standby -ne $False) {
+                                throw "The Vault Server is either not reachable or in a state where it cannot be used! Halting!"
+                            }
+                        }
+                        catch {
+                            Write-Error $_
+                            $global:FunctionResult = "1"
+                            return
+                        }
+    
+                        # Make sure the Domain Credentials are in the correct format and create a pscredential
+                        if ($Domain_UserName -and $Domain_Password) {
+                            $DomainShortName = $($PUDRSSyncHT."$Session:ThisRemoteHost`Info".NetworkInfo.Domain -split "\.")[0]
+                            # Make sure the $Domain_UserName is in format $Session:ThisRemoteHost\$Domain_UserName
+                            if ($Domain_UserName -notmatch "^$DomainShortName\\[a-zA-Z0-9]+$") {
+                                #$Session:BadFormatDomainUserName = $True
+                                #Sync-UDElement -Id "ValidateCredsMsg"
+                                New-UDInputAction -Toast "Domain_UserName must be in format 'Domain\DomainUser'!" -Duration 10000
+                                Sync-UDElement -Id "CredsForm"
+                                return
+                            }
+        
+                            $DomainPwdSecureString = ConvertTo-SecureString $Domain_Password -AsPlainText -Force
+                            $DomainAdminCreds = [pscredential]::new($Domain_UserName,$DomainPwdSecureString)
+                        }
+    
+                        # Make sure we have the WinSSH Module
+                        if ($(Get-Module -ListAvailable).Name -notcontains "WinSSH") {$null = Install-Module WinSSH}
+                        if ($(Get-Module).Name -notcontains "WinSSH") {$null = Import-Module WinSSH}
+    
+                        # Install OpenSSH-Win64 if it isn't already
+                        if (!$(Test-Path "$env:ProgramFiles\OpenSSH-Win64\ssh.exe")) {
+                            Install-WinSSH -GiveWinSSHBinariesPathPriority -ConfigureSSHDOnLocalHost -DefaultShell powershell
+                        }
+                        else {
+                            if (!$(Get-Command ssh -ErrorAction SilentlyContinue)) {
+                                # Update PowerShell $env:Path
+                                $env:Path = "$env:ProgramFiles\OpenSSH-Win64;$env:Path"
+                                
+                                # Update SYSTEM Path
+                                $CurrentSystemPath = $(Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment' -Name PATH).Path
+                                $CurrentSystemPathArray = $CurrentSystemPath -split ";" | Select-Object | Get-Unique
+                                if ($CurrentSystemPathArray -notcontains "$env:ProgramFiles\OpenSSH-Win64") {
+                                    $UpdatedSystemPath = "$env:ProgramFiles\OpenSSH-Win64;$CurrentSystemPath"
+                                }
+                                Set-ItemProperty -Path "Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment" -Name PATH -Value $UpdatedSystemPath
+                            }
+                            if (!$(Get-Command ssh -ErrorAction SilentlyContinue)) {
+                                Write-Error "Unable to find ssh.exe!"
+                                $global:FunctionResult = "1"
+                                return
+                            }
+                        }
+    
+                        # Install/Import the VaultServer PowerShell Module if it isn't already
+                        if ($(Get-Module -ListAvailable).Name -notcontains "VaultServer") {Install-Module VaultServer}
+                        if ($(Get-Module).Name -notcontains "VaultServer") {Import-Module VaultServer}
+    
+                        # Use Domain Credentials to get a new Vault Server Authentication Token, generate new SSH Keys on the PUDAdminCenter Server,
+                        # have the Vault Server sign them, add the new private key to the ssh-agent, and output an SSH Public Certificate to $HOME\.ssh
+                        # NOTE: The SSH Keys will expire in 24 hours
+                        $NewSSHKeyName = $($DomainAdminCreds.UserName -split "\\")[-1] + "_" + $(Get-Date -Format MM-dd-yy_hhmmsstt)
+                        $NewSSHCredentialsSplatParams = @{
+                            VaultServerBaseUri                  = $VaultServerUrl
+                            DomainCredentialsWithAccessToVault  = $DomainAdminCreds
+                            NewSSHKeyName                       = $NewSSHKeyName
+                            BlankSSHPrivateKeyPwd               = $True
+                            AddToSSHAgent                       = $True
+                            #RemovePrivateKey                    = $True
+                            #SSHAgentExpiry                      = 86400 # 24 hours in seconds
+                        }
+                        $NewSSHCredsResult = New-SSHCredentials @NewSSHCredentialsSplatParams
+    
+                        # Remove the specific identity added to the ssh-agent via the above by doing:
+                        #     ssh-add -d "$($NewSSHCredsResult.PrivateKeyPath)"
+    
+                        # $NewSSHCredsResult is a pscustomobject with the following content:
+                        <#
+                            PublicKeyCertificateAuthShouldWork : True
+                            FinalSSHExeCommand                 : ssh zeroadmin@zero@<RemoteHost>
+                            PrivateKeyPath                     : C:\Users\zeroadmin\.ssh\zeroadmin_071918
+                            PublicKeyPath                      : C:\Users\zeroadmin\.ssh\zeroadmin_071918.pub
+                            PublicCertPath                     : C:\Users\zeroadmin\.ssh\zeroadmin_071918-cert.pub
+                        #>
+    
+                        # If $NewSSHCredsResult.FinalSSHExeCommand looks like...
+                        #     ssh -o "IdentitiesOnly=true" -i "C:\Users\zeroadmin\.ssh\zeroadmin_071718" -i "C:\Users\zeroadmin\.ssh\zeroadmin_071718-cert.pub" zeroadmin@zero@<RemoteHost>
+                        # ...or...
+                        #     ssh <user>@<RemoteHost>
+                        # ...then there are too many identities loaded in the ssh-agent service, which means we need to get the private key from the registry and write it to a file
+                        # See: https://blog.ropnop.com/extracting-ssh-private-keys-from-windows-10-ssh-agent/
+                        if (!$NewSSHCredsResult.PublicKeyCertificateAuthShouldWork -or 
+                        $NewSSHCredsResult.FinalSSHExeCommand -eq "ssh <user>@<RemoteHost>" -or
+                        $NewSSHCredsResult.FinalSSHExeCommand -match "IdentitiesOnly=true"
+                        ) {
+                            $ExtractedPrivateKeys = Extract-SSHPrivateKeyFromRegistry
+                            $OriginalPrivateKeyPath = $NewSSHCredsResult.PublicKeyPath -replace "\.pub",""
+    
+                            $PrivateKeyContent = $($ExtractedPrivateKeys | Where-Object {$_.OriginalPrivateKeyFilePath -eq $OriginalPrivateKeyPath}).PrivateKeyContent
+    
+                            Set-Content -Path $OriginalPrivateKeyPath -Value $PrivateKeyContent
+    
+                            # The below $FinalSSHExeCommand string should look like:
+                            #     ssh -o "IdentitiesOnly=true" -i "$OriginalPrivateKeyPath" -i "$($NewSSHCredsResult.PublicCertPath)" zeroadmin@zero@<RemoteHost>
+                            $FinalSSHExeCommand = $(Get-SSHClientAuthSanity -SSHPublicKeyFilePath $NewSSHCredsResult.PublicKeyPath).FinalSSHExeCommand
+                        }
+                        else {
+                            # The below $FinalSSHExeCommand string should look like:
+                            #     ssh zeroadmin@zero@<RemoteHost>
+                            $FinalSSHExeCommand = $NewSSHCredsResult.FinalSSHExeCommand
+                        }
+                    }
+                    if ($Preferred_PSRemotingMethod -eq "WinRM") {
+                        if ($VaultServerUrl) {
+                            #$Session:SSHRemotingMethodNoCert = $True
+                            #Sync-UDElement -Id "ValidateCredsMsg"
+                            New-UDInputAction -Toast "You provided a Vault Server Url, however, your Preferred_PSRemotingMethod is not SSH!" -Duration 10000
+                            Sync-UDElement -Id "CredsForm"
+                            return
+                        }
                     }
     
                     if (!$Preferred_PSRemotingCredType -and $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCredType) {
@@ -6296,14 +6425,16 @@ function Get-PUDAdminCenter {
                         return
                     }
     
-                    if ($($Local_UserName -and !$Local_Password) -or $(!$Local_UserName -and $Local_Password) -or
-                    $($Domain_UserName -and !$Domain_Password) -or $(!$Domain_UserName -and $Domain_Password)
-                    ) {
-                        #$Session:UserNameAndPasswordRequired = $True
-                        #Sync-UDElement -Id "ValidateCredsMsg"
-                        New-UDInputAction -Toast "Please enter both a UserName and a Password!" -Duration 10000
-                        Sync-UDElement -Id "CredsForm"
-                        return
+                    if ($Preferred_PSRemotingMethod -eq "WinRM") {
+                        if ($($Local_UserName -and !$Local_Password) -or $(!$Local_UserName -and $Local_Password) -or
+                        $($Domain_UserName -and !$Domain_Password) -or $(!$Domain_UserName -and $Domain_Password)
+                        ) {
+                            #$Session:UserNameAndPasswordRequired = $True
+                            #Sync-UDElement -Id "ValidateCredsMsg"
+                            New-UDInputAction -Toast "Please enter both a UserName and a Password!" -Duration 10000
+                            Sync-UDElement -Id "CredsForm"
+                            return
+                        }
                     }
     
                     if ($Local_UserName -and $Local_Password) {
@@ -6332,133 +6463,159 @@ function Get-PUDAdminCenter {
                     }
     
                     # Test the Credentials
-                    [System.Collections.ArrayList]$CredentialsToTest = @()
-                    if ($LocalAdminCreds) {
-                        $PSObj = [pscustomobject]@{CredType = "LocalUser"; PSCredential = $LocalAdminCreds}
-                        $null = $CredentialsToTest.Add($PSObj)
-                    }
-                    if ($DomainAdminCreds) {
-                        $PSObj = [pscustomobject]@{CredType = "DomainUser"; PSCredential = $DomainAdminCreds}
-                        $null = $CredentialsToTest.Add($PSObj)
-                    }
+                    if ($Preferred_PSRemotingMethod -eq "SSH") {
+                        # Now we need to test if $FinalSSHExeCommand actually works
     
-                    [System.Collections.ArrayList]$FailedCredentialsA = @()
-                    foreach ($CredObj in $CredentialsToTest) {
-                        try {
-                            $GetWorkingCredsResult = GetWorkingCredentials -RemoteHostNameOrIP $Session:ThisRemoteHost -AltCredentials $CredObj.PSCredential -ErrorAction Stop
-            
-                            if ($GetWorkingCredsResult.DeterminedCredsThatWorkedOnRemoteHost) {
-                                if ($GetWorkingCredsResult.WorkingCredentials.GetType().FullName -ne "System.Management.Automation.PSCredential") {
-                                    #New-UDInputAction -Toast "$($CredObj.CredType) Credentials are not valid! Please try again." -Duration 10000
+                        # TODO: There is currently an issue with pwsh.exe 6.1.0-rc1 and/or sshd in OpenSSH-Win64 7.7.2.0 where auth via Domain Credentials
+                        # immediately kicks you out of the ssh session.
+                        # See: https://github.com/PowerShell/Win32-OpenSSH/issues/1243 and https://github.com/PowerShell/Win32-OpenSSH/issues/1213
+                        <#
+                        if ($FinalSSHExeCommand -eq "ssh zeroadmin@zero@<RemoteHost>") {
+                            # In this situation, -KeyFilePath should be the SSH Public Key Certificate
+                            $NewPSSessionString = "New-PSSession -HostName $RemoteHost -UserName $Domain_UserName -Port 22 -KeyFilePath `"$($NewSSHCredsResult.PublicCertPath)`""
+                        }
+                        # For this command string, we need to escape all double quotes
+                        $PwshCommandStringPrep = @(
+                            # Create a New-PSSession using SSH
+                            "New-PSSession -HostName $RemoteHost -UserName $Domain_UserName -Port 22 -KeyFilePath "
+                        )
+                        $PwshCommandString = $PwshCommandStringPrep -join "`n"
+    
+                        pwsh -Command "$CommandString"
+                        #>
+    
+                        # So, as of 9-5-18, we can only get strings back from a Remote Host over ssh protocol
+    
+                    }
+                    if ($Preferred_PSRemotingMethod -eq "WinRM") {
+                        [System.Collections.ArrayList]$CredentialsToTest = @()
+                        if ($LocalAdminCreds) {
+                            $PSObj = [pscustomobject]@{CredType = "LocalUser"; PSCredential = $LocalAdminCreds}
+                            $null = $CredentialsToTest.Add($PSObj)
+                        }
+                        if ($DomainAdminCreds) {
+                            $PSObj = [pscustomobject]@{CredType = "DomainUser"; PSCredential = $DomainAdminCreds}
+                            $null = $CredentialsToTest.Add($PSObj)
+                        }
+    
+                        [System.Collections.ArrayList]$FailedCredentialsA = @()
+                        foreach ($CredObj in $CredentialsToTest) {
+                            try {
+                                $GetWorkingCredsResult = GetWorkingCredentials -RemoteHostNameOrIP $Session:ThisRemoteHost -AltCredentials $CredObj.PSCredential -ErrorAction Stop
+                
+                                if ($GetWorkingCredsResult.DeterminedCredsThatWorkedOnRemoteHost) {
+                                    if ($GetWorkingCredsResult.WorkingCredentials.GetType().FullName -ne "System.Management.Automation.PSCredential") {
+                                        #New-UDInputAction -Toast "$($CredObj.CredType) Credentials are not valid! Please try again." -Duration 10000
+                                        $null = $FailedCredentialsA.Add($CredObj)
+                                    }
+                                }
+                                else {
                                     $null = $FailedCredentialsA.Add($CredObj)
                                 }
                             }
-                            else {
-                                $null = $FailedCredentialsA.Add($CredObj)
-                            }
-                        }
-                        catch {
-                            #New-UDInputAction -Toast $_.Exception.Message -Duration 10000
-                            #New-UDInputAction -Toast "Unable to test $($CredObj.CredType) Credentials! Refreshing page..." -Duration 10000
-                            #New-UDInputAction -RedirectUrl "/PSRemotingCreds/$Session:ThisRemoteHost"
-                        }
-                    }
-    
-                    if ($($CredentialsToTest.Count -eq 2 -and $FailedCredentialsA.Count -eq 2) -or 
-                    $($CredentialsToTest.Count -eq 1 -and $FailedCredentialsA.Count -eq 1)
-                    ) {
-                        # Since WinRM failed, try and enable WinRM Remotely via Invoke-WmiMethod over RPC Port 135 (if it's open)
-                        $RPCPortOpen = $(TestPort -HostName $Session:ThisRemoteHost -Port 135).Open
-    
-                        [System.Collections.ArrayList]$EnableWinRMSuccess = @()
-                        foreach ($CredObj in $CredentialsToTest) {
-                            if ($RPCPortOpen) {
-                                try {
-                                    $null = EnableWinRMViaRPC -RemoteHostNameOrIP $Session:ThisRemoteHost -Credential $CredObj.PSCredential
-                                    $null = $EnableWinRMSuccess.Add($CredObj)
-                                    break
-                                }
-                                catch {
-                                    #New-UDInputAction -Toast "Failed to enable WinRM Remotely using Credentials $($CredObj.PSCredential.UserName)" -Duration 10000
-                                }
+                            catch {
+                                #New-UDInputAction -Toast $_.Exception.Message -Duration 10000
+                                #New-UDInputAction -Toast "Unable to test $($CredObj.CredType) Credentials! Refreshing page..." -Duration 10000
+                                #New-UDInputAction -RedirectUrl "/PSRemotingCreds/$Session:ThisRemoteHost"
                             }
                         }
     
-                        if ($EnableWinRMSuccess.Count -eq 0) {
-                            #$Session:EnableWinRMFailure = $True
-                            #Sync-UDElement -Id "ValidateCredsMsg"
-                            New-UDInputAction -Toast "Unable to Enable WinRM on $Session:ThisRemoteHost via Invoke-WmiMethod over RPC! Please check your credentials." -Duration 10000
-                            Sync-UDElement -Id "CredsForm"
-                            return
-                        }
-                        else {
-                            [System.Collections.ArrayList]$FailedCredentialsB = @()
+                        if ($($CredentialsToTest.Count -eq 2 -and $FailedCredentialsA.Count -eq 2) -or 
+                        $($CredentialsToTest.Count -eq 1 -and $FailedCredentialsA.Count -eq 1)
+                        ) {
+                            # Since WinRM failed, try and enable WinRM Remotely via Invoke-WmiMethod over RPC Port 135 (if it's open)
+                            $RPCPortOpen = $(TestPort -HostName $Session:ThisRemoteHost -Port 135).Open
+    
+                            [System.Collections.ArrayList]$EnableWinRMSuccess = @()
                             foreach ($CredObj in $CredentialsToTest) {
-                                try {
-                                    $GetWorkingCredsResult = GetWorkingCredentials -RemoteHostNameOrIP $Session:ThisRemoteHost -AltCredentials $CredObj.PSCredential -ErrorAction Stop
-                    
-                                    if ($GetWorkingCredsResult.WorkingCredentials.GetType().FullName -ne "System.Management.Automation.PSCredential") {
-                                        #New-UDInputAction -Toast "$($CredObj.CredType) Credentials are not valid! Please try again." -Duration 10000
-                                        $null = $FailedCredentialsB.Add($CredObj)
+                                if ($RPCPortOpen) {
+                                    try {
+                                        $null = EnableWinRMViaRPC -RemoteHostNameOrIP $Session:ThisRemoteHost -Credential $CredObj.PSCredential
+                                        $null = $EnableWinRMSuccess.Add($CredObj)
+                                        break
+                                    }
+                                    catch {
+                                        #New-UDInputAction -Toast "Failed to enable WinRM Remotely using Credentials $($CredObj.PSCredential.UserName)" -Duration 10000
                                     }
                                 }
-                                catch {
-                                    #$Session:GetWorkingCredsFailure = $True
-                                    #Sync-UDElement -Id "ValidateCredsMsg"
-                                    New-UDInputAction -Toast $_.Exception.Message -Duration 10000
-                                    New-UDInputAction -Toast "Unable to test $($CredObj.CredType) Credentials! Please try again." -Duration 10000
-                                    Sync-UDElement -Id "CredsForm"
-                                    return
+                            }
+    
+                            if ($EnableWinRMSuccess.Count -eq 0) {
+                                #$Session:EnableWinRMFailure = $True
+                                #Sync-UDElement -Id "ValidateCredsMsg"
+                                New-UDInputAction -Toast "Unable to Enable WinRM on $Session:ThisRemoteHost via Invoke-WmiMethod over RPC! Please check your credentials." -Duration 10000
+                                Sync-UDElement -Id "CredsForm"
+                                return
+                            }
+                            else {
+                                [System.Collections.ArrayList]$FailedCredentialsB = @()
+                                foreach ($CredObj in $CredentialsToTest) {
+                                    try {
+                                        $GetWorkingCredsResult = GetWorkingCredentials -RemoteHostNameOrIP $Session:ThisRemoteHost -AltCredentials $CredObj.PSCredential -ErrorAction Stop
+                        
+                                        if ($GetWorkingCredsResult.WorkingCredentials.GetType().FullName -ne "System.Management.Automation.PSCredential") {
+                                            #New-UDInputAction -Toast "$($CredObj.CredType) Credentials are not valid! Please try again." -Duration 10000
+                                            $null = $FailedCredentialsB.Add($CredObj)
+                                        }
+                                    }
+                                    catch {
+                                        #$Session:GetWorkingCredsFailure = $True
+                                        #Sync-UDElement -Id "ValidateCredsMsg"
+                                        New-UDInputAction -Toast $_.Exception.Message -Duration 10000
+                                        New-UDInputAction -Toast "Unable to test $($CredObj.CredType) Credentials! Please try again." -Duration 10000
+                                        Sync-UDElement -Id "CredsForm"
+                                        return
+                                    }
                                 }
                             }
                         }
-                    }
     
-                    if ($FailedCredentialsA.Count -gt 0 -or $FailedCredentialsB.Count -gt 0) {
-                        if ($FailedCredentialsB.Count -gt 0) {
-                            #$Session:InvalidCreds = $True
-                            #Sync-UDElement -Id "ValidateCredsMsg"
-                            foreach ($CredObj in $FailedCredentialsB) {
-                                New-UDInputAction -Toast "$($CredObj.CredType) Credentials are not valid! Please try again." -Duration 10000
-                                $Session:CredentialHT.$Session:ThisRemoteHost."$CredType`Creds" = $null
+                        if ($FailedCredentialsA.Count -gt 0 -or $FailedCredentialsB.Count -gt 0) {
+                            if ($FailedCredentialsB.Count -gt 0) {
+                                #$Session:InvalidCreds = $True
+                                #Sync-UDElement -Id "ValidateCredsMsg"
+                                foreach ($CredObj in $FailedCredentialsB) {
+                                    New-UDInputAction -Toast "$($CredObj.CredType) Credentials are not valid! Please try again." -Duration 10000
+                                    $Session:CredentialHT.$Session:ThisRemoteHost."$CredType`Creds" = $null
+                                }
+                                Sync-UDElement -Id "CredsForm"
+                                return
                             }
-                            Sync-UDElement -Id "CredsForm"
-                            return
-                        }
-                        if ($FailedCredentialsA.Count -gt 0 -and $FailedCredentialsB.Count -eq 0) {
-                            #$Session:InvalidCreds = $True
-                            #Sync-UDElement -Id "ValidateCredsMsg"
-                            foreach ($CredObj in $FailedCredentialsA) {
-                                New-UDInputAction -Toast "$($CredObj.CredType) Credentials are not valid! Please try again." -Duration 10000
-                                $Session:CredentialHT.$Session:ThisRemoteHost."$CredType`Creds" = $null
+                            if ($FailedCredentialsA.Count -gt 0 -and $FailedCredentialsB.Count -eq 0) {
+                                #$Session:InvalidCreds = $True
+                                #Sync-UDElement -Id "ValidateCredsMsg"
+                                foreach ($CredObj in $FailedCredentialsA) {
+                                    New-UDInputAction -Toast "$($CredObj.CredType) Credentials are not valid! Please try again." -Duration 10000
+                                    $Session:CredentialHT.$Session:ThisRemoteHost."$CredType`Creds" = $null
+                                }
+                                Sync-UDElement -Id "CredsForm"
+                                return
                             }
-                            Sync-UDElement -Id "CredsForm"
-                            return
                         }
-                    }
     
-                    if ($DomainAdminCreds) {
-                        $Session:CredentialHT.$Session:ThisRemoteHost.DomainCreds = $DomainAdminCreds
-                    }
-                    if ($LocalAdminCreds) {
-                        $Session:CredentialHT.$Session:ThisRemoteHost.LocalCreds = $LocalAdminCreds
-                    }
-                    if ($SSHPublicCertString) {
-                        $Session:CredentialHT.$Session:ThisRemoteHost.SSHCertPath = $SSHPublicCertString
-                    }
-                    if ($Preferred_PSRemotingCredType) {
-                        $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCredType = $Preferred_PSRemotingCredType
-                    }
-                    if ($Preferred_PSRemotingMethod) {
-                        $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingMethod = $Preferred_PSRemotingMethod
-                    }
+                        if ($DomainAdminCreds) {
+                            $Session:CredentialHT.$Session:ThisRemoteHost.DomainCreds = $DomainAdminCreds
+                        }
+                        if ($LocalAdminCreds) {
+                            $Session:CredentialHT.$Session:ThisRemoteHost.LocalCreds = $LocalAdminCreds
+                        }
+                        if ($VaultServerUrl) {
+                            $Session:CredentialHT.$Session:ThisRemoteHost.SSHCertString = $VaultServerUrl
+                        }
+                        if ($Preferred_PSRemotingCredType) {
+                            $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCredType = $Preferred_PSRemotingCredType
+                        }
+                        if ($Preferred_PSRemotingMethod) {
+                            $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingMethod = $Preferred_PSRemotingMethod
+                        }
     
-                    # Determine $PSRemotingCreds
-                    if ($Preferred_PSRemotingCredType -eq "Local") {
-                        $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCreds = $Session:CredentialHT.$Session:ThisRemoteHost.LocalCreds
-                    }
-                    if ($Preferred_PSRemotingCredType -eq "Domain") {
-                        $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCreds = $Session:CredentialHT.$Session:ThisRemoteHost.DomainCreds
+                        # Determine $PSRemotingCreds
+                        if ($Preferred_PSRemotingCredType -eq "Local") {
+                            $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCreds = $Session:CredentialHT.$Session:ThisRemoteHost.LocalCreds
+                        }
+                        if ($Preferred_PSRemotingCredType -eq "Domain") {
+                            $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCreds = $Session:CredentialHT.$Session:ThisRemoteHost.DomainCreds
+                        }
                     }
     
                     New-UDInputAction -RedirectUrl "/ToolSelect/$Session:ThisRemoteHost"
@@ -11307,8 +11464,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUBt3TWglqPk73vVnqoaQCW8zW
-# Kg2gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUt8ZQAtLY1ywhJiHCjlb4P9Gk
+# rL6gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -11365,11 +11522,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFBf3fXUnpcIWjPXG
-# tX5yHNG/yGeOMA0GCSqGSIb3DQEBAQUABIIBAE4GrdQWt/kRdlUnXYRzw5SaBkIU
-# nxHO32Pr+he3T2uf4GrWEQStmNh4DDo/LYpTJwt0RuD30+XudEwPqGjX7Bx0USI4
-# qb0tCJTdTSR1IxMpP9MExh3sXJ24Wh2pFlzFsMVm09pkb67t6YS18AcuDkC2Bt9L
-# usbCzJ42kJXBvcdXB0ILOVSnBC0EhBsG429JJm3Eqt5wDRZTySD0dI5wJcCdJ/Da
-# cJwE9khSkaru0qfKxi3p6d/KKQRZfrs/+fJNMEKXSe4OLiPeb8z51NKkSZOJUbbX
-# SE9yPgHVepIEtHGCogb4ofNs62UjRaDK4ZsKiMlb4Q/Yv1Y+qfVsB53UFR4=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFBWMlQK6BlRctjV1
+# SHHEbhOf79pFMA0GCSqGSIb3DQEBAQUABIIBAAc4nabe+cMg5Yt78PXJ4/fHsQ9p
+# aQ2rgxXOH2XAkmkdTMxj1hLFg2LHBEg4uusHbFiZx43nKMc3bG6Kr2DqbwOLFajC
+# hWvnfLoKIhQe0MBU7DFBvLK8vGEaw9hqDJK6lMI4aoV7Oaiq+2DkCkh9hW2Z8RVt
+# Whie3I9/ZDKG8CQLccVCdcFL1hmi7b1r9pu/+zEXeX6DyQqJlZFLZJCoY/P9UEOH
+# xr9WKhjACj8bJqzsPurhgfn12L1SsYe9J4uABxF2fRRMuGTpPd6QuXRNhafMXpxG
+# tYWMZ0RAqsjcMiKVziCL2h3qG2p0I8IYXcEYuIecLDvpmv59h2r1uOzZHlw=
 # SIG # End signature block

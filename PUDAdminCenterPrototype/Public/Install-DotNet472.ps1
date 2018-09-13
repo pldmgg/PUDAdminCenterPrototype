@@ -1,65 +1,50 @@
-[System.Collections.ArrayList]$script:FunctionsForSBUse = @(
-    ${Function:AddWinRMTrustedHost}.Ast.Extent.Text
-    ${Function:AddWinRMTrustLocalHost}.Ast.Extent.Text
-    ${Function:EnableWinRMViaRPC}.Ast.Extent.Text
-    ${Function:GetComputerObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetDomainController}.Ast.Extent.Text
-    ${Function:GetElevation}.Ast.Extent.Text
-    ${Function:GetGroupObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetModuleDependencies}.Ast.Extent.Text
-    ${Function:GetNativePath}.Ast.Extent.Text
-    ${Function:GetUserObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetWorkingCredentials}.Ast.Extent.Text
-    ${Function:InstallFeatureDism}.Ast.Extent.Text
-    ${Function:InvokeModuleDependencies}.Ast.Extent.Text
-    ${Function:InvokePSCompatibility}.Ast.Extent.Text
-    ${Function:ManualPSGalleryModuleInstall}.Ast.Extent.Text
-    ${Function:NewUniqueString}.Ast.Extent.Text
-    ${Function:ResolveHost}.Ast.Extent.Text
-    ${Function:TestIsValidIPAddress}.Ast.Extent.Text
-    ${Function:TestLDAP}.Ast.Extent.Text
-    ${Function:TestPort}.Ast.Extent.Text
-    ${Function:UnzipFile}.Ast.Extent.Text
-    ${Function:Get-CertificateOverview}.Ast.Extent.Text
-    ${Function:Get-Certificates}.Ast.Extent.Text
-    ${Function:Get-CimPnpEntity}.Ast.Extent.Text
-    ${Function:Get-EnvironmentVariables}.Ast.Extent.Text
-    ${Function:Get-EventLogSummary}.Ast.Extent.Text
-    ${Function:Get-FirewallProfile}.Ast.Extent.Text
-    ${Function:Get-FirewallRules}.Ast.Extent.Text
-    ${Function:Get-LocalGroups}.Ast.Extent.Text
-    ${Function:Get-LocalGroupUsers}.Ast.Extent.Text
-    ${Function:Get-LocalUserBelongGroups}.Ast.Extent.Text
-    ${Function:Get-LocalUsers}.Ast.Extent.Text
-    ${Function:Get-Networks}.Ast.Extent.Text
-    ${Function:Get-PendingUpdates}.Ast.Extent.Text
-    ${Function:Get-Processes}.Ast.Extent.Text
-    ${Function:Get-PUDAdminCenter}.Ast.Extent.Text
-    ${Function:Get-RegistrySubKeys}.Ast.Extent.Text
-    ${Function:Get-RegistryValues}.Ast.Extent.Text
-    ${Function:Get-RemoteDesktop}.Ast.Extent.Text
-    ${Function:Get-ScheduledTasks}.Ast.Extent.Text
-    ${Function:Get-ServerInventory}.Ast.Extent.Text
-    ${Function:Get-StorageDisk}.Ast.Extent.Text
-    ${Function:Get-StorageFileShare}.Ast.Extent.Text
-    ${Function:Get-StorageVolume}.Ast.Extent.Text
-    ${Function:Get-WUAHistory}.Ast.Extent.Text
-    ${Function:Install-DotNet472}.Ast.Extent.Text
-    ${Function:New-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:New-Runspace}.Ast.Extent.Text
-    ${Function:Remove-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:Set-ComputerIdentification}.Ast.Extent.Text
-    ${Function:Set-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:Set-RemoteDesktop}.Ast.Extent.Text
-    ${Function:Start-DiskPerf}.Ast.Extent.Text
-    ${Function:Stop-DiskPerf}.Ast.Extent.Text
-)
+function Install-DotNet472 {
+    [CmdletBinding()]
+    Param (
+        [Parameter(Mandatory=$False)]
+        [string]$DownloadDirectory,
+
+        [Parameter(Mandatory=$False)]
+        [switch]$Restart
+    )
+
+    $DotNet472OfflineInstallerUrl = "https://download.microsoft.com/download/6/E/4/6E48E8AB-DC00-419E-9704-06DD46E5F81D/NDP472-KB4054530-x86-x64-AllOS-ENU.exe"
+    if (!$DownloadDirectory) {$DownloadDirectory = "$HOME\Downloads"}
+    $OutFilePath = "$DownloadDirectory\NDP472-KB4054530-x86-x64-AllOS-ENU.exe"
+
+    try {
+        $WebClient = [System.Net.WebClient]::new()
+        $WebClient.Downloadfile($DotNet472OfflineInstallerUrl, $OutFilePath)
+        $WebClient.Dispose()
+    }
+    catch {
+        Invoke-WebRequest -Uri $DotNet472OfflineInstallerUrl -OutFile $OutFilePath
+    }
+
+    if ($Restart) {
+        & "$HOME\Downloads\NDP472-KB4054530-x86-x64-AllOS-ENU.exe" /q
+    }
+    else {
+        & "$HOME\Downloads\NDP472-KB4054530-x86-x64-AllOS-ENU.exe" /q /norestart
+    }
+    
+    while ($(Get-Process | Where-Object {$_.Name -like "*NDP472*"})) {
+        Write-Host "Installing .Net Framework 4.7.2 ..."
+        Start-Sleep -Seconds 5
+    }
+
+    Write-Host ".Net Framework 4.7.2 was installed successfully!" -ForegroundColor Green
+
+    if (!$Restart) {
+        Write-Warning "You MUST restart $env:ComputerName in order to use .Net Framework 4.7.2! Please do so at your earliest convenience."
+    }
+}
 
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUXDceaX21JnKqFOGwdGuzTIiJ
-# WySgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU2CELSzXN4bU3nRzXOgaKmyUp
+# cWSgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -116,11 +101,11 @@
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFEdt7OMeAVAJqUY4
-# Wy+b9YwDa8qvMA0GCSqGSIb3DQEBAQUABIIBAJCch9c14tnNSpIvkTusXYEY/iXa
-# zSfZ4U4rpr2fBTVaw/1ntC14yuj/oaIP5XpuL48n8JwjNCkDGZOl3gbdMmSjKH2E
-# AltLwyKX6EJmXgItVxM9/3WNfPOZRhK2RJT4K1L5MArDn4+kqLHjuuD88b4zYKBl
-# WoHh0+vXOVfNFglilpKW75SzUW360thPlkIjtNfy87FJ77/tW6DoGq1iMenW0+S1
-# nh0HDcArmCxa80kq7/q7tYRh+82Mi/disy+OMPsFrBw7k0zTs84kkuJ75VZKNe/d
-# YYIIcnjb+rUKIDPKLMe0DM2IiwVNdwtS9yHbcMXAsssnCpocUQVs4OGpf5I=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFDRrDEK119CKEYCo
+# 3bWxj7CQzEWBMA0GCSqGSIb3DQEBAQUABIIBACS5zp128yJwZEfhPy00oF2DyCTf
+# u9b5Mnrd1UfstgN0/uQzp5BSXWNI/iB2qNE2T16h36DTwVan70Oj7epz0AwJ1JsL
+# qsNFtR0WkWf7NK9as0bINy0I7YIw2c5lfzhRa3Cr6QwJaVGbN5Fsuhwb3j7jw1Zf
+# eh6bo95MLNvQbuVdMGAruoF2hfvTC7lj7qpvUQITppnMTQy20wMWqWM+S3VGg6EI
+# +vVgnX1+XGz989fC0YscoKpJ7rja/mdnYDXaYYyQntySYIlGt2+LJnb7Jle4NoQ6
+# CMHv9wMBMsrJj+HbHF1rBweDtQJGXkbGmEoQcJMHxtz2v4Iz3ChIn3aEOg8=
 # SIG # End signature block

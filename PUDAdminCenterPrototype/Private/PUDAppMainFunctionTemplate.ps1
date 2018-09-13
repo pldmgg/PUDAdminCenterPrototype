@@ -185,6 +185,26 @@ function Get-PUDAdminCenter {
         $PUDRSSyncHT.Add($Key,$Value)
     }
 
+    # Install nmap
+    if ($(Get-Module -ListAvailable).Name -notcontains "ProgramManagement") {Install-Module ProgramManagement}
+    if ($(Get-Module).Name -notcontains "ProgramManagement") {Import-Module ProgramManagement}
+    if (!$(Get-Command nmap -ErrorAction SilentlyContinue)) {
+        try {
+            Write-Host "Installing 'nmap'. This could take up to 10 minutes..." -ForegroundColor Yellow
+            $InstallnmapResult = Install-Program -ProgramName nmap -CommandName nmap
+        }
+        catch {
+            Write-Error $_
+            $global:FunctionResult = "1"
+            return
+        }
+    }
+    if (!$(Get-Command nmap -ErrorAction SilentlyContinue)) {
+        Write-Error "Unable to find the command 'nmap'! Halting!"
+        $global:FunctionResult = "1"
+        return
+    }
+
     #endregion >> Prep
 
 

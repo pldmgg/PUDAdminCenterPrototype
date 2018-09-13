@@ -136,13 +136,25 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
     }
     catch {
         if ($_.Exception.Message -match "\.Net Framework") {
-            try {
-                Write-Host "Installing .Net Framework 4.7.2 ... This will take a little while, and you will need to restart afterwards..."
-                $InstallDotNet47Result = Install-Program -ProgramName dotnet4.7.2 -ErrorAction Stop
+            $Net472Check = Get-ChildItem "HKLM:SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full\" | Get-ItemPropertyValue -Name Release | ForEach-Object { $_ -ge 461808 }
+
+            if (!$Net472Check) {
+                try {
+                    Write-Host "Installing .Net Framework 4.7.2 ... This will take a little while, and you will need to restart afterwards..."
+                    #$InstallDotNet47Result = Install-Program -ProgramName dotnet4.7.2 -ErrorAction Stop
+                    Install-DotNet472 -DownloadDirectory "$HOME\Downloads" -ErrorAction Stop
+                }
+                catch {
+                    Write-Error $_
+                    Write-Warning ".Net Framework 4.7.2 was NOT installed successfully."
+                    Write-Warning "The $ThisModule Module will NOT be loaded. Please run`n    Remove-Module $ThisModule"
+                    $global:FunctionResult = "1"
+                    return
+                }
             }
-            catch {
+            else {
                 Write-Error $_
-                Write-Warning ".Net Framework 4.7.2 was NOT installed successfully."
+                Write-Warning ".Net Framework 4.7.2 is already installed! Please review the above error message before using the $ThisModule Module!"
                 Write-Warning "The $ThisModule Module will NOT be loaded. Please run`n    Remove-Module $ThisModule"
                 $global:FunctionResult = "1"
                 return
@@ -259,8 +271,8 @@ Task Deploy -Depends Build {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUFXIauPO9T7bDXJYWW9UQkH5x
-# Q/qgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUjVP//rY6bojW/7h/37DXHo0+
+# bMqgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -317,11 +329,11 @@ Task Deploy -Depends Build {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFIjTzzJjhnrPwLIt
-# tKyEPE82lCQpMA0GCSqGSIb3DQEBAQUABIIBADPkDfpJqbTy0D8RH+eTppHtqwO9
-# eJMRlvF1e3MlmeYKDu2rr3IvGBk7VPlXG3vsjK78QhWfqPHdULURY5HpyXDN4YHR
-# umI5rnHjx4rWO/sBvdu6WllWU1EhywKEKhJhnG0Mi8eC0sUXzaT6YxmBqYBbSQ8i
-# OGm/jHCOWC0utyxkHfbRlZJAZuTIqIwRQaPeefMWfvRwwxUdlv1egT/gGtq4PzKp
-# pogTUZL13PTfg7PoS5q2wNSKTpxDWRqCH47dNfxEct/ifIjpsz0+1EnzV/fIimdY
-# n2FYJ5s4ILQiMhsmya2ojYRtmxXXLC0PcpftIIoJzS7Mg+7EAzz/TzPUcSU=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFKjJUFxZRevznGB3
+# nzNSRei6RdslMA0GCSqGSIb3DQEBAQUABIIBAIE+8PizP82UqC9z+lY5/23Um14O
+# 4+R3H7PD7MCZEnBeZ7JowZsFjBSfouUACOZ+LIbq4DX0X7QNXqheT8x7yahFMLNP
+# KUz8iHN5GaPe3yflo5X9dLfZ62/P95ioqD9ctwDx4LgHuTIXTlYhDAbJtp+uekZa
+# /Cxjg2lqVkRlpNFOtrwBaJPwhtjLfJmWcJqXstVYsfGzCG2EBAz9Wyy2Zak+UPi7
+# EHdaZ+zZHs/vEmi14LLV5AIuPgq2f2ON5pe6JxpKft9hq5W8UhxWT9211kemSAUK
+# 5H0nYdy5OT617kSVTtQ30yPD4f0fxybH+jjwMzGg76AsMFGJiCK80f2SmLg=
 # SIG # End signature block

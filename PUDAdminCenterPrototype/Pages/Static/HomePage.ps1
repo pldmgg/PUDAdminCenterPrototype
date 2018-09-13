@@ -40,6 +40,12 @@ $HomePageContent = {
         $RHostTableData = @{}
         $RHostTableData.Add("HostName",$RHost.HostName.ToUpper())
         $RHostTableData.Add("FQDN",$RHost.FQDN)
+
+        # Guess Operating System
+        $NmapOSResult = nmap -O $RHost.IPAddressList[0]
+        $OSGuess = $($NmapOSResult | Where-Object {$_ -match "OS details:"}) -replace "OS details: ",""
+        $RHostTableData.Add("OperatingSystem",$OSGuess)
+
         $IPAddressListAsString = @($RHost.IPAddressList) -join ", "
         $RHostTableData.Add("IPAddress",$IPAddressListAsString)
 
@@ -147,7 +153,7 @@ $HomePageContent = {
 
         $RHostTableData.Add("NewCreds",$(New-UDLink -Text "NewCreds" -Url "/PSRemotingCreds/$($RHost.HostName)"))
         
-        [pscustomobject]$RHostTableData | Out-UDTableData -Property @("HostName","FQDN","IPAddress","PingStatus","WSMan","WSManPorts","SSH","DateTime","ManageLink","NewCreds")
+        [pscustomobject]$RHostTableData | Out-UDTableData -Property @("HostName","FQDN","OperatingSystem","IPAddress","PingStatus","WSMan","WSManPorts","SSH","DateTime","ManageLink","NewCreds")
     }
     $RHostUDTableEndpointAsString = $RHostUDTableEndpoint.ToString()
 
@@ -161,7 +167,7 @@ $HomePageContent = {
             )
         )
 
-        $ResultProperties = @("HostName","FQDN","IPAddress","PingStatus","WSMan","WSManPorts","SSH","DateTime","ManageLink","NewCreds")
+        $ResultProperties = @("HostName","FQDN","OperatingSystem","IPAddress","PingStatus","WSMan","WSManPorts","SSH","DateTime","ManageLink","NewCreds")
         $RHostUDTableSplatParams = @{
             Headers         = $ResultProperties
             AutoRefresh     = $True 

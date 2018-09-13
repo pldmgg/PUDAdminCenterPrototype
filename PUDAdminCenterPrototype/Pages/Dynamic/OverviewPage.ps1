@@ -998,9 +998,9 @@ $OverviewPageContent = {
 
                                     $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                         if ($(Get-Module -ListAvailable).Name -notcontains "WinSSH") {Install-Module WinSSH}
-                                        if ($(Get-Module "WinSSH").Name -notcontains "WinSSH") {Import-Module WinSSH}
+                                        if ($(Get-Module).Name -notcontains "WinSSH") {Import-Module WinSSH}
 
-                                        Install-WinSSH -GiveWinSSHBinariesPathPriority -ConfigureSSHDOnLocalHost -DefaultShell pwsh
+                                        Install-WinSSH -GiveWinSSHBinariesPathPriority -ConfigureSSHDOnLocalHost -DefaultShell powershell
                                     }
 
                                     Sync-UDElement -Id "SSHState"
@@ -1018,7 +1018,7 @@ $OverviewPageContent = {
 
                                     $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                         if ($(Get-Module -ListAvailable).Name -notcontains "WinSSH") {Install-Module WinSSH}
-                                        if ($(Get-Module "WinSSH").Name -notcontains "WinSSH") {Import-Module WinSSH}
+                                        if ($(Get-Module).Name -notcontains "WinSSH") {Import-Module WinSSH}
 
                                         Uninstall-WinSSH
                                     }

@@ -100,6 +100,7 @@ Describe -Name "General Project Validation: $env:BHProjectName" -Tag 'Validation
         $Commands -contains 'Get-StorageFileShare' | Should Be $True
         $Commands -contains 'Get-StorageVolume' | Should Be $True
         $Commands -contains 'Get-WUAHistory' | Should Be $True
+        $Commands -contains 'Install-DotNet472' | Should Be $True
         $Commands -contains 'New-EnvironmentVariable' | Should Be $True
         $Commands -contains 'New-Runspace' | Should Be $True
         $Commands -contains 'Remove-EnvironmentVariable' | Should Be $True
@@ -139,8 +140,8 @@ Describe -Name "General Project Validation: $env:BHProjectName" -Tag 'Validation
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUHsoTlcvj1dya8YF7HeOXUwKs
-# 1negggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUwmAeNm4KDCQL/5jOZLEkLsZA
+# VcSgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -197,11 +198,11 @@ Describe -Name "General Project Validation: $env:BHProjectName" -Tag 'Validation
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFCsFCYrDCzPnyF9c
-# 6NNA0dyS6Ao7MA0GCSqGSIb3DQEBAQUABIIBAFQ14tIdomgauHfdOEAW/RbbL/oE
-# xmh1bc8owHtIvOxIfaP0XphODa1sjlOthnwE+0dKNUeOWf7cru2QZTNZiAHHDwo0
-# pSmKWNBI9riFtveRBoQRA5uvduxRHV0pZ331/QTPt8Fk4RBAS/IZwVT9SiPu1Pej
-# 1ff3wr3gdITuE/r5DLw2MgIDQjmOSg/IgJxuZZuhGI7Pn+snXcQfG703BSONCORy
-# AYaW2RMJ+vPiWItH5JI9SktVNtsnTc7k4EK4Yz09sLr65fm18DOAjcXRkPLiPxQX
-# 5fcgkAPSAlJnSyv/W+RP8AyuIh7YX92lS2DUEgVdVelRJiRAsTcYhNKx9OU=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFPc+wlSdfBruOBUQ
+# 5jafEK96Q360MA0GCSqGSIb3DQEBAQUABIIBAKOc+9RyPm/G7+qHI7v17kCKFMoA
+# 9yUP1/jpgUSNP/PNgynB9zdrsi48UvLLUheFVcYticDaNE6XZM9ifsC3kwRmAxkx
+# xug7tBueIrfjF4v3lqUnM87UPbG746rizlk+R99fO4UCYZa8R1pI1+wAMk8679ev
+# DrHWKnj3+FdKoOpSmuPiHHGeMHP+qkPUl8VdHF2AoMnpNLEc/nMI81v8KdCBn0Ur
+# kOUgquLIihEfyR4MImOrNhIefn7+AsJ0ZaqaRHj8icd7ud0QS3VLzlrR4NihY11P
+# oqtGxNZurs4ZJi9XdykPBAka6jWYjkPSkXHDNtNsVyon/i1HROXGN7ciRGU=
 # SIG # End signature block
