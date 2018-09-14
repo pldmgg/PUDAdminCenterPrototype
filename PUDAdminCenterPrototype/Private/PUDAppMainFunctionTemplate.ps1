@@ -204,6 +204,22 @@ function Get-PUDAdminCenter {
         $global:FunctionResult = "1"
         return
     }
+    $NmapParentDir = $(Get-Command nmap).Source | Split-Path -Parent
+    [System.Collections.Arraylist][array]$CurrentEnvPathArray = $env:Path -split ';' | Where-Object {![System.String]::IsNullOrWhiteSpace($_)}
+    if ($CurrentEnvPathArray -notcontains $NmapParentDir) {
+        $CurrentEnvPathArray.Insert(0,$NmapParentDir)
+        $env:Path = $CurrentEnvPathArray -join ';'
+    }
+    $SystemPathInRegistry = 'HKLM:\System\CurrentControlSet\Control\Session Manager\Environment'
+    $CurrentSystemPath = $(Get-ItemProperty -Path $SystemPathInRegistry -Name PATH).Path
+    [System.Collections.Arraylist][array]$CurrentSystemPathArray = $CurrentSystemPath -split ";" | Where-Object {![System.String]::IsNullOrWhiteSpace($_)}
+    if ($CurrentSystemPathArray -notcontains $NmapParentDir) {
+        $CurrentSystemPathArray.Insert(0,$NmapParentDir)
+        $UpdatedSystemPath = $CurrentSystemPathArray -join ';'
+        Set-ItemProperty -Path $SystemPathInRegistry -Name PATH -Value $UpdatedSystemPath
+    }
+    
+    
 
     #endregion >> Prep
 
@@ -236,8 +252,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUk2DJbSiJ9WFIxQyiWOi9Vreo
-# n36gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUa7xnpvRLlQ32WSQ9BWIhl5+r
+# HZqgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -294,11 +310,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFCakQMGzO3rgVroY
-# Eu+k/3YOPakYMA0GCSqGSIb3DQEBAQUABIIBACOAPkHRozLKyPVKVQY05hvNvzWk
-# G5RdeMlZ9ga5FqIf5z/qVbczvBqkDjML4oFNRFYlwKAvKX0RTZRlwIIhB7BKI1op
-# dwDKiYDD2F7Q8o2FiMETR+jj+2+ZiY0bF77MZix8zE4jwthwfN6fa9GlvxHAYbjz
-# +mpWfAHijU/Tqv5lYXHEwLheaoqSetGhpIWqe7WBuHpz3trDg82RcQnxmfWCdOmx
-# rlxRPBbM/26QEAks9j5u9id6yHsqfBmvgMO7oC7ifhm0e6F3p0e3sDvttby5vlqQ
-# ndcYnCy7iJeONnmNqjHvUb/SlAdnbC0F9+fAA4JkTfeCCuvQMHMSvDH4MTY=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFJNbTP7qWt8huBDR
+# UyiJLAqg+/LyMA0GCSqGSIb3DQEBAQUABIIBACHXYAd/KHRgZ2YEtXp50zGzBfdB
+# 9HsoqxTnABAnn7c/9k9m1iX2N19zjlFDN5PkXjDHHWDrn1fjedny0jMSAtofcEG/
+# 4Ne1/NJZiV8lqO2xwaMIa2GB7mCrXp1eFltqCNZOhIDLmmXaim6N9+Nh2rcf6gQJ
+# qZAF2BRhwSyThbNInWBCnFYXU9Ob4WNnkwqTuCItObWa0ddMxxWK2FftXWVM0a9h
+# g0rVTsTLCF5jx73APMICfMmd1B0NpMgs+5SQZJ2sp/WNvazLuDagS5AW8MjesP5U
+# FbasD35uRqsplnHIbJuRwVXR6yr6oANqXjDNp0j/EdaevcFPclE1Oq3Tzis=
 # SIG # End signature block

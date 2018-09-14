@@ -1000,7 +1000,7 @@ $OverviewPageContent = {
                                         if ($(Get-Module -ListAvailable).Name -notcontains "WinSSH") {Install-Module WinSSH}
                                         if ($(Get-Module).Name -notcontains "WinSSH") {Import-Module WinSSH}
 
-                                        Install-WinSSH -GiveWinSSHBinariesPathPriority -ConfigureSSHDOnLocalHost -DefaultShell powershell
+                                        Install-WinSSH -GiveWinSSHBinariesPathPriority -ConfigureSSHDOnLocalHost -DefaultShell pwsh
                                     }
 
                                     Sync-UDElement -Id "SSHState"

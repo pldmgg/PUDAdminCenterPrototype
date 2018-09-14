@@ -468,7 +468,8 @@ $PSRemotingCredsPageContent = {
                 New-UDInputField -Type textbox -Name 'Domain_UserName' -Value $null
                 New-UDInputField -Type password -Name 'Domain_Password' -Value $null
                 New-UDInputField -Type textarea -Name 'VaultServerUrl' -Value $null
-                New-UDInputField -Type select -Name 'Preferred_PSRemotingCredType' -Values @("Local","Domain") -DefaultValue "Domain"
+                New-UDInputField -Type textarea -Name 'SSHCertificate' -Value $null
+                New-UDInputField -Type select -Name 'Preferred_PSRemotingCredType' -Values @("Local","Domain","SSHCert") -DefaultValue "Domain"
                 New-UDInputField -Type select -Name 'Preferred_PSRemotingMethod' -Values @("WinRM","SSH") -DefaultValue "WinRM"
             } -Endpoint {
                 param(
@@ -477,6 +478,7 @@ $PSRemotingCredsPageContent = {
                     [string]$Domain_UserName,
                     [string]$Domain_Password,
                     [string]$VaultServerUrl,
+                    [string]$SSHCertificate,
                     [string]$Preferred_PSRemotingCredType,
                     [string]$Preferred_PSRemotingMethod
                 )
@@ -554,9 +556,14 @@ $PSRemotingCredsPageContent = {
                             Sync-UDElement -Id "CredsForm"
                             return
                         }
+                        if ($VaultServerBaseUri -or $SSHCertificate) {
+                            New-UDInputAction -Toast "You specifed your Preferred_PSRemotingCredType as '$Preferred_PSRemotingCredType', but you provided VaultServerBaseUri or SSHCertificte!" -Duration 10000
+                            Sync-UDElement -Id "CredsForm"
+                            return
+                        }
 
                         if (!$Domain_UserName -or !$Domain_Password) {
-                            New-UDInputAction -Toast "You must provide a Domain_UserName AND Domain_Password in order to use WinRM over SSH!" -Duration 10000
+                            New-UDInputAction -Toast "You must provide a Domain_UserName AND Domain_Password in order to use PowerShell Remoting over SSH!" -Duration 10000
                             Sync-UDElement -Id "CredsForm"
                             return
                         }
@@ -576,8 +583,6 @@ $PSRemotingCredsPageContent = {
                             $DomainPwdSecureString = ConvertTo-SecureString $Domain_Password -AsPlainText -Force
                             $DomainAdminCreds = [pscredential]::new($Domain_UserName,$DomainPwdSecureString)
                         }
-
-
                     }
                     if ($Preferred_PSRemotingCredType -eq "Local") {
                         if ($Domain_UserName -or $Domain_Password) {
@@ -585,131 +590,155 @@ $PSRemotingCredsPageContent = {
                             Sync-UDElement -Id "CredsForm"
                             return
                         }
+                        if ($VaultServerBaseUri -or $SSHCertificate) {
+                            New-UDInputAction -Toast "You specifed your Preferred_PSRemotingCredType as '$Preferred_PSRemotingCredType', but you provided VaultServerBaseUri or SSHCertificte!" -Duration 10000
+                            Sync-UDElement -Id "CredsForm"
+                            return
+                        }
 
                         if (!$Local_UserName -or !$Local_Password) {
-                            New-UDInputAction -Toast "You must provide a Local_UserName AND Local_Password in order to use WinRM over SSH!" -Duration 10000
+                            New-UDInputAction -Toast "You must provide a Local_UserName AND Local_Password in order to use PowerShell Remoting over SSH!" -Duration 10000
                             Sync-UDElement -Id "CredsForm"
                             return
                         }
                     }
-
-                    # TODO: Once the Pwsh Team figures out how to grant a Kerberos ticket with SSH Cert Auth is used, we can use this. Until then, leave commented out...
-                    <#
-                    if (!$VaultServerUrl) {
-                        New-UDInputAction -Toast "You indicated that SSH is your Preferred_PSRemotingMethod, however, you did not provide a value for VaultServerUrl!" -Duration 10000
-                        Sync-UDElement -Id "CredsForm"
-                        return
-                    }
-                    #>
-
-                    <#
-                    [Net.ServicePointManager]::SecurityProtocol = "tls12, tls11, tls"
-
-                    # Make sure we can reach the Vault Server and that is in a state where we can actually use it.
-                    try {
-                        $VaultServerUpAndUnsealedCheck = Invoke-RestMethod "$VaultServerBaseUri/sys/health"
-                        if (!$VaultServerUpAndUnsealedCheck -or $VaultServerUpAndUnsealedCheck.initialized -ne $True -or
-                        $VaultServerUpAndUnsealedCheck.sealed -ne $False -or $VaultServerUpAndUnsealedCheck.standby -ne $False) {
-                            throw "The Vault Server is either not reachable or in a state where it cannot be used! Halting!"
-                        }
-                    }
-                    catch {
-                        Write-Error $_
-                        $global:FunctionResult = "1"
-                        return
-                    }
-                    #>
-
-                    # Make sure we have the WinSSH Module
-                    if ($(Get-Module -ListAvailable).Name -notcontains "WinSSH") {$null = Install-Module WinSSH}
-                    if ($(Get-Module).Name -notcontains "WinSSH") {$null = Import-Module WinSSH}
-
-                    # Install OpenSSH-Win64 if it isn't already
-                    if (!$(Test-Path "$env:ProgramFiles\OpenSSH-Win64\ssh.exe")) {
-                        Install-WinSSH -GiveWinSSHBinariesPathPriority -ConfigureSSHDOnLocalHost -DefaultShell powershell
-                    }
-                    else {
-                        if (!$(Get-Command ssh -ErrorAction SilentlyContinue)) {
-                            # Update PowerShell $env:Path
-                            $env:Path = "$env:ProgramFiles\OpenSSH-Win64;$env:Path"
-                            
-                            # Update SYSTEM Path
-                            $CurrentSystemPath = $(Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment' -Name PATH).Path
-                            $CurrentSystemPathArray = $CurrentSystemPath -split ";" | Select-Object | Get-Unique
-                            if ($CurrentSystemPathArray -notcontains "$env:ProgramFiles\OpenSSH-Win64") {
-                                $UpdatedSystemPath = "$env:ProgramFiles\OpenSSH-Win64;$CurrentSystemPath"
-                            }
-                            Set-ItemProperty -Path "Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment" -Name PATH -Value $UpdatedSystemPath
-                        }
-                        if (!$(Get-Command ssh -ErrorAction SilentlyContinue)) {
-                            Write-Error "Unable to find ssh.exe!"
-                            $global:FunctionResult = "1"
+                    if ($Preferred_PSRemotingCredType -eq "SSHCert") {
+                        if ($Domain_UserName -or $Domain_Password) {
+                            New-UDInputAction -Toast "You specifed your Preferred_PSRemotingCredType as '$Preferred_PSRemotingCredType', but you provided Domain_UserName or Domain_Password!" -Duration 10000
+                            Sync-UDElement -Id "CredsForm"
                             return
                         }
+                        if ($Local_UserName -or $Local_Password) {
+                            New-UDInputAction -Toast "You specifed your Preferred_PSRemotingCredType as '$Preferred_PSRemotingCredType', but you provided Local_UserName or Local_Password!" -Duration 10000
+                            Sync-UDElement -Id "CredsForm"
+                            return
+                        }
+
+                        if (!$SSHCertificate) {
+                            if (!$VaultServerBaseUri) {
+                                New-UDInputAction -Toast "If you do not provide an SSHCertificate, you MUST provide VaultServerBaeUri in order to use PowerShell Remoting over SSH!" -Duration 10000
+                                Sync-UDElement -Id "CredsForm"
+                                return
+                            }
+                            if ($VaultServerBaseUri -and $(!$Domain_UserName -or !$Domain_Password)) {
+                                New-UDInputAction -Toast "In order to receive SSH Credentials from the Vault Server, you MUST provide Domain_UserName and Domain_Password!" -Duration 10000
+                                Sync-UDElement -Id "CredsForm"
+                                return
+                            }
+                        }
+
+                        if ($VaultServerBaseUri) {
+                            [Net.ServicePointManager]::SecurityProtocol = "tls12, tls11, tls"
+
+                            # Make sure we can reach the Vault Server and that is in a state where we can actually use it.
+                            try {
+                                $VaultServerUpAndUnsealedCheck = Invoke-RestMethod "$VaultServerBaseUri/sys/health"
+                                if (!$VaultServerUpAndUnsealedCheck -or $VaultServerUpAndUnsealedCheck.initialized -ne $True -or
+                                $VaultServerUpAndUnsealedCheck.sealed -ne $False -or $VaultServerUpAndUnsealedCheck.standby -ne $False) {
+                                    throw "The Vault Server is either not reachable or in a state where it cannot be used! Halting!"
+                                }
+                            }
+                            catch {
+                                New-UDInputAction -Toast $_.Exception.Message -Duration 10000
+                                Sync-UDElement -Id "CredsForm"
+                                return
+                            }
+                        }
+
+                        # Make sure we have the WinSSH Module Available
+                        if ($(Get-Module -ListAvailable).Name -notcontains "WinSSH") {$null = Install-Module WinSSH}
+                        if ($(Get-Module).Name -notcontains "WinSSH") {$null = Import-Module WinSSH}
+
+                        # Install OpenSSH-Win64 if it isn't already
+                        if (!$(Test-Path "$env:ProgramFiles\OpenSSH-Win64\ssh.exe")) {
+                            Install-WinSSH -GiveWinSSHBinariesPathPriority -ConfigureSSHDOnLocalHost -DefaultShell pwsh
+                        }
+                        else {
+                            if (!$(Get-Command ssh -ErrorAction SilentlyContinue)) {
+                                $OpenSSHDir ="$env:ProgramFiles\OpenSSH-Win64"
+                                # Update PowerShell $env:Path
+                                [System.Collections.Arraylist][array]$CurrentEnvPathArray = $env:Path -split ';' | Where-Object {![System.String]::IsNullOrWhiteSpace($_)} | Sort-Object | Get-Unique
+                                if ($CurrentEnvPathArray -notcontains $OpenSSHDir) {
+                                    $CurrentEnvPathArray.Insert(0,$OpenSSHDir)
+                                    $env:Path = $CurrentEnvPathArray -join ';'
+                                }
+                                
+                                # Update SYSTEM Path
+                                $RegistrySystemPath = 'HKLM:\System\CurrentControlSet\Control\Session Manager\Environment'
+                                $CurrentSystemPath = $(Get-ItemProperty -Path $RegistrySystemPath -Name PATH).Path
+                                [System.Collections.Arraylist][array]$CurrentSystemPathArray = $CurrentSystemPath -split ";" | Where-Object {![System.String]::IsNullOrWhiteSpace($_)} | Sort-Object | Get-Unique
+                                if ($CurrentSystemPathArray -notcontains $OpenSSHDir) {
+                                    $CurrentSystemPathArray.Insert(0,$OpenSSHDir)
+                                    $UpdatedSystemPath = $CurrentSystemPathArray -join ";"
+                                    Set-ItemProperty -Path $RegistrySystemPath -Name PATH -Value $UpdatedSystemPath
+                                }
+                            }
+                            if (!$(Get-Command ssh -ErrorAction SilentlyContinue)) {
+                                Write-Error "Unable to find ssh.exe!"
+                                $global:FunctionResult = "1"
+                                return
+                            }
+                        }
+
+                        if ($SSHCertificate) {
+                            # Validate the string provided is actually an SSH Certificate
+                            
+                        }
+                        if (!$SSHCertificate) {
+                            # We need to request an SSH Certificate from the Vault Server
+
+                            # Use Domain Credentials to get a new Vault Server Authentication Token, generate new SSH Keys on the PUDAdminCenter Server,
+                            # have the Vault Server sign them, add the new private key to the ssh-agent, and output an SSH Public Certificate to $HOME\.ssh
+                            # NOTE: The SSH Keys will expire in 24 hours
+                            $NewSSHKeyName = $($DomainAdminCreds.UserName -split "\\")[-1] + "_" + $(Get-Date -Format MM-dd-yy_hhmmsstt)
+                            $NewSSHCredentialsSplatParams = @{
+                                VaultServerBaseUri                  = $VaultServerUrl
+                                DomainCredentialsWithAccessToVault  = $DomainAdminCreds
+                                NewSSHKeyName                       = $NewSSHKeyName
+                                BlankSSHPrivateKeyPwd               = $True
+                                AddToSSHAgent                       = $True
+                                #RemovePrivateKey                    = $True
+                                #SSHAgentExpiry                      = 86400 # 24 hours in seconds
+                            }
+                            $NewSSHCredsResult = New-SSHCredentials @NewSSHCredentialsSplatParams
+
+                            # $NewSSHCredsResult is a pscustomobject with the following content:
+                            <#
+                                PublicKeyCertificateAuthShouldWork : True
+                                FinalSSHExeCommand                 : ssh zeroadmin@zero@<RemoteHost>
+                                PrivateKeyPath                     : C:\Users\zeroadmin\.ssh\zeroadmin_071918
+                                PublicKeyPath                      : C:\Users\zeroadmin\.ssh\zeroadmin_071918.pub
+                                PublicCertPath                     : C:\Users\zeroadmin\.ssh\zeroadmin_071918-cert.pub
+                            #>
+
+                            # If $NewSSHCredsResult.FinalSSHExeCommand looks like...
+                            #     ssh -o "IdentitiesOnly=true" -i "C:\Users\zeroadmin\.ssh\zeroadmin_071718" -i "C:\Users\zeroadmin\.ssh\zeroadmin_071718-cert.pub" zeroadmin@zero@<RemoteHost>
+                            # ...or...
+                            #     ssh <user>@<RemoteHost>
+                            # ...then there are too many identities loaded in the ssh-agent service, which means we need to get the private key from the registry and write it to a file
+                            # See: https://blog.ropnop.com/extracting-ssh-private-keys-from-windows-10-ssh-agent/
+                            if (!$NewSSHCredsResult.PublicKeyCertificateAuthShouldWork -or 
+                            $NewSSHCredsResult.FinalSSHExeCommand -eq "ssh <user>@<RemoteHost>" -or
+                            $NewSSHCredsResult.FinalSSHExeCommand -match "IdentitiesOnly=true"
+                            ) {
+                                $ExtractedPrivateKeys = Extract-SSHPrivateKeyFromRegistry
+                                $OriginalPrivateKeyPath = $NewSSHCredsResult.PublicKeyPath -replace "\.pub",""
+
+                                $PrivateKeyContent = $($ExtractedPrivateKeys | Where-Object {$_.OriginalPrivateKeyFilePath -eq $OriginalPrivateKeyPath}).PrivateKeyContent
+
+                                Set-Content -Path $OriginalPrivateKeyPath -Value $PrivateKeyContent
+
+                                # The below $FinalSSHExeCommand string should look like:
+                                #     ssh -o "IdentitiesOnly=true" -i "$OriginalPrivateKeyPath" -i "$($NewSSHCredsResult.PublicCertPath)" zeroadmin@zero@<RemoteHost>
+                                $FinalSSHExeCommand = $(Get-SSHClientAuthSanity -SSHPublicKeyFilePath $NewSSHCredsResult.PublicKeyPath).FinalSSHExeCommand
+                            }
+                            else {
+                                # The below $FinalSSHExeCommand string should look like:
+                                #     ssh zeroadmin@zero@<RemoteHost>
+                                $FinalSSHExeCommand = $NewSSHCredsResult.FinalSSHExeCommand
+                            }
+                        }
                     }
-
-                    ##### TODO: When Pwsh Team figures out how to grant a Kerberos ticket when using SSH Cert Auth, we can use the below ######
-
-                    # Install/Import the VaultServer PowerShell Module if it isn't already
-                    <#
-                    if ($(Get-Module -ListAvailable).Name -notcontains "VaultServer") {Install-Module VaultServer}
-                    if ($(Get-Module).Name -notcontains "VaultServer") {Import-Module VaultServer}
-
-                    # Use Domain Credentials to get a new Vault Server Authentication Token, generate new SSH Keys on the PUDAdminCenter Server,
-                    # have the Vault Server sign them, add the new private key to the ssh-agent, and output an SSH Public Certificate to $HOME\.ssh
-                    # NOTE: The SSH Keys will expire in 24 hours
-                    $NewSSHKeyName = $($DomainAdminCreds.UserName -split "\\")[-1] + "_" + $(Get-Date -Format MM-dd-yy_hhmmsstt)
-                    $NewSSHCredentialsSplatParams = @{
-                        VaultServerBaseUri                  = $VaultServerUrl
-                        DomainCredentialsWithAccessToVault  = $DomainAdminCreds
-                        NewSSHKeyName                       = $NewSSHKeyName
-                        BlankSSHPrivateKeyPwd               = $True
-                        AddToSSHAgent                       = $True
-                        #RemovePrivateKey                    = $True
-                        #SSHAgentExpiry                      = 86400 # 24 hours in seconds
-                    }
-                    $NewSSHCredsResult = New-SSHCredentials @NewSSHCredentialsSplatParams
-
-                    # FYI: If you ever want to remove the specific identity added to the ssh-agent via the above by doing:
-                    #     ssh-add -d "$($NewSSHCredsResult.PrivateKeyPath)"
-
-                    # $NewSSHCredsResult is a pscustomobject with the following content:
-                    <#
-                        PublicKeyCertificateAuthShouldWork : True
-                        FinalSSHExeCommand                 : ssh zeroadmin@zero@<RemoteHost>
-                        PrivateKeyPath                     : C:\Users\zeroadmin\.ssh\zeroadmin_071918
-                        PublicKeyPath                      : C:\Users\zeroadmin\.ssh\zeroadmin_071918.pub
-                        PublicCertPath                     : C:\Users\zeroadmin\.ssh\zeroadmin_071918-cert.pub
-                    #>
-
-                    # If $NewSSHCredsResult.FinalSSHExeCommand looks like...
-                    #     ssh -o "IdentitiesOnly=true" -i "C:\Users\zeroadmin\.ssh\zeroadmin_071718" -i "C:\Users\zeroadmin\.ssh\zeroadmin_071718-cert.pub" zeroadmin@zero@<RemoteHost>
-                    # ...or...
-                    #     ssh <user>@<RemoteHost>
-                    # ...then there are too many identities loaded in the ssh-agent service, which means we need to get the private key from the registry and write it to a file
-                    # See: https://blog.ropnop.com/extracting-ssh-private-keys-from-windows-10-ssh-agent/
-                    <#
-                    if (!$NewSSHCredsResult.PublicKeyCertificateAuthShouldWork -or 
-                    $NewSSHCredsResult.FinalSSHExeCommand -eq "ssh <user>@<RemoteHost>" -or
-                    $NewSSHCredsResult.FinalSSHExeCommand -match "IdentitiesOnly=true"
-                    ) {
-                        $ExtractedPrivateKeys = Extract-SSHPrivateKeyFromRegistry
-                        $OriginalPrivateKeyPath = $NewSSHCredsResult.PublicKeyPath -replace "\.pub",""
-
-                        $PrivateKeyContent = $($ExtractedPrivateKeys | Where-Object {$_.OriginalPrivateKeyFilePath -eq $OriginalPrivateKeyPath}).PrivateKeyContent
-
-                        Set-Content -Path $OriginalPrivateKeyPath -Value $PrivateKeyContent
-
-                        # The below $FinalSSHExeCommand string should look like:
-                        #     ssh -o "IdentitiesOnly=true" -i "$OriginalPrivateKeyPath" -i "$($NewSSHCredsResult.PublicCertPath)" zeroadmin@zero@<RemoteHost>
-                        $FinalSSHExeCommand = $(Get-SSHClientAuthSanity -SSHPublicKeyFilePath $NewSSHCredsResult.PublicKeyPath).FinalSSHExeCommand
-                    }
-                    else {
-                        # The below $FinalSSHExeCommand string should look like:
-                        #     ssh zeroadmin@zero@<RemoteHost>
-                        $FinalSSHExeCommand = $NewSSHCredsResult.FinalSSHExeCommand
-                    }
-                    #>
                 }
                 if ($Preferred_PSRemotingMethod -eq "WinRM") {
                     if ($VaultServerUrl) {
@@ -779,7 +808,7 @@ $PSRemotingCredsPageContent = {
                     
                     # NOTE: The Await Module comes with the WinSSH Module that we made sure was installed/imported earlier
                     try {
-                        Import-Module "$PSScriptRoot\Await\Await.psd1" -ErrorAction Stop
+                        Import-Module "$($(Get-Module WinSSH).ModuleBase)\Await\Await.psd1" -ErrorAction Stop
                     }
                     catch {
                         Write-Error "Unable to load the Await Module! Halting!"
