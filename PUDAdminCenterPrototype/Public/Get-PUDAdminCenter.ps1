@@ -6217,9 +6217,8 @@ function Get-PUDAdminCenter {
                     New-UDInputField -Type password -Name 'Local_Password' -Value $null
                     New-UDInputField -Type textbox -Name 'Domain_UserName' -Value $null
                     New-UDInputField -Type password -Name 'Domain_Password' -Value $null
-                    New-UDInputField -Type textarea -Name 'VaultServerUrl' -Value $null
-                    New-UDInputField -Type textarea -Name 'SSHCertificate' -Value $null
-                    New-UDInputField -Type select -Name 'Preferred_PSRemotingCredType' -Values @("Local","Domain","SSHCert") -DefaultValue "Domain"
+                    New-UDInputField -Type textbox -Name 'VaultServerUrl' -Value $null
+                    New-UDInputField -Type select -Name 'Preferred_PSRemotingCredType' -Values @("Local","Domain","SSHUserNameAndPassword","SSHCertificate") -DefaultValue "Domain"
                     New-UDInputField -Type select -Name 'Preferred_PSRemotingMethod' -Values @("WinRM","SSH") -DefaultValue "WinRM"
                 } -Endpoint {
                     param(
@@ -6228,7 +6227,6 @@ function Get-PUDAdminCenter {
                         [string]$Domain_UserName,
                         [string]$Domain_Password,
                         [string]$VaultServerUrl,
-                        [string]$SSHCertificate,
                         [string]$Preferred_PSRemotingCredType,
                         [string]$Preferred_PSRemotingMethod
                     )
@@ -6306,7 +6304,7 @@ function Get-PUDAdminCenter {
                                 Sync-UDElement -Id "CredsForm"
                                 return
                             }
-                            if ($VaultServerBaseUri -or $SSHCertificate) {
+                            if ($VaultServerBaseUri) {
                                 New-UDInputAction -Toast "You specifed your Preferred_PSRemotingCredType as '$Preferred_PSRemotingCredType', but you provided VaultServerBaseUri or SSHCertificte!" -Duration 10000
                                 Sync-UDElement -Id "CredsForm"
                                 return
@@ -6340,7 +6338,7 @@ function Get-PUDAdminCenter {
                                 Sync-UDElement -Id "CredsForm"
                                 return
                             }
-                            if ($VaultServerBaseUri -or $SSHCertificate) {
+                            if ($VaultServerBaseUri) {
                                 New-UDInputAction -Toast "You specifed your Preferred_PSRemotingCredType as '$Preferred_PSRemotingCredType', but you provided VaultServerBaseUri or SSHCertificte!" -Duration 10000
                                 Sync-UDElement -Id "CredsForm"
                                 return
@@ -6352,29 +6350,23 @@ function Get-PUDAdminCenter {
                                 return
                             }
                         }
-                        if ($Preferred_PSRemotingCredType -eq "SSHCert") {
-                            if ($Domain_UserName -or $Domain_Password) {
-                                New-UDInputAction -Toast "You specifed your Preferred_PSRemotingCredType as '$Preferred_PSRemotingCredType', but you provided Domain_UserName or Domain_Password!" -Duration 10000
+                        if ($Preferred_PSRemotingCredType -eq "SSHUserNameAndPassword") {
+                            if (!$($Domain_UserName -and $Domain_Password) -and !$($Local_UserName -and $Local_Password)) {
+                                New-UDInputAction -Toast "Since you specifed your Preferred_PSRemotingCredType as '$Preferred_PSRemotingCredType', you MUST provide a Domain_UserName and Domain_Password or Local_UserName and Local_Password!" -Duration 10000
                                 Sync-UDElement -Id "CredsForm"
                                 return
                             }
-                            if ($Local_UserName -or $Local_Password) {
-                                New-UDInputAction -Toast "You specifed your Preferred_PSRemotingCredType as '$Preferred_PSRemotingCredType', but you provided Local_UserName or Local_Password!" -Duration 10000
+                        }
+                        if ($Preferred_PSRemotingCredType -eq "SSHCertificate") {
+                            if (!$Domain_UserName -or !$Domain_Password) {
+                                New-UDInputAction -Toast "You specifed your Preferred_PSRemotingCredType as '$Preferred_PSRemotingCredType', which means you must provide Domain_UserName and Domain_Password!" -Duration 10000
                                 Sync-UDElement -Id "CredsForm"
                                 return
                             }
-    
-                            if (!$SSHCertificate) {
-                                if (!$VaultServerBaseUri) {
-                                    New-UDInputAction -Toast "If you do not provide an SSHCertificate, you MUST provide VaultServerBaeUri in order to use PowerShell Remoting over SSH!" -Duration 10000
-                                    Sync-UDElement -Id "CredsForm"
-                                    return
-                                }
-                                if ($VaultServerBaseUri -and $(!$Domain_UserName -or !$Domain_Password)) {
-                                    New-UDInputAction -Toast "In order to receive SSH Credentials from the Vault Server, you MUST provide Domain_UserName and Domain_Password!" -Duration 10000
-                                    Sync-UDElement -Id "CredsForm"
-                                    return
-                                }
+                            if (!$VaultServerBaseUri) {
+                                New-UDInputAction -Toast "You must provide the VaultServerBaseUri in order to generate/request/receive a new SSH Certificate!" -Duration 10000
+                                Sync-UDElement -Id "CredsForm"
+                                return
                             }
     
                             if ($VaultServerBaseUri) {
@@ -6424,70 +6416,93 @@ function Get-PUDAdminCenter {
                                     }
                                 }
                                 if (!$(Get-Command ssh -ErrorAction SilentlyContinue)) {
-                                    Write-Error "Unable to find ssh.exe!"
-                                    $global:FunctionResult = "1"
+                                    New-UDInputAction -Toast "Unable to find ssh.exe on $env:ComputerName!" -Duration 10000
+                                    Sync-UDElement -Id "CredsForm"
                                     return
                                 }
                             }
     
-                            if ($SSHCertificate) {
-                                # Validate the string provided is actually an SSH Certificate
-                                
+                            # Use Domain Credentials to get a new Vault Server Authentication Token, generate new SSH Keys on the PUDAdminCenter Server,
+                            # have the Vault Server sign them, add the new private key to the ssh-agent, and output an SSH Public Certificate to $HOME\.ssh
+                            # NOTE: The SSH Keys will expire in 24 hours
+                            $NewSSHKeyName = $($DomainAdminCreds.UserName -split "\\")[-1] + "_" + $(Get-Date -Format MM-dd-yy_hhmmsstt)
+                            $NewSSHCredentialsSplatParams = @{
+                                VaultServerBaseUri                  = $VaultServerUrl
+                                DomainCredentialsWithAccessToVault  = $DomainAdminCreds
+                                NewSSHKeyName                       = $NewSSHKeyName
+                                BlankSSHPrivateKeyPwd               = $True
+                                AddToSSHAgent                       = $True
+                                RemovePrivateKey                    = $True # Removes the Private Key from the filesystem
+                                #SSHAgentExpiry                      = 86400 # 24 hours in seconds # Don't use because this makes ALL keys in ssh-agent expire in 24 hours
                             }
-                            if (!$SSHCertificate) {
-                                # We need to request an SSH Certificate from the Vault Server
+                            $NewSSHCredsResult = New-SSHCredentials @NewSSHCredentialsSplatParams
     
-                                # Use Domain Credentials to get a new Vault Server Authentication Token, generate new SSH Keys on the PUDAdminCenter Server,
-                                # have the Vault Server sign them, add the new private key to the ssh-agent, and output an SSH Public Certificate to $HOME\.ssh
-                                # NOTE: The SSH Keys will expire in 24 hours
-                                $NewSSHKeyName = $($DomainAdminCreds.UserName -split "\\")[-1] + "_" + $(Get-Date -Format MM-dd-yy_hhmmsstt)
-                                $NewSSHCredentialsSplatParams = @{
-                                    VaultServerBaseUri                  = $VaultServerUrl
-                                    DomainCredentialsWithAccessToVault  = $DomainAdminCreds
-                                    NewSSHKeyName                       = $NewSSHKeyName
-                                    BlankSSHPrivateKeyPwd               = $True
-                                    AddToSSHAgent                       = $True
-                                    #RemovePrivateKey                    = $True
-                                    #SSHAgentExpiry                      = 86400 # 24 hours in seconds
-                                }
-                                $NewSSHCredsResult = New-SSHCredentials @NewSSHCredentialsSplatParams
+                            # $NewSSHCredsResult (and $GetSSHAuthSanity later on) is a pscustomobject with the following content:
+                            <#
+                                PublicKeyCertificateAuthShouldWork : True
+                                FinalSSHExeCommand                 : ssh zeroadmin@zero@<RemoteHost>
+                                PrivateKeyPath                     : C:\Users\zeroadmin\.ssh\zeroadmin_071918
+                                PublicKeyPath                      : C:\Users\zeroadmin\.ssh\zeroadmin_071918.pub
+                                PublicCertPath                     : C:\Users\zeroadmin\.ssh\zeroadmin_071918-cert.pub
+                            #>
     
-                                # $NewSSHCredsResult is a pscustomobject with the following content:
+                            # If $NewSSHCredsResult.FinalSSHExeCommand looks like...
+                            #     ssh -o "IdentitiesOnly=true" -i "C:\Users\zeroadmin\.ssh\zeroadmin_071718" -i "C:\Users\zeroadmin\.ssh\zeroadmin_071718-cert.pub" zeroadmin@zero@<RemoteHost>
+                            # ...or...
+                            #     ssh <user>@<RemoteHost>
+                            # ...then there are too many identities loaded in the ssh-agent service, which means we need to get the private key from the registry and write it to a file
+                            # See: https://blog.ropnop.com/extracting-ssh-private-keys-from-windows-10-ssh-agent/
+                            if (!$NewSSHCredsResult.PublicKeyCertificateAuthShouldWork -or 
+                            $NewSSHCredsResult.FinalSSHExeCommand -eq "ssh <user>@<RemoteHost>" -or
+                            $NewSSHCredsResult.FinalSSHExeCommand -match "IdentitiesOnly=true"
+                            ) {
+                                # NOTE: Extract-SSHPrivateKeyFromRegistry is from the WinSSH Module and provides output like:
                                 <#
-                                    PublicKeyCertificateAuthShouldWork : True
-                                    FinalSSHExeCommand                 : ssh zeroadmin@zero@<RemoteHost>
-                                    PrivateKeyPath                     : C:\Users\zeroadmin\.ssh\zeroadmin_071918
-                                    PublicKeyPath                      : C:\Users\zeroadmin\.ssh\zeroadmin_071918.pub
-                                    PublicCertPath                     : C:\Users\zeroadmin\.ssh\zeroadmin_071918-cert.pub
+                                    OriginalPrivateKeyFilePath      = $OriginalPrivateKeyFilePath
+                                    PrivateKeyContent               = $PrivateKeyContent
                                 #>
+                                # This should only really be necessary if the ssh-agent has more than 5 entries in it (and the needed key isn't within one of the first 5) and
+                                # the RSA Private Key isn't on the filesystem under "$HOME\.ssh". The Get-SSHClientAuthSanity function figures that out for us.
+                                $ExtractedPrivateKeys = Extract-SSHPrivateKeyFromRegistry
+                                $OriginalPrivateKeyPath = $NewSSHCredsResult.PublicKeyPath -replace "\.pub",""
+                                $PrivateKeyContent = $($ExtractedPrivateKeys | Where-Object {$_.OriginalPrivateKeyFilePath -eq $OriginalPrivateKeyPath}).PrivateKeyContent
     
-                                # If $NewSSHCredsResult.FinalSSHExeCommand looks like...
-                                #     ssh -o "IdentitiesOnly=true" -i "C:\Users\zeroadmin\.ssh\zeroadmin_071718" -i "C:\Users\zeroadmin\.ssh\zeroadmin_071718-cert.pub" zeroadmin@zero@<RemoteHost>
-                                # ...or...
-                                #     ssh <user>@<RemoteHost>
-                                # ...then there are too many identities loaded in the ssh-agent service, which means we need to get the private key from the registry and write it to a file
-                                # See: https://blog.ropnop.com/extracting-ssh-private-keys-from-windows-10-ssh-agent/
-                                if (!$NewSSHCredsResult.PublicKeyCertificateAuthShouldWork -or 
-                                $NewSSHCredsResult.FinalSSHExeCommand -eq "ssh <user>@<RemoteHost>" -or
-                                $NewSSHCredsResult.FinalSSHExeCommand -match "IdentitiesOnly=true"
-                                ) {
-                                    $ExtractedPrivateKeys = Extract-SSHPrivateKeyFromRegistry
-                                    $OriginalPrivateKeyPath = $NewSSHCredsResult.PublicKeyPath -replace "\.pub",""
-    
-                                    $PrivateKeyContent = $($ExtractedPrivateKeys | Where-Object {$_.OriginalPrivateKeyFilePath -eq $OriginalPrivateKeyPath}).PrivateKeyContent
-    
+                                if ($PrivateKeyContent.Count -gt 0) {
                                     Set-Content -Path $OriginalPrivateKeyPath -Value $PrivateKeyContent
-    
+                                    $NeedToRemovePrivateKey = $True
+                                    $GetSSHAuthSanity = Get-SSHClientAuthSanity -SSHPublicKeyFilePath $NewSSHCredsResult.PublicKeyPath
+                                    
                                     # The below $FinalSSHExeCommand string should look like:
                                     #     ssh -o "IdentitiesOnly=true" -i "$OriginalPrivateKeyPath" -i "$($NewSSHCredsResult.PublicCertPath)" zeroadmin@zero@<RemoteHost>
-                                    $FinalSSHExeCommand = $(Get-SSHClientAuthSanity -SSHPublicKeyFilePath $NewSSHCredsResult.PublicKeyPath).FinalSSHExeCommand
+                                    $FinalSSHExeCommand = $GetSSHAuthSanity.FinalSSHExeCommand
+    
+                                    if (!$GetSSHAuthSanity.PublicKeyCertificateAuthShouldWork) {
+                                        $UserNamePasswordRequired = $True
+                                        $ToastMsg = "Unable to use SSH Certificate Authentication because the user ssh private key is not available on the " +
+                                        "filesystem or in the ssh-agent. Trying UserName/Password SSH Authentication..."
+                                        New-UDInputAction -Toast $ToastMsg -Duration 10000
+                                        #Sync-UDElement -Id "CredsForm"
+                                        #return
+                                    }
                                 }
                                 else {
-                                    # The below $FinalSSHExeCommand string should look like:
-                                    #     ssh zeroadmin@zero@<RemoteHost>
-                                    $FinalSSHExeCommand = $NewSSHCredsResult.FinalSSHExeCommand
+                                    $UserNamePasswordRequired = $True
+                                    $ToastMsg = "Unable to use SSH Certificate Authentication because the user ssh keys and/or " +
+                                    "ssh cert and/or ssh-agent is not configured properly! Trying UserName/Password SSH Authentication..."
+                                    New-UDInputAction -Toast $ToastMsg -Duration 10000
+                                    #Sync-UDElement -Id "CredsForm"
+                                    #return
                                 }
                             }
+                            else {
+                                $GetSSHAuthSanity = $NewSSHCredsResult
+                                
+                                # The below $FinalSSHExeCommand string should look like:
+                                #     ssh zeroadmin@zero@<RemoteHost>
+                                $FinalSSHExeCommand = $GetSSHAuthSanity.FinalSSHExeCommand
+                            }
+    
+                            $SSHCertificate = Get-Content $GetSSHAuthSanity.PublicCertPath
                         }
                     }
                     if ($Preferred_PSRemotingMethod -eq "WinRM") {
@@ -6552,9 +6567,14 @@ function Get-PUDAdminCenter {
                         $DomainAdminCreds = [pscredential]::new($Domain_UserName,$DomainPwdSecureString)
                     }
     
-                    # Test the Credentials
+    
+                    ##### Test the Credentials #####
+    
                     if ($Preferred_PSRemotingMethod -eq "SSH") {
-                        # Test a plain ssh.exe command to make sure we accept the host key if it's unfamiliar and echo "Success"
+                        # Make sure we have pwsh
+                        if (!$(Get-Command pwsh -ErrorAction SilentlyContinue)) {
+                            $InstallPwshResult = Install-Program -ProgramName powershell-core -CommandName pwsh.exe -ExpectedInstallLocation "C:\Program Files\PowerShell"
+                        }
                         
                         # NOTE: The Await Module comes with the WinSSH Module that we made sure was installed/imported earlier
                         try {
@@ -6566,16 +6586,105 @@ function Get-PUDAdminCenter {
                             return
                         }
     
-                        if ($Domain_UserName -and $Domain_Password) {
-                            $ShortUserName = $($Domain_UserName -split "\\")[-1]
-                            $SSHArgsPrep = @(
-                                "ssh"
-                                "-t"
-                                "$ShortUserName@$DomainShortName@$RemoteHost"
-                                '"echo ConnectionSuccessful"'
-                            )
-                            $SSHArgs = $SSHArgsPrep -join " "
+                        # If $FinalSSHExeCommand looks like...
+                        #     ssh -o "IdentitiesOnly=true" -i "C:\Users\zeroadmin\.ssh\zeroadmin_071718" -i "C:\Users\zeroadmin\.ssh\zeroadmin_071718-cert.pub" zeroadmin@zero@<RemoteHost>
+                        # ...or...
+                        #     ssh zeroadmin@zero@<RemoteHost>
+    
+                        # Determine if we're going to do UserName/Password Auth or SSH Certificate Auth
+                        if (!$UserNamePasswordRequired) {
+                            <#
+                            [System.Collections.ArrayList][array]$ProbeSSHExeCommand = $FinalSSHExeCommand -split "[\s]"
+                            # Remove zeroadmin@zero@<RemoteHost>
+                            $ProbeSSHExeCommand.RemoveAt($($ProbeSSHExeCommand.Count-1))
+    
+                            # We need to get the UserName from the SSHCertificate
+                            [System.Collections.ArrayList][array]$SSHCertInfo = ssh-keygen -L -f $GetSSHAuthSanity.PublicCertPath
+                            $PrincipalsLine = $SSHCertInfo | Where-Object {$_ -match "Principals:"}
+                            $PrincipalsLineIndex = $SSHCertInfo.IndexOf($PrincipalsLine)
+                            $CriticalOptionsLine = $SSHCertInfo | Where-Object {$_ -match "Critical Options:"}
+                            $CriticalOptionsLineIndex = $SSHCertInfo.IndexOf($CriticalOptionsLine)
+                            [array]$PrincipalsList = @($SSHCertInfo[$PrincipalsLineIndex..$CriticalOptionsLineIndex] | Where-Object {$_ -notmatch "Principals:|Critical Options:"} | foreach {$_.Trim()})
+                            
+                            # NOTE: The Principal(s) on the SSH Certificate do NOT determine who you are on the Remote Host. What DOES determine who you are on the Remote Host is
+                            # 1) The UserName specified via -UserName with *-PSSession cmdlets
+                            # 2) The UserName specified via <UserName>@<DomainShortName>@<RemoteHost> with ssh.exe
+                            if ($PrincipalsList.Count -eq 1) {
+                                $SSHCertUser = $($PrincipalsList[0] -split '@')[0].Trim()
+                            }
+    
+                            # Get the $DomainShortName from $PUDRSSyncHT.RemoteHostList
+                            $DomainShortName = $($($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $Session:ThisRemoteHost}).Domain -split "\\")[0]
+                            # Add finalized string
+                            $ProbeSSHExeCommand.Add("$SSHCertUser@$DomainShortName@$Session:RemoteHost")
+                            $ProbeSSHExeCommand.Insert($($ProbeSSHExeCommand.Count-2),"-t")
+                            $ProbeSSHExeCommand.Add('"echo ConnectionSuccessful"')
+                            #>
+    
+                            # We need to get the UserName from the SSHCertificate
+                            [System.Collections.ArrayList][array]$SSHCertInfo = ssh-keygen -L -f $GetSSHAuthSanity.PublicCertPath
+                            $PrincipalsLine = $SSHCertInfo | Where-Object {$_ -match "Principals:"}
+                            $PrincipalsLineIndex = $SSHCertInfo.IndexOf($PrincipalsLine)
+                            $CriticalOptionsLine = $SSHCertInfo | Where-Object {$_ -match "Critical Options:"}
+                            $CriticalOptionsLineIndex = $SSHCertInfo.IndexOf($CriticalOptionsLine)
+                            [array]$PrincipalsList = @($SSHCertInfo[$PrincipalsLineIndex..$CriticalOptionsLineIndex] | Where-Object {$_ -notmatch "Principals:|Critical Options:"} | foreach {$_.Trim()})
+                            $SSHCertUser = $($PrincipalsList[0] -split '@')[0].Trim()
+                            $ShortUserName = $SSHCertUser
+                            $DomainShortName = $($($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $Session:ThisRemoteHost}).Domain -split "\\")[0]
+                            $FullUserName = "$DomainShortName\$ShortUserName"
                         }
+                        if ($UserNamePasswordRequired) {
+                            $ShortUserName = $($Domain_UserName -split "\\")[-1]
+                            $DomainShortName = $($($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $Session:ThisRemoteHost}).Domain -split "\\")[0]
+                            $FullUserName = "$DomainShortName\$ShortUserName"
+                        }
+    
+                        # This is basically what we're going for with the below string manipulation:
+                        #   & pwsh -c {Invoke-Command -HostName zerowin16sshb -KeyFilePath "$HOME\.ssh\zeroadmin_090618-cert.pub" -ScriptBlock {[pscustomobject]@{Output = "ConnectionSuccessful"}} | ConvertTo-Json}
+                        $PwshRemoteScriptBlockStringArray = @(
+                            '[pscustomobject]@{'
+                            '    Output = "ConnectionSuccessful"'
+                            '}'
+                        ) | foreach {"    $_"}
+                        $PwshRemoteScriptBlockString = $PwshRemoteScriptBlockStringArray -join "`n"
+                        $PwshInvCmdStringArray = @(
+                            'Invoke-Command'
+                            '-HostName'
+                            $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $Session:ThisRemoteHost}).FQDN
+                            '-UserName'
+                            $FullUserName
+                            '-KeyFilePath'
+                            "'$($GetSSHAuthSanity.PublicCertPath)'"
+                            '-HideComputerName'
+                            "-ScriptBlock {`n$PwshScriptBlockString`n}"
+                            '|'
+                            'ConvertTo-Json'
+                        )
+                        $PwshInvCmdString = $PwshInvCmdStringArray -join " "
+                        $PwshCmdStringArray = @(
+                            '&'
+                            '"' + $(Get-Command pwsh).Source + '"'
+                            "-c {$PwshInvCmdString}"
+                        )
+                        $PwshCmdString = $PwshCmdStringArray -join " "
+    
+                        if ($PUDRSSyncHT.Keys -contains "PwshCmdString") {
+                            $PUDRSSyncHT.PwshCmdString = $PwshCmdString
+                        }
+                        else {
+                            $PUDRSSyncHT.Add("PwshCmdString",$PwshCmdString)
+                        }
+    
+                        <#
+                        $SSHCheckAsJson = [scriptblock]::Create($PwshCmdString).InvokeReturnAsIs()
+                        if (!$SSHCheckAsJson.Output -eq "ConnectionSuccessful") {
+                            New-UDInputAction -Toast "Unable to successfully ssh to $Session:RemoteHost via:`n$PwshCmdString" -Duration 10000
+                            Sync-UDElement -Id "CredsForm"
+                            return
+                        }
+                        #>
+    
+                        #$PwshCmdArgs = $PwshCmdString -replace [regex]::Escape("& `"$($(Get-Command pwsh).Source)`" "),""
     
                         $null = Start-AwaitSession
                         Start-Sleep -Seconds 1
@@ -6584,10 +6693,8 @@ function Get-PUDAdminCenter {
                         Start-Sleep -Seconds 1
                         $null = Send-AwaitCommand "`$env:Path = '$env:Path'"
                         Start-Sleep -Seconds 1
-                        $null = Send-AwaitCommand $SSHArgs
+                        $null = Send-AwaitCommand -Command $([scriptblock]::Create($PwshCmdString))
                         Start-Sleep -Seconds 5
-                        # Do Receive-AwaitResponse to see if we have 'Are you sure you want to continue connecting (yes/no)?' or 'zeroadmin@zero@win16zerows's password:'
-                        # The below is the equivalent of pressing [ENTER] to proceed with the ssh-keygen.exe interactive prompt
                         $AcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
                         if ($AcceptHostKeyOrPwdPrompt -match [regex]::Escape("Are you sure you want to continue connecting (yes/no)?")) {
                             $null = Send-AwaitCommand "yes"
@@ -6605,6 +6712,12 @@ function Get-PUDAdminCenter {
                         if (![bool]$($($SuccessOrPwdPrompt -split "`n") -match "ConnectionSuccessful")) {
                             $SSHFailure = $True
                         }
+    
+                        $OutputPrep = $AcceptHostKeyOrPwdPrompt -split "`n"
+                        $IndexOfOutputBegin = $OutputPrep.IndexOf($($OutputPrep | Where-Object {$_ -match "ConvertTo-Json"})) + 1
+                        $IndexOfOutputEnd = $OutputPrep.IndexOf($($OutputPrep | Where-Object {$_ -match "^}"}))
+                        $SSHCheckAsJson = $OutputPrep[$IndexOfOutputBegin..$IndexOfOutputEnd] | foreach {$_.Trim()} | ConvertFrom-Json
+    
     
                         try {
                             $null = Stop-AwaitSession
@@ -11630,8 +11743,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUOD5ZBL0qACYUO3PZWjAHw9kf
-# M1Ggggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU4uYs56hvQ56BAPCwW7D/J3ts
+# at+gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -11688,11 +11801,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFIhG5rfTq3A9YyR2
-# UyeA/OkWXGZRMA0GCSqGSIb3DQEBAQUABIIBAHj50pekLTIAFZ8h7UoYUwfyG+ID
-# ff9aLxhMZfjdm75mZaHjxkf4nyOE4NRF7fbeHALc17J5PHYjPk2T7C0l6saQnkU5
-# o/njpzNTao1uT76bRRrliES7PsbNzwMWRtuag8GYGQRIjfjnw8hcbeoucgHhxIEt
-# yIvNxY8Iws2kCI4KfUL6WQeCGe3LMe5/yRO3yF0bmxbkSTG3BwA7+SccLtyP0Rz6
-# df2IrPMfkwgl5Ec0AluZSuDAvBpjRKV+9cPSVl+6xqOOLoYfC9IgYBigdHONl1cO
-# oYQydKtXeRlXj95BktXekryA8v2RTtaJBr/e+olZdbtWvHORtHE0fdlKzRE=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFHLImutBsulNG5LP
+# L2+b4x1L9gkSMA0GCSqGSIb3DQEBAQUABIIBADvMdJ7AspTMiyKWTI4E9oTr5mce
+# MmLQXTfJgDTpexTDBl1UGGaZyWhtxa0bQOafd35vTfi47qu7OuN81QuyhQIa2kif
+# LPpJkA4KnQMtUPvxfelDXD/iMKES/DS9l5etBjY60jwyqyxG2Dl//iXS9DKnGEvk
+# EbtXy+Y6SOc+iqL7FKWMy1KA1wmBR9/9P0Qv5v/o60Hncr6oKxeB4l7OuFrM5zO5
+# 56rmHL9IbxPVuPlkOPxE+cTt5GOVUF8ZVJW34L1NP4l8Y53GzOpw1GbTgPtDL87s
+# EgCwWF1JjMvAKtx/KLuLmODYuwEDrb/Ezts1FA7tVosbIpt3ucAPgtq17AQ=
 # SIG # End signature block
