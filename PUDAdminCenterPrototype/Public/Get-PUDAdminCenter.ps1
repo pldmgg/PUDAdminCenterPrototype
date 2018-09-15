@@ -6716,8 +6716,8 @@ function Get-PUDAdminCenter {
                         $OutputPrep = $AcceptHostKeyOrPwdPrompt -split "`n"
                         $IndexOfOutputBegin = $OutputPrep.IndexOf($($OutputPrep | Where-Object {$_ -match "ConvertTo-Json"})) + 1
                         $IndexOfOutputEnd = $OutputPrep.IndexOf($($OutputPrep | Where-Object {$_ -match "^}"}))
+                        $AllOutput = $OutputPrep[$IndexOfOutputBegin..$($OutputPrep.Count-1)] | foreach {$_.Trim()}
                         $SSHCheckAsJson = $OutputPrep[$IndexOfOutputBegin..$IndexOfOutputEnd] | foreach {$_.Trim()} | ConvertFrom-Json
-    
     
                         try {
                             $null = Stop-AwaitSession
@@ -6737,9 +6737,8 @@ function Get-PUDAdminCenter {
                             }
                         }
     
-                        if ($SSHFailure) {
-                            New-UDInputAction -Toast "SSH failed with the following output:`n$($SuccessOrPwdPrompt -split "`n")" -Duration 10000
-                            New-UDInputAction -Toast "Unable to ssh to $RemoteHost using the provided credentials!" -Duration 10000
+                        if ($SSHCheckAsJson.Output -ne "ConnectionSuccessful") {
+                            New-UDInputAction -Toast "pwsh SSH failed with the following output:`n$AllOutput" -Duration 10000
                             Sync-UDElement -Id "CredsForm"
                             return
                         }
@@ -11743,8 +11742,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU4uYs56hvQ56BAPCwW7D/J3ts
-# at+gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUj4VmCQvr7+B8OK7dOnl/vdzS
+# Vm6gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -11801,11 +11800,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFHLImutBsulNG5LP
-# L2+b4x1L9gkSMA0GCSqGSIb3DQEBAQUABIIBADvMdJ7AspTMiyKWTI4E9oTr5mce
-# MmLQXTfJgDTpexTDBl1UGGaZyWhtxa0bQOafd35vTfi47qu7OuN81QuyhQIa2kif
-# LPpJkA4KnQMtUPvxfelDXD/iMKES/DS9l5etBjY60jwyqyxG2Dl//iXS9DKnGEvk
-# EbtXy+Y6SOc+iqL7FKWMy1KA1wmBR9/9P0Qv5v/o60Hncr6oKxeB4l7OuFrM5zO5
-# 56rmHL9IbxPVuPlkOPxE+cTt5GOVUF8ZVJW34L1NP4l8Y53GzOpw1GbTgPtDL87s
-# EgCwWF1JjMvAKtx/KLuLmODYuwEDrb/Ezts1FA7tVosbIpt3ucAPgtq17AQ=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFAvzc/sLPz+BBd+L
+# 5q55Dzyo1YvAMA0GCSqGSIb3DQEBAQUABIIBAD6mgGcRqFu3xw8nEj3qk2WEVA4k
+# kDLtkK3/dgeeT0DXEZDhHJRy2jG7ZMeBXVtBgnRLcxryPeMcWBri40PUA4vRHEd0
+# 0oLIoxOVnxXmC/RY83HxycZkU2hm92u00iUhY+x0gW1s3nyO0WUQws8d2nu4NypZ
+# oqRUYmsYtkgy0kAla19nPx6KjEuUX3YQQc/kcrAcgi574A8kojxpj1aq7yplG5Kb
+# qA085PPPfVxuatWRKB1dWOr7zU3JEqXj7NRDjWEJYs0YzhG6tiR8gOTs7RP2JH8C
+# THC87Or4pWkghHPK+uFhR9cIMsMeHDmZTmDGMdm1z0GACnojAAMuRnnghb0=
 # SIG # End signature block

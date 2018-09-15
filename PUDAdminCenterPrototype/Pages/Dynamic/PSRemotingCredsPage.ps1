@@ -966,8 +966,8 @@ $PSRemotingCredsPageContent = {
                     $OutputPrep = $AcceptHostKeyOrPwdPrompt -split "`n"
                     $IndexOfOutputBegin = $OutputPrep.IndexOf($($OutputPrep | Where-Object {$_ -match "ConvertTo-Json"})) + 1
                     $IndexOfOutputEnd = $OutputPrep.IndexOf($($OutputPrep | Where-Object {$_ -match "^}"}))
+                    $AllOutput = $OutputPrep[$IndexOfOutputBegin..$($OutputPrep.Count-1)] | foreach {$_.Trim()}
                     $SSHCheckAsJson = $OutputPrep[$IndexOfOutputBegin..$IndexOfOutputEnd] | foreach {$_.Trim()} | ConvertFrom-Json
-
 
                     try {
                         $null = Stop-AwaitSession
@@ -987,9 +987,8 @@ $PSRemotingCredsPageContent = {
                         }
                     }
 
-                    if ($SSHFailure) {
-                        New-UDInputAction -Toast "SSH failed with the following output:`n$($SuccessOrPwdPrompt -split "`n")" -Duration 10000
-                        New-UDInputAction -Toast "Unable to ssh to $RemoteHost using the provided credentials!" -Duration 10000
+                    if ($SSHCheckAsJson.Output -ne "ConnectionSuccessful") {
+                        New-UDInputAction -Toast "pwsh SSH failed with the following output:`n$AllOutput" -Duration 10000
                         Sync-UDElement -Id "CredsForm"
                         return
                     }

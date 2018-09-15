@@ -8587,8 +8587,8 @@ function Get-PUDAdminCenter {
                         $OutputPrep = $AcceptHostKeyOrPwdPrompt -split "`n"
                         $IndexOfOutputBegin = $OutputPrep.IndexOf($($OutputPrep | Where-Object {$_ -match "ConvertTo-Json"})) + 1
                         $IndexOfOutputEnd = $OutputPrep.IndexOf($($OutputPrep | Where-Object {$_ -match "^}"}))
+                        $AllOutput = $OutputPrep[$IndexOfOutputBegin..$($OutputPrep.Count-1)] | foreach {$_.Trim()}
                         $SSHCheckAsJson = $OutputPrep[$IndexOfOutputBegin..$IndexOfOutputEnd] | foreach {$_.Trim()} | ConvertFrom-Json
-    
     
                         try {
                             $null = Stop-AwaitSession
@@ -8608,9 +8608,8 @@ function Get-PUDAdminCenter {
                             }
                         }
     
-                        if ($SSHFailure) {
-                            New-UDInputAction -Toast "SSH failed with the following output:`n$($SuccessOrPwdPrompt -split "`n")" -Duration 10000
-                            New-UDInputAction -Toast "Unable to ssh to $RemoteHost using the provided credentials!" -Duration 10000
+                        if ($SSHCheckAsJson.Output -ne "ConnectionSuccessful") {
+                            New-UDInputAction -Toast "pwsh SSH failed with the following output:`n$AllOutput" -Duration 10000
                             Sync-UDElement -Id "CredsForm"
                             return
                         }
@@ -16040,8 +16039,8 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUM74PJstipcdqIlsRkS+9sy72
-# BOigggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUyRpIcdcisVOCCAs+23WNXZts
+# Cjigggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -16098,11 +16097,11 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFLAM9VeckAr0Zx6U
-# tjraXxd/X7suMA0GCSqGSIb3DQEBAQUABIIBAGQ7ZgWM4cebqpITrvsae1QsQF+z
-# Sd6zneCQUWQljq9qZ0TEuYuVom4ZBnKEaAGS8azsdGau1CobO1IoA5kkOXIRKv8M
-# gO6h97vPCxaTnDIq4k3KYL2WTZDgKcPMW+EVqXrN+gqYH5bQ4qHnUU0Gby8O/WRN
-# gH+bicTu+EUOrAaGp5c5ooF0fv9R5Hvph7WETbtVV819NWzzBOar1FssLox7sMoP
-# wCXxr3ZPfOjmh+rswrsh2JDxtq923moCg+5c6wLeFmeMJLH/AVxtLteGH46pX07r
-# 0QFaD/0ckyUbjc2vsTt61mpSAPaE8d74+qThSdnSXzAFf+1oHd4u2iqzR6E=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFIAC5MGuGPTA1HUI
+# jOmCLyYpW4+7MA0GCSqGSIb3DQEBAQUABIIBAKlp+0Qz2+FEspPJBFj6rzCZrRE2
+# alPQebJwwgcTmtARXhRcIoVrb7xMEbyZvCCjH4LF5iG9dqMbN8d9QFDxz0/p3X0Y
+# slA2dOkPdGKmQvptC3csG+WhcGVb7EwaNUFdoS5pep3OtHpXTqSM90JjsqpfEq3h
+# Lv6v6Yn2SLQC57SFmHJcZr0F2lJEp+F29TaKFtwrMtUqqyHMvjKqRw5RNdFRVRYx
+# lcUcVigAaIAyr/tzdJNvgXe9wKLDh9UQIn3MyJfghYre6wn++DCSxhI5oEuvarkd
+# XDGU6CXi+3iy2IaHZAvLEiygbZBPTJqIPiSpA9mJeK3luhqEGkYbm81Yptw=
 # SIG # End signature block
