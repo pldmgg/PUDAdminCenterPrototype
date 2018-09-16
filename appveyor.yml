@@ -5,8 +5,9 @@ environment:
   NuGetApiKey:
     secure: kQMoRm/OdVVfdF0ikkz4eVjXj5iseIB700oedRyw+oAGGKB/zbkgl/u4KF7OaCv6
 
-# Allow WMF5 (i.e. PowerShellGallery functionality)
-os: WMF 5
+# Allow PowerShellGallery Publishin functionality
+# More info here: https://www.appveyor.com/docs/build-environment/
+os: Visual Studio 2017
 
 # Skip on updates to the readme.
 # We can force this by adding [skip ci] or [ci skip] anywhere in commit message 

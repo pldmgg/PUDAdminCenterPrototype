@@ -185,6 +185,7 @@ $HomePageContent = {
 
         $ResultProperties = @("HostName","FQDN","OS_Guess","IPAddress","PingStatus","WSMan","WSManPorts","SSH","DateTime","ManageLink","NewCreds")
         $RHostUDTableSplatParams = @{
+            Title           = $RHost.HostName.ToUpper()
             Headers         = $ResultProperties
             #AutoRefresh     = $True 
             #RefreshInterval = 15
