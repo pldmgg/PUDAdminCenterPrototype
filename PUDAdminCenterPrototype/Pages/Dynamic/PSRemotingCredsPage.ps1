@@ -612,6 +612,66 @@ $PSRemotingCredsPageContent = {
                             $LocalAdminCreds = [pscredential]::new($Local_UserName,$LocalPwdSecureString)
                         }
                     }
+
+                    if ($Preferred_PSRemotingCredType -eq "SSHUserNameAndPassword" -or $Preferred_PSRemotingCredType -eq "SSHCertificate") {
+                        try {
+                            # Make sure we have the WinSSH Module Available
+                            if ($(Get-Module -ListAvailable).Name -notcontains "WinSSH") {$null = Install-Module WinSSH}
+                            if ($(Get-Module).Name -notcontains "WinSSH") {$null = Import-Module WinSSH}
+
+                            # Make sure we have the VaultServer Module Available
+                            if ($(Get-Module -ListAvailable).Name -notcontains "VaultServer") {$null = Install-Module VaultServer}
+                            if ($(Get-Module).Name -notcontains "VaultServer") {$null = Import-Module VaultServer}
+                        }
+                        catch {
+                            New-UDInputAction -Toast $_.Exception.Message -Duration 10000
+                            Sync-UDElement -Id "CredsForm"
+                            return
+                        }
+
+                        if ($(Get-Module).Name -notcontains "WinSSH") {
+                            New-UDInputAction -Toast "The WinSSH Module is not available! Halting!" -Duration 10000
+                            Sync-UDElement -Id "CredsForm"
+                            return
+                        }
+                        if ($(Get-Module).Name -notcontains "VaultServer") {
+                            New-UDInputAction -Toast "The VaultServer Module is not available! Halting!" -Duration 10000
+                            Sync-UDElement -Id "CredsForm"
+                            return
+                        }
+
+                        # Install OpenSSH-Win64 if it isn't already
+                        if (!$(Test-Path "$env:ProgramFiles\OpenSSH-Win64\ssh.exe")) {
+                            Install-WinSSH -GiveWinSSHBinariesPathPriority -ConfigureSSHDOnLocalHost -DefaultShell pwsh
+                        }
+                        else {
+                            if (!$(Get-Command ssh -ErrorAction SilentlyContinue)) {
+                                $OpenSSHDir ="$env:ProgramFiles\OpenSSH-Win64"
+                                # Update PowerShell $env:Path
+                                [System.Collections.Arraylist][array]$CurrentEnvPathArray = $env:Path -split ';' | Where-Object {![System.String]::IsNullOrWhiteSpace($_)} | Sort-Object | Get-Unique
+                                if ($CurrentEnvPathArray -notcontains $OpenSSHDir) {
+                                    $CurrentEnvPathArray.Insert(0,$OpenSSHDir)
+                                    $env:Path = $CurrentEnvPathArray -join ';'
+                                }
+                                
+                                # Update SYSTEM Path
+                                $RegistrySystemPath = 'HKLM:\System\CurrentControlSet\Control\Session Manager\Environment'
+                                $CurrentSystemPath = $(Get-ItemProperty -Path $RegistrySystemPath -Name PATH).Path
+                                [System.Collections.Arraylist][array]$CurrentSystemPathArray = $CurrentSystemPath -split ";" | Where-Object {![System.String]::IsNullOrWhiteSpace($_)} | Sort-Object | Get-Unique
+                                if ($CurrentSystemPathArray -notcontains $OpenSSHDir) {
+                                    $CurrentSystemPathArray.Insert(0,$OpenSSHDir)
+                                    $UpdatedSystemPath = $CurrentSystemPathArray -join ";"
+                                    Set-ItemProperty -Path $RegistrySystemPath -Name PATH -Value $UpdatedSystemPath
+                                }
+                            }
+                            if (!$(Get-Command ssh -ErrorAction SilentlyContinue)) {
+                                New-UDInputAction -Toast "Unable to find ssh.exe on $env:ComputerName!" -Duration 10000
+                                Sync-UDElement -Id "CredsForm"
+                                return
+                            }
+                        }
+                    }
+
                     if ($Preferred_PSRemotingCredType -eq "SSHUserNameAndPassword") {
                         if (!$($Domain_UserName -and $Domain_Password) -and !$($Local_UserName -and $Local_Password)) {
                             New-UDInputAction -Toast "Since you specifed your Preferred_PSRemotingCredType as '$Preferred_PSRemotingCredType', you MUST provide a Domain_UserName and Domain_Password or Local_UserName and Local_Password!" -Duration 10000
@@ -680,63 +740,6 @@ $PSRemotingCredsPageContent = {
                             }
                             catch {
                                 New-UDInputAction -Toast $_.Exception.Message -Duration 10000
-                                Sync-UDElement -Id "CredsForm"
-                                return
-                            }
-                        }
-
-                        try {
-                            # Make sure we have the WinSSH Module Available
-                            if ($(Get-Module -ListAvailable).Name -notcontains "WinSSH") {$null = Install-Module WinSSH}
-                            if ($(Get-Module).Name -notcontains "WinSSH") {$null = Import-Module WinSSH}
-
-                            # Make sure we have the VaultServer Module Available
-                            if ($(Get-Module -ListAvailable).Name -notcontains "VaultServer") {$null = Install-Module VaultServer}
-                            if ($(Get-Module).Name -notcontains "VaultServer") {$null = Import-Module VaultServer}
-                        }
-                        catch {
-                            New-UDInputAction -Toast $_.Exception.Message -Duration 10000
-                            Sync-UDElement -Id "CredsForm"
-                            return
-                        }
-
-                        if ($(Get-Module).Name -notcontains "WinSSH") {
-                            New-UDInputAction -Toast "The WinSSH Module is not available! Halting!" -Duration 10000
-                            Sync-UDElement -Id "CredsForm"
-                            return
-                        }
-                        if ($(Get-Module).Name -notcontains "VaultServer") {
-                            New-UDInputAction -Toast "The VaultServer Module is not available! Halting!" -Duration 10000
-                            Sync-UDElement -Id "CredsForm"
-                            return
-                        }
-
-                        # Install OpenSSH-Win64 if it isn't already
-                        if (!$(Test-Path "$env:ProgramFiles\OpenSSH-Win64\ssh.exe")) {
-                            Install-WinSSH -GiveWinSSHBinariesPathPriority -ConfigureSSHDOnLocalHost -DefaultShell pwsh
-                        }
-                        else {
-                            if (!$(Get-Command ssh -ErrorAction SilentlyContinue)) {
-                                $OpenSSHDir ="$env:ProgramFiles\OpenSSH-Win64"
-                                # Update PowerShell $env:Path
-                                [System.Collections.Arraylist][array]$CurrentEnvPathArray = $env:Path -split ';' | Where-Object {![System.String]::IsNullOrWhiteSpace($_)} | Sort-Object | Get-Unique
-                                if ($CurrentEnvPathArray -notcontains $OpenSSHDir) {
-                                    $CurrentEnvPathArray.Insert(0,$OpenSSHDir)
-                                    $env:Path = $CurrentEnvPathArray -join ';'
-                                }
-                                
-                                # Update SYSTEM Path
-                                $RegistrySystemPath = 'HKLM:\System\CurrentControlSet\Control\Session Manager\Environment'
-                                $CurrentSystemPath = $(Get-ItemProperty -Path $RegistrySystemPath -Name PATH).Path
-                                [System.Collections.Arraylist][array]$CurrentSystemPathArray = $CurrentSystemPath -split ";" | Where-Object {![System.String]::IsNullOrWhiteSpace($_)} | Sort-Object | Get-Unique
-                                if ($CurrentSystemPathArray -notcontains $OpenSSHDir) {
-                                    $CurrentSystemPathArray.Insert(0,$OpenSSHDir)
-                                    $UpdatedSystemPath = $CurrentSystemPathArray -join ";"
-                                    Set-ItemProperty -Path $RegistrySystemPath -Name PATH -Value $UpdatedSystemPath
-                                }
-                            }
-                            if (!$(Get-Command ssh -ErrorAction SilentlyContinue)) {
-                                New-UDInputAction -Toast "Unable to find ssh.exe on $env:ComputerName!" -Duration 10000
                                 Sync-UDElement -Id "CredsForm"
                                 return
                             }
@@ -918,50 +921,57 @@ $PSRemotingCredsPageContent = {
                     # ...or...
                     #     ssh zeroadmin@zero@<RemoteHost>
 
-                    # Determine if we're going to do UserName/Password Auth or SSH Certificate Auth
-                    if (!$UserNamePasswordRequired) {
-                        # NOTE: OpenSSH-Win64's implementation of 'ssh.exe -t' does not work properly...
-                        <#
-                        [System.Collections.ArrayList][array]$ProbeSSHExeCommand = $FinalSSHExeCommand -split "[\s]"
-                        # Remove zeroadmin@zero@<RemoteHost>
-                        $ProbeSSHExeCommand.RemoveAt($($ProbeSSHExeCommand.Count-1))
+                    if ($Preferred_PSRemotingCredType -eq "SSHCertificate") {
+                        # Determine if we're going to do UserName/Password Auth or SSH Certificate Auth
+                        if (!$UserNamePasswordRequired) {
+                            # NOTE: OpenSSH-Win64's implementation of 'ssh.exe -t' does not work properly...
+                            <#
+                            [System.Collections.ArrayList][array]$ProbeSSHExeCommand = $FinalSSHExeCommand -split "[\s]"
+                            # Remove zeroadmin@zero@<RemoteHost>
+                            $ProbeSSHExeCommand.RemoveAt($($ProbeSSHExeCommand.Count-1))
 
-                        # We need to get the UserName from the SSHCertificate
-                        [System.Collections.ArrayList][array]$SSHCertInfo = ssh-keygen -L -f $GetSSHAuthSanity.PublicCertPath
-                        $PrincipalsLine = $SSHCertInfo | Where-Object {$_ -match "Principals:"}
-                        $PrincipalsLineIndex = $SSHCertInfo.IndexOf($PrincipalsLine)
-                        $CriticalOptionsLine = $SSHCertInfo | Where-Object {$_ -match "Critical Options:"}
-                        $CriticalOptionsLineIndex = $SSHCertInfo.IndexOf($CriticalOptionsLine)
-                        [array]$PrincipalsList = @($SSHCertInfo[$PrincipalsLineIndex..$CriticalOptionsLineIndex] | Where-Object {$_ -notmatch "Principals:|Critical Options:"} | foreach {$_.Trim()})
-                        
-                        # NOTE: The Principal(s) on the SSH Certificate do NOT determine who you are on the Remote Host. What DOES determine who you are on the Remote Host is
-                        # 1) The UserName specified via -UserName with *-PSSession cmdlets
-                        # 2) The UserName specified via <UserName>@<DomainShortName>@<RemoteHost> with ssh.exe
-                        if ($PrincipalsList.Count -eq 1) {
+                            # We need to get the UserName from the SSHCertificate
+                            [System.Collections.ArrayList][array]$SSHCertInfo = ssh-keygen -L -f $GetSSHAuthSanity.PublicCertPath
+                            $PrincipalsLine = $SSHCertInfo | Where-Object {$_ -match "Principals:"}
+                            $PrincipalsLineIndex = $SSHCertInfo.IndexOf($PrincipalsLine)
+                            $CriticalOptionsLine = $SSHCertInfo | Where-Object {$_ -match "Critical Options:"}
+                            $CriticalOptionsLineIndex = $SSHCertInfo.IndexOf($CriticalOptionsLine)
+                            [array]$PrincipalsList = @($SSHCertInfo[$PrincipalsLineIndex..$CriticalOptionsLineIndex] | Where-Object {$_ -notmatch "Principals:|Critical Options:"} | foreach {$_.Trim()})
+                            
+                            # NOTE: The Principal(s) on the SSH Certificate do NOT determine who you are on the Remote Host. What DOES determine who you are on the Remote Host is
+                            # 1) The UserName specified via -UserName with *-PSSession cmdlets
+                            # 2) The UserName specified via <UserName>@<DomainShortName>@<RemoteHost> with ssh.exe
+                            if ($PrincipalsList.Count -eq 1) {
+                                $SSHCertUser = $($PrincipalsList[0] -split '@')[0].Trim()
+                            }
+
+                            # Get the $DomainShortName from $PUDRSSyncHT.RemoteHostList
+                            $DomainShortName = $($($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $Session:ThisRemoteHost}).Domain -split "\\")[0]
+                            # Add finalized string
+                            $ProbeSSHExeCommand.Add("$SSHCertUser@$DomainShortName@$Session:RemoteHost")
+                            $ProbeSSHExeCommand.Insert($($ProbeSSHExeCommand.Count-2),"-t")
+                            $ProbeSSHExeCommand.Add('"echo ConnectionSuccessful"')
+                            #>
+
+                            # We need to get the UserName from the SSHCertificate
+                            [System.Collections.ArrayList][array]$SSHCertInfo = ssh-keygen -L -f $GetSSHAuthSanity.PublicCertPath
+                            $PrincipalsLine = $SSHCertInfo | Where-Object {$_ -match "Principals:"}
+                            $PrincipalsLineIndex = $SSHCertInfo.IndexOf($PrincipalsLine)
+                            $CriticalOptionsLine = $SSHCertInfo | Where-Object {$_ -match "Critical Options:"}
+                            $CriticalOptionsLineIndex = $SSHCertInfo.IndexOf($CriticalOptionsLine)
+                            [array]$PrincipalsList = @($SSHCertInfo[$PrincipalsLineIndex..$CriticalOptionsLineIndex] | Where-Object {$_ -notmatch "Principals:|Critical Options:"} | foreach {$_.Trim()})
                             $SSHCertUser = $($PrincipalsList[0] -split '@')[0].Trim()
+                            $ShortUserName = $SSHCertUser
+                            $DomainShortName = $($($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $Session:ThisRemoteHost}).Domain -split "\.")[0]
+                            $FullUserName = "$DomainShortName\$ShortUserName"
                         }
-
-                        # Get the $DomainShortName from $PUDRSSyncHT.RemoteHostList
-                        $DomainShortName = $($($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $Session:ThisRemoteHost}).Domain -split "\\")[0]
-                        # Add finalized string
-                        $ProbeSSHExeCommand.Add("$SSHCertUser@$DomainShortName@$Session:RemoteHost")
-                        $ProbeSSHExeCommand.Insert($($ProbeSSHExeCommand.Count-2),"-t")
-                        $ProbeSSHExeCommand.Add('"echo ConnectionSuccessful"')
-                        #>
-
-                        # We need to get the UserName from the SSHCertificate
-                        [System.Collections.ArrayList][array]$SSHCertInfo = ssh-keygen -L -f $GetSSHAuthSanity.PublicCertPath
-                        $PrincipalsLine = $SSHCertInfo | Where-Object {$_ -match "Principals:"}
-                        $PrincipalsLineIndex = $SSHCertInfo.IndexOf($PrincipalsLine)
-                        $CriticalOptionsLine = $SSHCertInfo | Where-Object {$_ -match "Critical Options:"}
-                        $CriticalOptionsLineIndex = $SSHCertInfo.IndexOf($CriticalOptionsLine)
-                        [array]$PrincipalsList = @($SSHCertInfo[$PrincipalsLineIndex..$CriticalOptionsLineIndex] | Where-Object {$_ -notmatch "Principals:|Critical Options:"} | foreach {$_.Trim()})
-                        $SSHCertUser = $($PrincipalsList[0] -split '@')[0].Trim()
-                        $ShortUserName = $SSHCertUser
-                        $DomainShortName = $($($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $Session:ThisRemoteHost}).Domain -split "\.")[0]
-                        $FullUserName = "$DomainShortName\$ShortUserName"
+                        if ($UserNamePasswordRequired) {
+                            $ShortUserName = $($Domain_UserName -split "\\")[-1]
+                            $DomainShortName = $($($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $Session:ThisRemoteHost}).Domain -split "\.")[0]
+                            $FullUserName = "$DomainShortName\$ShortUserName"
+                        }
                     }
-                    if ($UserNamePasswordRequired) {
+                    if ($Preferred_PSRemotingCredType -eq "SSHUserNameAndPassword") {
                         $ShortUserName = $($Domain_UserName -split "\\")[-1]
                         $DomainShortName = $($($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $Session:ThisRemoteHost}).Domain -split "\.")[0]
                         $FullUserName = "$DomainShortName\$ShortUserName"
@@ -975,19 +985,23 @@ $PSRemotingCredsPageContent = {
                         '}'
                     ) | foreach {"    $_"}
                     $PwshRemoteScriptBlockString = $PwshRemoteScriptBlockStringArray -join "`n"
-                    $PwshInvCmdStringArray = @(
+                    [System.Collections.ArrayList]$PwshInvCmdStringArray = @(
                         'Invoke-Command'
                         '-HostName'
                         $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $Session:ThisRemoteHost}).FQDN
                         '-UserName'
                         $FullUserName
-                        '-KeyFilePath'
-                        "'$($GetSSHAuthSanity.PublicCertPath)'"
-                        '-HideComputerName'
-                        "-ScriptBlock {`n$PwshRemoteScriptBlockString`n}"
-                        '|'
-                        'ConvertTo-Json'
                     )
+                    if ($Preferred_PSRemotingCredType -eq "SSHCertificate") {
+                        $null = $PwshInvCmdStringArray.Add('-KeyFilePath')
+                        $null = $PwshInvCmdStringArray.Add("'$($GetSSHAuthSanity.PublicCertPath)'")
+                    }
+                    if ($Preferred_PSRemotingCredType -eq "SSHUserNameAndPassword") {
+                        $null = $PwshInvCmdStringArray.Add('-HideComputerName')
+                        $null = $PwshInvCmdStringArray.Add("-ScriptBlock {`n$PwshRemoteScriptBlockString`n}")
+                        $null = $PwshInvCmdStringArray.Add('|')
+                        $null = $PwshInvCmdStringArray.Add('ConvertTo-Json')
+                    }
                     $PwshInvCmdString = $PwshInvCmdStringArray -join " "
                     $PwshCmdStringArray = @(
                         '&'
@@ -1029,19 +1043,25 @@ $PSRemotingCredsPageContent = {
                         Start-Sleep -Seconds 3
                         # This will either not prompt at all or prompt for a password
                         $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
-                        if ($SuccessOrAcceptHostKeyOrPwdPrompt -match [regex]::Escape("$ShortUserName@$DomainShortName@$Session:RemoteHost's password:")) {
+                        if ($SuccessOrAcceptHostKeyOrPwdPrompt -match [regex]::Escape("'s password:")) {
                             $null = Send-AwaitCommand $Domain_Password
                             Start-Sleep -Seconds 3
                             $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
                         }
                     }
-                    elseif ($SuccessOrAcceptHostKeyOrPwdPrompt -match [regex]::Escape("$ShortUserName@$DomainShortName@$Session:RemoteHost's password:")) {
+                    elseif ($SuccessOrAcceptHostKeyOrPwdPrompt -match [regex]::Escape("'s password:")) {
                         $null = Send-AwaitCommand $Domain_Password
                         Start-Sleep -Seconds 3
                         $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
                     }
 
                     $OutputPrep = $SuccessOrAcceptHostKeyOrPwdPrompt -split "`n"
+                    if ($PUDRSSyncHT.Keys -contains "OutputPrep") {
+                        $PUDRSSyncHT.OutputPrep = $OutputPrep
+                    }
+                    else {
+                        $PUDRSSyncHT.Add("OutputPrep",$OutputPrep)
+                    }
                     $IndexOfOutputBegin = $OutputPrep.IndexOf($($OutputPrep | Where-Object {$_ -match "^{"}))
                     $IndexOfOutputEnd = $OutputPrep.IndexOf($($OutputPrep | Where-Object {$_ -match "^}"}))
                     $AllOutput = $OutputPrep[$IndexOfOutputBegin..$($OutputPrep.Count-2)] | foreach {$_.Trim()}

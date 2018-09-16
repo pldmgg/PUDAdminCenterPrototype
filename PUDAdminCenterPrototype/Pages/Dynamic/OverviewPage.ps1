@@ -965,6 +965,11 @@ $OverviewPageContent = {
                                     if ($Session:EnableSSH) {
                                         New-UDHeading -Text $Session:EnableSSHMsg -Size 6
                                         Show-UDToast -Message $Session:EnableSSHMsg -Position 'topRight' -Title "SSHToast" -Duration 5000
+                                        New-UDColumn -AutoRefresh -RefreshInterval 10 -Endpoint {
+                                            if ($Session:EnableSSH) {
+                                                New-UDPreloader -Size small
+                                            }
+                                        }
                                     }
                                 }
                                 New-UDElement -Id "DisableSSHMsg" -Tag div -EndPoint {

@@ -46,8 +46,11 @@ Describe -Name "General Project Validation: $env:BHProjectName" -Tag 'Validation
         $errors.Count | Should Be 0
     }
 
-    It "Module '$env:BHProjectName' Should Load" -Test {
-        {Import-Module $env:BHPSModuleManifest -Force} | Should Not Throw
+    $Net472Check = Get-ChildItem "HKLM:SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full\" | Get-ItemPropertyValue -Name Release | ForEach-Object { $_ -ge 461808 }
+    if ($Net472Check) {
+        It "Module '$env:BHProjectName' Should Load" -Test {
+            {Import-Module $env:BHPSModuleManifest -Force} | Should Not Throw
+        }
     }
 
     It "Module '$env:BHProjectName' Public and Not Private Functions Are Available" {
@@ -140,8 +143,8 @@ Describe -Name "General Project Validation: $env:BHProjectName" -Tag 'Validation
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUwmAeNm4KDCQL/5jOZLEkLsZA
-# VcSgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUtkQJFX/vHqZJH9C9kjp4ZG8B
+# U6qgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -198,11 +201,11 @@ Describe -Name "General Project Validation: $env:BHProjectName" -Tag 'Validation
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFPc+wlSdfBruOBUQ
-# 5jafEK96Q360MA0GCSqGSIb3DQEBAQUABIIBAKOc+9RyPm/G7+qHI7v17kCKFMoA
-# 9yUP1/jpgUSNP/PNgynB9zdrsi48UvLLUheFVcYticDaNE6XZM9ifsC3kwRmAxkx
-# xug7tBueIrfjF4v3lqUnM87UPbG746rizlk+R99fO4UCYZa8R1pI1+wAMk8679ev
-# DrHWKnj3+FdKoOpSmuPiHHGeMHP+qkPUl8VdHF2AoMnpNLEc/nMI81v8KdCBn0Ur
-# kOUgquLIihEfyR4MImOrNhIefn7+AsJ0ZaqaRHj8icd7ud0QS3VLzlrR4NihY11P
-# oqtGxNZurs4ZJi9XdykPBAka6jWYjkPSkXHDNtNsVyon/i1HROXGN7ciRGU=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFCSGcylfkdmvCisu
+# 8+fpXDGHm9UFMA0GCSqGSIb3DQEBAQUABIIBAL2gV3XfZf1zsNAlVRsqkSrA83W7
+# WqmS211UGJm4MXmzj0MBWgD2xC/iB2nGoO3GgwHHUaMA19m7xsy4JARF4hPeBPPd
+# YpWkjykZBwAN/UTouKP0H9bvQCMwq5esIbMXJT78WUFfPuoa+k+zsQKhvCdoqyYU
+# I9TfNQ1v0fAbs/P0gP2VpCpwnvlYWvW4iIoxWJVTzNyiTiSM+YUNHoSz5VfAZJe+
+# v58hy2e4fAj8YCmbMWNujNv8/oplVBHyzIJxaLoGNrLRurbuzKt7j3Pc4mJft6Yb
+# LBXQSNXX0KiF1SWI6Pu3GyyaUZet29YIy/FLlxpIoXaKjcV6vuedzkgL2k0=
 # SIG # End signature block
