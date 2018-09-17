@@ -8661,49 +8661,144 @@ function Get-PUDAdminCenter {
                         $null = Send-AwaitCommand "`$env:Path = '$env:Path'"
                         Start-Sleep -Seconds 1
                         $null = Send-AwaitCommand -Command $([scriptblock]::Create($PwshCmdString))
-                        Start-Sleep -Seconds 5
+                        Start-Sleep -Seconds 4
+    
                         # This will either not prompt at all, prompt to accept the RemoteHost's RSA Host Key, or prompt for a password
                         $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
+                        Start-Sleep -Seconds 1
+                        $Counter = 0
+                        while ($SuccessOrAcceptHostKeyOrPwdPrompt -notmatch [regex]::Escape("Are you sure you want to continue connecting (yes/no)?") -and
+                        $SuccessOrAcceptHostKeyOrPwdPrompt -notmatch [regex]::Escape("'s password:") -and 
+                        $SuccessOrAcceptHostKeyOrPwdPrompt -notmatch "^}" -and $Counter -le 10
+                        ) {
+                            $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
+                            Start-Sleep -Seconds 1
+                            $Counter++
+                        }
+                        if ($Counter -eq 11) {
+                            New-UDInputAction -Toast "Domain_UserName must be in format 'Domain\DomainUser'!" -Duration 10000
+                            Sync-UDElement -Id "CredsForm"
+                            return
+                        }
+    
+                        $InitialOutput = $SuccessOrAcceptHostKeyOrPwdPrompt -split "`n"
+                        if ($PUDRSSyncHT.Keys -contains "InitialOutput") {
+                            $PUDRSSyncHT.InitialOutput = $InitialOutput
+                        }
+                        else {
+                            $PUDRSSyncHT.Add("InitialOutput",$InitialOutput)
+                        }
+                        <#
+                        if ($($SuccessOrAcceptHostKeyOrPwdPrompt -split "`n")[-1] -match [regex]::Escape(">> } | ConvertTo-Json}")) {
+                            $null = Send-AwaitCommand ""
+                            $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
+                            $ReturnPwshCommandOutput = $SuccessOrAcceptHostKeyOrPwdPrompt -split "`n"
+                            if ($PUDRSSyncHT.Keys -contains "ReturnPwshCommandOutput") {
+                                $PUDRSSyncHT.ReturnPwshCommandOutput = $ReturnPwshCommandOutput
+                            }
+                            else {
+                                $PUDRSSyncHT.Add("ReturnPwshCommandOutput",$ReturnPwshCommandOutput)
+                            }
+                        }
+                        #>
                         if ($SuccessOrAcceptHostKeyOrPwdPrompt -match [regex]::Escape("Are you sure you want to continue connecting (yes/no)?")) {
                             $null = Send-AwaitCommand "yes"
-                            Start-Sleep -Seconds 3
+                            Start-Sleep -Seconds 1
+                            
                             # This will either not prompt at all or prompt for a password
                             $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
+                            $Counter = 0
+                            while ($SuccessOrAcceptHostKeyOrPwdPrompt -notmatch [regex]::Escape("'s password:") -and 
+                            $SuccessOrAcceptHostKeyOrPwdPrompt -notmatch "^}" -and $Counter -le 10
+                            ) {
+                                $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
+                                Start-Sleep -Seconds 1
+                                $Counter++
+                            }
+    
+                            $SentYesOutput = $SuccessOrAcceptHostKeyOrPwdPrompt -split "`n"
+                            if ($PUDRSSyncHT.Keys -contains "SentYesOutput") {
+                                $PUDRSSyncHT.SentYesOutput = $SentYesOutput
+                            }
+                            else {
+                                $PUDRSSyncHT.Add("SentYesOutput",$SentYesOutput)
+                            }
+                            
                             if ($SuccessOrAcceptHostKeyOrPwdPrompt -match [regex]::Escape("'s password:")) {
                                 $null = Send-AwaitCommand $Domain_Password
-                                Start-Sleep -Seconds 3
-                                $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
+                                Start-Sleep -Seconds 5
+                                $null = Send-AwaitCommand ""
+    
+                                [System.Collections.ArrayList]$JsonOutputPrep = @()
+                                $Counter = 0
+                                while ($SuccessOrAcceptHostKeyOrPwdPrompt -notmatch "^}" -and $Counter -le 10) {
+                                    $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
+                                    if (![System.String]::IsNullOrWhiteSpace($SuccessOrAcceptHostKeyOrPwdPrompt)) {
+                                        $null = $JsonOutputPrep.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
+                                    }
+                                    Start-Sleep -Seconds 1
+                                    $Counter++
+                                }
+                                [System.Collections.ArrayList]$JsonOutputPrep = $($JsonOutputPrep -join "`n") -split "`n" | Where-Object {$_ -notmatch "^PS "}
+                                if ($JsonOutputPrep[0] -ne '{') {
+                                    $null = $JsonOutputPrep.Insert(0,'{')
+                                }
+    
+                                if ($PUDRSSyncHT.Keys -contains "JsonOutputPrep") {
+                                    $PUDRSSyncHT.JsonOutputPrep = $JsonOutputPrep
+                                }
+                                else {
+                                    $PUDRSSyncHT.Add("JsonOutputPrep",$JsonOutputPrep)
+                                }
                             }
                         }
                         elseif ($SuccessOrAcceptHostKeyOrPwdPrompt -match [regex]::Escape("'s password:")) {
                             $null = Send-AwaitCommand $Domain_Password
-                            Start-Sleep -Seconds 3
-                            $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
+                            Start-Sleep -Seconds 5
+                            $null = Send-AwaitCommand ""
+    
+                            [System.Collections.ArrayList]$JsonOutputPrep = @()
+                            $Counter = 0
+                            while ($SuccessOrAcceptHostKeyOrPwdPrompt -notmatch "^}" -and $Counter -le 10) {
+                                $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
+                                if (![System.String]::IsNullOrWhiteSpace($SuccessOrAcceptHostKeyOrPwdPrompt)) {
+                                    $null = $JsonOutputPrep.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
+                                }
+                                Start-Sleep -Seconds 1
+                                $Counter++
+                            }
+                            [System.Collections.ArrayList]$JsonOutputPrep = $($JsonOutputPrep -join "`n") -split "`n" | Where-Object {$_ -notmatch "^PS "}
+                            if ($JsonOutputPrep[0] -ne '{') {
+                                $null = $JsonOutputPrep.Insert(0,'{')
+                            }
+    
+                            if ($PUDRSSyncHT.Keys -contains "JsonOutputPrep") {
+                                $PUDRSSyncHT.JsonOutputPrep = $JsonOutputPrep
+                            }
+                            else {
+                                $PUDRSSyncHT.Add("JsonOutputPrep",$JsonOutputPrep)
+                            }
+                        }
+                        else {
+                            $JsonOutputPrep = $SuccessOrAcceptHostKeyOrPwdPrompt
                         }
     
-                        $OutputPrep = $SuccessOrAcceptHostKeyOrPwdPrompt -split "`n"
-                        if ($PUDRSSyncHT.Keys -contains "OutputPrep") {
-                            $PUDRSSyncHT.OutputPrep = $OutputPrep
+                        $IndexOfOutputBegin = $JsonOutputPrep.IndexOf($($JsonOutputPrep | Where-Object {$_ -match "^{"}))
+                        $IndexOfOutputEnd = $JsonOutputPrep.IndexOf($($JsonOutputPrep | Where-Object {$_ -match "^}"}))
+                        $FinalJson = $JsonOutputPrep[$IndexOfOutputBegin..$IndexOfOutputEnd] | foreach {if (![System.String]::IsNullOrWhiteSpace($_)) {$_.Trim()}}
+                        if ($PUDRSSyncHT.Keys -contains "FinalJson") {
+                            $PUDRSSyncHT.FinalJson = $FinalJson
                         }
                         else {
-                            $PUDRSSyncHT.Add("OutputPrep",$OutputPrep)
-                        }
-                        $IndexOfOutputBegin = $OutputPrep.IndexOf($($OutputPrep | Where-Object {$_ -match "^{"}))
-                        $IndexOfOutputEnd = $OutputPrep.IndexOf($($OutputPrep | Where-Object {$_ -match "^}"}))
-                        $AllOutput = $OutputPrep[$IndexOfOutputBegin..$($OutputPrep.Count-2)] | foreach {$_.Trim()}
-                        if ($PUDRSSyncHT.Keys -contains "JsonOutput") {
-                            $PUDRSSyncHT.JsonOutput = $AllOutput
-                        }
-                        else {
-                            $PUDRSSyncHT.Add("JsonOutput",$AllOutput)
+                            $PUDRSSyncHT.Add("FinalJson",$FinalJson)
                         }
                         try {
-                            $SSHCheckAsJson = $OutputPrep[$IndexOfOutputBegin..$IndexOfOutputEnd] | foreach {$_.Trim()} | ConvertFrom-Json
+                            $SSHCheckAsJson = $FinalJson | ConvertFrom-Json
                         }
                         catch {
+                            $BadJson = $True
                             New-UDInputAction -Toast $_.Exception.Message -Duration 10000
                             Sync-UDElement -Id "CredsForm"
-                            return
                         }
     
                         try {
@@ -8722,6 +8817,10 @@ function Get-PUDAdminCenter {
                                     Start-Sleep -Seconds 1
                                 }
                             }
+                        }
+    
+                        if ($BadJson) {
+                            return
                         }
     
                         if ($SSHCheckAsJson.Output -ne "ConnectionSuccessful") {
@@ -16148,8 +16247,8 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUpev3zMsY+V2kUmzej2rBoMml
-# IB+gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUJQnq6HqiCHe2L1SLoGrq/REC
+# R/mgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -16206,11 +16305,11 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFIJIImGBuQY52OrR
-# gXC7J4KrZaZLMA0GCSqGSIb3DQEBAQUABIIBAE/u313/3cyfVZ+xmAAqvO+eiXqG
-# 8ZjDUWAXtw/wMDQdqIdBy4IwAhFg85cHs0AnXXHG9Vqz0wE3htMBYwbHJab9IaN9
-# cjzdERrgD8hMawUJLPgKelJYpLDUBrEDb/dDo1aV5Zwa5nv9HOhe8BU3qyAz5Q7i
-# qytpUb5qXc9e5cz4SGbuDmHDCLeuKA6I9q+xM5f/IOCTabQeYEE2YJY978PPhv1r
-# Yev1dg/toPGjmnlJl+3dZ/S3yjrNT4Xj8peA6F8hnOA/MHFb6jj3vXIapf7aibQU
-# fgUwMs0Z6SrqbyWi/YNTEx1s2NrhK9VhXQMHMW96FAjPNUpTcSVtyR6vEAk=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFJkWIB+djE9fGvM0
+# LLOtnjBPeXTSMA0GCSqGSIb3DQEBAQUABIIBAF0tP2/FiCyiM06HLDCIECwROdlg
+# QT27OF8Kcqmcr+Ed85Kll1XLZw4mGdQexa1UJHLU+k9EvZeK7vp9JmvtxP817K6Q
+# GT+m/O44kf0tWgsTuEw2ntRMC8epdhpnRlhWumDZR00gKf5319gw/Sd0So5/Q+a/
+# y7mVbyCyIoLw1bKvE03t1qRYDivOuXtwRO+J75fFB00qlXxFPUi7vKg1v7ardazL
+# tre0P6cFO8FcQPxB16dQyh3lQqZjuY+UOSYLktbPqDqL1X/UVTPxcfAE3S6G23hM
+# PRHC3XOpx+EqxMT3QH61p/aIHwYnc8IB2FVftJWOCr/R9IwNAFIrgjn2EnI=
 # SIG # End signature block
