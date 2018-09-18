@@ -52,12 +52,12 @@ function Get-PUDAdminCenter {
     }
 
     # Define all of this Module's functions (both Public and Private) as an array of strings so that we can easily load them in different contexts/scopes
-    $Cache:ThisModuleFunctionsStringArray = $ThisModuleFunctionsStringArray =  $(Get-Module PUDAdminCenterPrototype).Invoke({$FunctionsForSBUse})
+    $ThisModuleFunctionsStringArray =  $(Get-Module PUDAdminCenterPrototype).Invoke({$FunctionsForSBUse})
 
     # Create the $Pages ArrayList that will be used with 'New-UDDashboard -Pages'
     [System.Collections.ArrayList]$Pages = @()
 
-    # Create a $Cache: and Current Scope variable (ArrayList) containing the names of all of **Dynamic** Pages -
+    # Current Scope variable (ArrayList) containing the names of all of **Dynamic** Pages -
     # i.e. Pages where the URL contains a variable/parameter that is referenced within the Page itself.
     # For example, in this PUDAdminCenter App, the Overview Page (and all other Dynamic Pages in this list) is
     # eventually created via...
@@ -65,7 +65,7 @@ function Get-PUDAdminCenter {
     # ...meaning that if a user were to navigate to http://localhost/Overview/Server01, Overview Page Endpoint scriptblock
     # code that referenced the variable $RemoteHost would contain the string value 'Server01' (unless it is specifcally
     # overriden within the Overview Page Endpoint scriptblock, which is NOT recommended).
-    $Cache:DynamicPages = $DynamicPages = @(
+    $DynamicPages = @(
         "PSRemotingCreds"
         "ToolSelect"
         "Overview"
@@ -141,6 +141,9 @@ function Get-PUDAdminCenter {
     # For this reason, we're gathering the info before we start the UDDashboard. (Note that the below 'GetComputerObjectInLDAP' Private
     # function gets all Computers in Active Directory without using the ActiveDirectory PowerShell Module)
     [System.Collections.ArrayList]$InitialRemoteHostListPrep = $(GetComputerObjectsInLDAP).Name
+    # Let's just get 20 of them initially. We want *something* on the HomePage but we don't want hundreds/thousands of entries. We want
+    # the user to specify individual/range of hosts/devices that they want to manage.
+    $InitialRemoteHostListPrep = $InitialRemoteHostListPrep[0..20]
     if ($PSVersionTable.PSEdition -eq "Core") {
         [System.Collections.ArrayList]$InitialRemoteHostListPrep = $InitialRemoteHostListPrep | foreach {$_ -replace "CN=",""}
     }
@@ -252,8 +255,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUa7xnpvRLlQ32WSQ9BWIhl5+r
-# HZqgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUzUtQiisD2c+krtZ9Vk5sa/Pr
+# e9Sgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -310,11 +313,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFJNbTP7qWt8huBDR
-# UyiJLAqg+/LyMA0GCSqGSIb3DQEBAQUABIIBACHXYAd/KHRgZ2YEtXp50zGzBfdB
-# 9HsoqxTnABAnn7c/9k9m1iX2N19zjlFDN5PkXjDHHWDrn1fjedny0jMSAtofcEG/
-# 4Ne1/NJZiV8lqO2xwaMIa2GB7mCrXp1eFltqCNZOhIDLmmXaim6N9+Nh2rcf6gQJ
-# qZAF2BRhwSyThbNInWBCnFYXU9Ob4WNnkwqTuCItObWa0ddMxxWK2FftXWVM0a9h
-# g0rVTsTLCF5jx73APMICfMmd1B0NpMgs+5SQZJ2sp/WNvazLuDagS5AW8MjesP5U
-# FbasD35uRqsplnHIbJuRwVXR6yr6oANqXjDNp0j/EdaevcFPclE1Oq3Tzis=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFHwTg7A6bRzh8QqC
+# QdLTx1HUhyJAMA0GCSqGSIb3DQEBAQUABIIBAA5k0ZirE/VJPR6C8quocX0uA4Iu
+# hZ6XS+R2pEFgesSunlrMhI8A4oMKNv/7hHwm0PSg+uYcqVQvxov9EX1lniPCl6+6
+# 93zLLh0pRoEuDjfd87GGbJJA4RT4ds2+Njq9CznGWnJS0eC0dMzZEirfFLlO6OSO
+# Vui6yu1r8JB/zqZSQh2EHz3kScBOCy6QsJG+wf7VanhoBMUGP9ZyLMtxrv7TmLwa
+# +m2Umj6+R4nSxZWtG+0YQms8+qR+ZHOZkGdiLfrVTqL4Chbf9oqjdT91cUaijGRq
+# PcRei5LUeAygkS3eYHvVqRSaa0bXwqt/lGm2RVjLP0R1/5TKHGvTgrVfjsw=
 # SIG # End signature block

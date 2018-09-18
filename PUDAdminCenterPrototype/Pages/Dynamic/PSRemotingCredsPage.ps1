@@ -469,6 +469,11 @@ $PSRemotingCredsPageContent = {
                 New-UDInputField -Type password -Name 'Domain_Password' -Value $null
                 New-UDInputField -Type textbox -Name 'VaultServerUrl' -Value $null
                 New-UDInputField -Type select -Name 'Preferred_PSRemotingCredType' -Values @("Local","Domain","SSHCertificate") -DefaultValue "Domain"
+                
+                [System.Collections.ArrayList]$PSRemotingMethodValues = @("WinRM")
+                if ($PUDRSSyncHT."$Session:ThisRemoteHost`Info".RHostTableData.SSH -eq "Available") {
+                    $null = $PSRemotingMethodValues.Add("SSH")
+                }
                 New-UDInputField -Type select -Name 'Preferred_PSRemotingMethod' -Values @("WinRM","SSH") -DefaultValue "WinRM"
             } -Endpoint {
                 param(

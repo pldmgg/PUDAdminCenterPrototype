@@ -1,76 +1,50 @@
-function TestPort {
+function Get-IPRange {
     [CmdletBinding()]
-    Param(
-        [Parameter(Mandatory=$False)]
-        $HostName = $env:COMPUTERNAME,
-
-        [Parameter(Mandatory=$False)]
-        [int]$Port = $(Read-Host -Prompt "Please enter the port number you would like to check.")
-    )
-
-    Begin {
-
-        ##### BEGIN Variable/Parameter Transforms and PreRun Prep #####
-        
-        try {
-            $HostNameNetworkInfo = ResolveHost -HostNameOrIP $HostName -ErrorAction Stop
-        }
-        catch {
-            Write-Error "Unable to resolve $HostName! Halting!"
-            $global:FunctionResult = "1"
-            return
-        }
-
-        $tcp = New-Object Net.Sockets.TcpClient
-        
-        ##### END Variable/Parameter Transforms and PreRun Prep #####
+    param ( 
+        [string]$start, 
+        [string]$end, 
+        [string]$ip, 
+        [string]$mask, 
+        [int]$cidr 
+    ) 
+    
+    function IP-toINT64 () { 
+        param ($ip) 
+    
+        $octets = $ip.split(".") 
+        return [int64]([int64]$octets[0]*16777216 +[int64]$octets[1]*65536 +[int64]$octets[2]*256 +[int64]$octets[3]) 
+    } 
+    
+    function INT64-toIP() { 
+        param ([int64]$int) 
+    
+        return (([math]::truncate($int/16777216)).tostring()+"."+([math]::truncate(($int%16777216)/65536)).tostring()+"."+([math]::truncate(($int%65536)/256)).tostring()+"."+([math]::truncate($int%256)).tostring() )
+    } 
+    
+    if ($ip) {$ipaddr = [Net.IPAddress]::Parse($ip)} 
+    if ($cidr) {$maskaddr = [Net.IPAddress]::Parse((INT64-toIP -int ([convert]::ToInt64(("1"*$cidr+"0"*(32-$cidr)),2)))) } 
+    if ($mask) {$maskaddr = [Net.IPAddress]::Parse($mask)} 
+    if ($ip) {$networkaddr = new-object net.ipaddress ($maskaddr.address -band $ipaddr.address)} 
+    if ($ip) {$broadcastaddr = new-object net.ipaddress (([system.net.ipaddress]::parse("255.255.255.255").address -bxor $maskaddr.address -bor $networkaddr.address))} 
+    
+    if ($ip) { 
+        $startaddr = IP-toINT64 -ip $networkaddr.ipaddresstostring 
+        $endaddr = IP-toINT64 -ip $broadcastaddr.ipaddresstostring 
+    } else { 
+        $startaddr = IP-toINT64 -ip $start 
+        $endaddr = IP-toINT64 -ip $end 
     }
-
-    ##### BEGIN Main Body #####
-    Process {
-        if ($pscmdlet.ShouldProcess("$HostName","Test Connection on $HostName`:$Port")) {
-            try {
-                $tcp.Connect($HostNameNetworkInfo.FQDN, $Port)
-                $Address = $HostNameNetworkInfo.FQDN
-            }
-            catch {
-                try {
-                    $tcp.Connect($HostNameNetworkInfo.HostName, $Port)
-                    $Address = $HostNameNetworkInfo.HostName
-                }
-                catch {
-                    try {
-                        $tcp.Connect($HostNameNetworkInfo.IPAddressList[0], $Port)
-                        $Address = $HostNameNetworkInfo.IPAddressList[0]
-                    }
-                    catch {}
-                }
-            }
-
-            if ($tcp.Connected) {
-                $tcp.Close()
-                $open = $true
-            }
-            else {
-                $open = $false
-            }
-
-            $PortTestResult = [pscustomobject]@{
-                Address = $Address
-                Port    = $Port
-                Open    = $open
-            }
-            $PortTestResult
-        }
-        ##### END Main Body #####
+    
+    for ($i = $startaddr; $i -le $endaddr; $i++) {
+        INT64-toIP -int $i
     }
 }
 
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUeV86F+4IpzvETx3nhJAblTFq
-# K7Kgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUtN3RyeKp900b/QcS2di2BYwm
+# 4e+gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -127,11 +101,11 @@ function TestPort {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFMLx/WpapwXYLvmF
-# 6bv9YL+KtNgTMA0GCSqGSIb3DQEBAQUABIIBALSnP1IiDrsInqxlroU+URN8SuJR
-# O7FD23enspka3GSiaiRZyUz6G+cDQe96w/7okk0OOxg9+CY4rDoxre1TF6c1e7Um
-# cH1JC4QKwDzyDwhV+UX6cIir916xXY3uqSwiB4ChoJGnovjefpf8atwp0PS6A9Tu
-# 0f81p8pFnjwu0dk6l0t20l4LGLPPc9YOF17uee6HllWq2NTqOeH8+evKimKaSSYN
-# zVgg/s6xdTCzFC00BTZKdjiaPWDtbyjreHtirClHlTRFoyY3X2vSS8kOc+ttk5ne
-# CBMZ6fAaR1KBvFIXhSpPL1qFtcLfa1y+Lo2hoPKNR25Pjjccu0uyDR+jUSc=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFDkhskKE0dNXk6xk
+# 8T8Am5D56R9mMA0GCSqGSIb3DQEBAQUABIIBAFfLe3bNQL3riSvSNPGv7GyM6fKI
+# ESIZxPFIMxGkmDCTL6OqgSNggXK/xvjcQkVETuuoNJbMQSnU2IHvq0AA47wzat0p
+# fjrPxJ4XE1WGxQFPkPGNosYU3deayv+NH1NfkAzSIuw7ly+Lp+olPTAdAELFxoWL
+# NAKA4B9+Gok3kLrFBAuv5eeNMeZdUU6vmgQvSYuGOXaIEPqEpXDfKgjxuOSiwkHz
+# JXwKFItrc5qY1/gJ759MTf8HCPNNImAUMuJ3Ly7eCK4QjZjxLD0mPC/z70KUUeCz
+# zQiCJZ1kw4QJsUjNpRC2SrxTa1Mlhh9xK98AhEhm2GdBo/S3ajoQw9rkjjQ=
 # SIG # End signature block
