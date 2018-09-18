@@ -122,6 +122,9 @@ $HomePageContent = {
 
                 $Session:ScanNetwork = $False
                 Sync-UDElement -Id "ScanNetwork"
+
+                # Refresh the Main Content
+                Sync-UDElement -Id "MainContent"
             }
         }
     }
@@ -338,6 +341,9 @@ $HomePageContent = {
                                 $PUDRSSyncHT.Add($Key,$Value)
                             }
                         }
+
+                        $Session:SearchRemoteHosts = $True
+                        Sync-UDElement -Id "SearchRemoteHosts"
 
                         # Refresh the Main Content
                         Sync-UDElement -Id "MainContent"

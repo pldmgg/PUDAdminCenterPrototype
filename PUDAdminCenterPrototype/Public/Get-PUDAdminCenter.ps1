@@ -11951,6 +11951,9 @@ function Get-PUDAdminCenter {
     
                     $Session:ScanNetwork = $False
                     Sync-UDElement -Id "ScanNetwork"
+    
+                    # Refresh the Main Content
+                    Sync-UDElement -Id "MainContent"
                 }
             }
         }
@@ -12167,6 +12170,9 @@ function Get-PUDAdminCenter {
                                     $PUDRSSyncHT.Add($Key,$Value)
                                 }
                             }
+    
+                            $Session:SearchRemoteHosts = $True
+                            Sync-UDElement -Id "SearchRemoteHosts"
     
                             # Refresh the Main Content
                             Sync-UDElement -Id "MainContent"
@@ -12434,8 +12440,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU2MlWTktZjQqKdliJ8iquKOV5
-# +H2gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU/T147gN98jo7CulbIFxizpWp
+# W62gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -12492,11 +12498,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFIi+gsIvwbefl/jA
-# pM9Us5FDexIzMA0GCSqGSIb3DQEBAQUABIIBABpriaq195+evghFRqyw5I/vAgW5
-# PPoHx+yIAI8cznQxLCxBunhpgCJG/fb/M4hp9AwUSHvJAP23mRu36c0fuLMeBX+t
-# 07xfNsPoIuKR0u+Go9yW0jKfDHL4HJmE6uzdmYqNGL8GbRZnTBGFyX1I9hAMmlj+
-# rXSxdP8JHwGO4ix5dNmBNdTfm4UbEPgiXiLwb756S90hjrj58oUAkLYMkY0Bl9wk
-# 2SJPdsnZo+Pvtoo+vSd0cFFHwBFalatG7vwFhlENTbqa86uDIsa/qbxni6L7nyNH
-# PzzJYlqZvDzYNuqwtnW470Eqta4OOjiQ2CtdPAYh7TRBdL7PT1xZBQvqDG8=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFAulbVHvdtk4BF8d
+# Ww/GI3k/CgkRMA0GCSqGSIb3DQEBAQUABIIBAEkrr6Dr7oyySZ+6eeVifnXtwypW
+# XSYRVh519tGxUo8kwmBHfrbKX4a+x3v32AKPA6Gz7cIDckbryHYsij5HmoiHJc4M
+# kjdPQ/3fkm8b9O4eou+Kpg5UyrCm482hfWf/5Kq1kHFdBA75Ud4CA5Pl1TcLupXS
+# mMDKPQF9Jc9M1COFQ362OUe/plFg7bw0+YsOwzODvfpXrPo57MBB2GsW/oZLs1l0
+# o68jxzroTpaDzoObflUlHlfnO0eJdMlOYeEdyzynNeeyJ2Nv4VFcZpBRhPicSte2
+# TxFVsxAIHJ3MbEGG4WnXavZpxGne2FdW/GOVJUgAw7if8ujOUlVf62g2v3E=
 # SIG # End signature block
