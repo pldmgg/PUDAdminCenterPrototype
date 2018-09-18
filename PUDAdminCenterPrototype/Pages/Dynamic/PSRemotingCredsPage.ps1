@@ -469,7 +469,7 @@ $PSRemotingCredsPageContent = {
                 New-UDInputField -Type password -Name 'Domain_Password' -Value $null
                 New-UDInputField -Type textbox -Name 'VaultServerUrl' -Value $null
                 New-UDInputField -Type select -Name 'Preferred_PSRemotingCredType' -Values @("Local","Domain","SSHCertificate") -DefaultValue "Domain"
-                
+
                 [System.Collections.ArrayList]$PSRemotingMethodValues = @("WinRM")
                 if ($PUDRSSyncHT."$Session:ThisRemoteHost`Info".RHostTableData.SSH -eq "Available") {
                     $null = $PSRemotingMethodValues.Add("SSH")
@@ -980,9 +980,12 @@ $PSRemotingCredsPageContent = {
                         }
                     }
                     if ($Preferred_PSRemotingCredType -eq "SSHUserNameAndPassword") {
-                        $ShortUserName = $($Domain_UserName -split "\\")[-1]
-                        $DomainShortName = $($($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $Session:ThisRemoteHost}).Domain -split "\.")[0]
-                        $FullUserName = "$DomainShortName\$ShortUserName"
+                        if ($Local_UserName -and $Local_Password) {
+                            $FullUserName = $Local_UserName
+                        }
+                        if ($Domain_UserName -and $Domain_Password) {
+                            $FullUserName = $Domain_UserName
+                        }
                     }
 
                     # This is basically what we're going for with the below string manipulation:

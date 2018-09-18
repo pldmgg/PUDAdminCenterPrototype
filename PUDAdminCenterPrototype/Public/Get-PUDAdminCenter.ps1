@@ -6227,7 +6227,7 @@ function Get-PUDAdminCenter {
                     New-UDInputField -Type password -Name 'Domain_Password' -Value $null
                     New-UDInputField -Type textbox -Name 'VaultServerUrl' -Value $null
                     New-UDInputField -Type select -Name 'Preferred_PSRemotingCredType' -Values @("Local","Domain","SSHCertificate") -DefaultValue "Domain"
-                    
+    
                     [System.Collections.ArrayList]$PSRemotingMethodValues = @("WinRM")
                     if ($PUDRSSyncHT."$Session:ThisRemoteHost`Info".RHostTableData.SSH -eq "Available") {
                         $null = $PSRemotingMethodValues.Add("SSH")
@@ -6738,9 +6738,12 @@ function Get-PUDAdminCenter {
                             }
                         }
                         if ($Preferred_PSRemotingCredType -eq "SSHUserNameAndPassword") {
-                            $ShortUserName = $($Domain_UserName -split "\\")[-1]
-                            $DomainShortName = $($($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $Session:ThisRemoteHost}).Domain -split "\.")[0]
-                            $FullUserName = "$DomainShortName\$ShortUserName"
+                            if ($Local_UserName -and $Local_Password) {
+                                $FullUserName = $Local_UserName
+                            }
+                            if ($Domain_UserName -and $Domain_Password) {
+                                $FullUserName = $Domain_UserName
+                            }
                         }
     
                         # This is basically what we're going for with the below string manipulation:
@@ -11879,10 +11882,83 @@ function Get-PUDAdminCenter {
     
         #region >> HomePage Main Content
     
+        New-UDRow -Endpoint {
+            New-UDColumn -Endpoint {
+                New-UDHeading -Text "General Network Scan" -Size 5
+                New-UDElement -Id "ScanNetwork" -Tag div -EndPoint {
+                    if ($Session:ScanNetwork) {
+                        New-UDHeading -Text "Scanning Network for RemoteHosts...Please wait..." -Size 6
+                        New-UDPreloader -Size small
+                    }
+                }
+            }
+        }
+        New-UDRow -Endpoint {
+            New-UDColumn -Endpoint {
+                New-UDButton -Text "Scan Network" -OnClick {
+                    $Session:ScanNetwork = $True
+                    Sync-UDElement -Id "ScanNetwork"
+    
+                    [System.Collections.ArrayList]$ScanRemoteHostListPrep = $(GetComputerObjectsInLDAP).Name
+                    # Let's just get 20 of them initially. We want *something* on the HomePage but we don't want hundreds/thousands of entries. We want
+                    # the user to specify individual/range of hosts/devices that they want to manage.
+                    #$ScanRemoteHostListPrep = $ScanRemoteHostListPrep[0..20]
+                    if ($PSVersionTable.PSEdition -eq "Core") {
+                        [System.Collections.ArrayList]$ScanRemoteHostListPrep = $ScanRemoteHostListPrep | foreach {$_ -replace "CN=",""}
+                    }
+    
+                    # Filter Out the Remote Hosts that we can't resolve
+                    [System.Collections.ArrayList]$ScanRemoteHostList = @()
+    
+                    $null = Clear-DnsClientCache
+                    foreach ($HName in $ScanRemoteHostListPrep) {
+                        try {
+                            $RemoteHostNetworkInfo = ResolveHost -HostNameOrIP $HName -ErrorAction Stop
+    
+                            if ($ScanRemoteHostList.FQDN -notcontains $RemoteHostNetworkInfo.FQDN) {
+                                $null = $ScanRemoteHostList.Add($RemoteHostNetworkInfo)
+                            }
+                        }
+                        catch {
+                            continue
+                        }
+                    }
+    
+                    $PUDRSSyncHT.RemoteHostList = $ScanRemoteHostList
+    
+                    # Add Keys for each of the Remote Hosts in the $InitialRemoteHostList    
+                    foreach ($RHost in $ScanRemoteHostList) {
+                        $Key = $RHost.HostName + "Info"
+                        if ($PUDRSSyncHT.Keys -notcontains $Key) {
+                            $Value = @{
+                                NetworkInfo                 = $RHost
+                                CredHT                      = $null
+                                ServerInventoryStatic       = $null
+                                RelevantNetworkInterfaces   = $null
+                                LiveDataRSInfo              = $null
+                                LiveDataTracker             = @{Current = $null; Previous = $null}
+                            }
+                            foreach ($DynPage in $($DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
+                                $DynPageHT = @{
+                                    LiveDataRSInfo      = $null
+                                    LiveDataTracker     = @{Current = $null; Previous = $null}
+                                }
+                                $Value.Add($($DynPage -replace "[\s]",""),$DynPageHT)
+                            }
+                            $PUDRSSyncHT.Add($Key,$Value)
+                        }
+                    }
+    
+                    $Session:ScanNetwork = $False
+                    Sync-UDElement -Id "ScanNetwork"
+                }
+            }
+        }
+    
         # RemoteHost / Device Search
         New-UDRow -Endpoint {
             New-UDColumn -Endpoint {
-                New-UDHeading -Text "Find Remote Hosts" -Size 5
+                New-UDHeading -Text "Find Specific Remote Hosts" -Size 5
                 New-UDElement -Id "SearchRemoteHosts" -Tag div -EndPoint {
                     if ($Session:SearchRemoteHosts) {
                         New-UDHeading -Text "Searching for RemoteHosts...Please wait..." -Size 6
@@ -12251,10 +12327,10 @@ function Get-PUDAdminCenter {
                         $RHostTableData.Add("NewCreds",$(New-UDLink -Text "NewCreds" -Url "/PSRemotingCreds/$($RHost.HostName)"))
     
                         if ($PUDRSSyncHT."$($RHost.HostName)Info".Keys -contains "RHostTableData") {
-                            $PUDRSSyncHT.RHostTableData = $RHostTableData
+                            $PUDRSSyncHT."$($RHost.HostName)Info".RHostTableData = $RHostTableData
                         }
                         else {
-                            $PUDRSSyncHT.Add("RHostTableData",$RHostTableData)
+                            $PUDRSSyncHT."$($RHost.HostName)Info".Add("RHostTableData",$RHostTableData)
                         }
                         
                         [pscustomobject]$RHostTableData | Out-UDTableData -Property @("HostName","FQDN","OS_Guess","IPAddress","PingStatus","WSMan","WSManPorts","SSH","DateTime","ManageLink","NewCreds")
@@ -12358,8 +12434,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUpJri7EDPVc9pQnwEghSbSs5z
-# CAOgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU2MlWTktZjQqKdliJ8iquKOV5
+# +H2gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -12416,11 +12492,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFACsB97P9+Zp7APC
-# 1mIWABpHRkZIMA0GCSqGSIb3DQEBAQUABIIBAB0L7ReikaY2Ilaza7POqPHgOwvk
-# 7pc4apuu8kz4KlfH2TPEeOS8eCGSDqPIIOEi/J5jZd89KHdhbk29eBq/Xr75OJAt
-# RoB6SsfaBTQ89VvO4BOZNIYBjb6oH3eeeaRgxliSQbbkKtVZjWw+QTbYa5dDh0jm
-# aeUxhY47ywQXXNmKylaJgL6Iu543CMBfCvvR+TEoddlj/uoSnyAcPLTFZVW8Eibt
-# 0K0TtiGLISuWwICjtqknux9jGMaxR2QBM6gfcybrLczNj0/9xsIdrDYpAF2w7mPt
-# 8fzJoLL/5clDBVUosaSwrIC555hhjy8QbETZsx0h2eq/9a5/qpiq8CpPVo0=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFIi+gsIvwbefl/jA
+# pM9Us5FDexIzMA0GCSqGSIb3DQEBAQUABIIBABpriaq195+evghFRqyw5I/vAgW5
+# PPoHx+yIAI8cznQxLCxBunhpgCJG/fb/M4hp9AwUSHvJAP23mRu36c0fuLMeBX+t
+# 07xfNsPoIuKR0u+Go9yW0jKfDHL4HJmE6uzdmYqNGL8GbRZnTBGFyX1I9hAMmlj+
+# rXSxdP8JHwGO4ix5dNmBNdTfm4UbEPgiXiLwb756S90hjrj58oUAkLYMkY0Bl9wk
+# 2SJPdsnZo+Pvtoo+vSd0cFFHwBFalatG7vwFhlENTbqa86uDIsa/qbxni6L7nyNH
+# PzzJYlqZvDzYNuqwtnW470Eqta4OOjiQ2CtdPAYh7TRBdL7PT1xZBQvqDG8=
 # SIG # End signature block

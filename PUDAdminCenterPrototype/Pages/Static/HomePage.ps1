@@ -53,10 +53,83 @@ $HomePageContent = {
 
     #region >> HomePage Main Content
 
+    New-UDRow -Endpoint {
+        New-UDColumn -Endpoint {
+            New-UDHeading -Text "General Network Scan" -Size 5
+            New-UDElement -Id "ScanNetwork" -Tag div -EndPoint {
+                if ($Session:ScanNetwork) {
+                    New-UDHeading -Text "Scanning Network for RemoteHosts...Please wait..." -Size 6
+                    New-UDPreloader -Size small
+                }
+            }
+        }
+    }
+    New-UDRow -Endpoint {
+        New-UDColumn -Endpoint {
+            New-UDButton -Text "Scan Network" -OnClick {
+                $Session:ScanNetwork = $True
+                Sync-UDElement -Id "ScanNetwork"
+
+                [System.Collections.ArrayList]$ScanRemoteHostListPrep = $(GetComputerObjectsInLDAP).Name
+                # Let's just get 20 of them initially. We want *something* on the HomePage but we don't want hundreds/thousands of entries. We want
+                # the user to specify individual/range of hosts/devices that they want to manage.
+                #$ScanRemoteHostListPrep = $ScanRemoteHostListPrep[0..20]
+                if ($PSVersionTable.PSEdition -eq "Core") {
+                    [System.Collections.ArrayList]$ScanRemoteHostListPrep = $ScanRemoteHostListPrep | foreach {$_ -replace "CN=",""}
+                }
+
+                # Filter Out the Remote Hosts that we can't resolve
+                [System.Collections.ArrayList]$ScanRemoteHostList = @()
+
+                $null = Clear-DnsClientCache
+                foreach ($HName in $ScanRemoteHostListPrep) {
+                    try {
+                        $RemoteHostNetworkInfo = ResolveHost -HostNameOrIP $HName -ErrorAction Stop
+
+                        if ($ScanRemoteHostList.FQDN -notcontains $RemoteHostNetworkInfo.FQDN) {
+                            $null = $ScanRemoteHostList.Add($RemoteHostNetworkInfo)
+                        }
+                    }
+                    catch {
+                        continue
+                    }
+                }
+
+                $PUDRSSyncHT.RemoteHostList = $ScanRemoteHostList
+
+                # Add Keys for each of the Remote Hosts in the $InitialRemoteHostList    
+                foreach ($RHost in $ScanRemoteHostList) {
+                    $Key = $RHost.HostName + "Info"
+                    if ($PUDRSSyncHT.Keys -notcontains $Key) {
+                        $Value = @{
+                            NetworkInfo                 = $RHost
+                            CredHT                      = $null
+                            ServerInventoryStatic       = $null
+                            RelevantNetworkInterfaces   = $null
+                            LiveDataRSInfo              = $null
+                            LiveDataTracker             = @{Current = $null; Previous = $null}
+                        }
+                        foreach ($DynPage in $($DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
+                            $DynPageHT = @{
+                                LiveDataRSInfo      = $null
+                                LiveDataTracker     = @{Current = $null; Previous = $null}
+                            }
+                            $Value.Add($($DynPage -replace "[\s]",""),$DynPageHT)
+                        }
+                        $PUDRSSyncHT.Add($Key,$Value)
+                    }
+                }
+
+                $Session:ScanNetwork = $False
+                Sync-UDElement -Id "ScanNetwork"
+            }
+        }
+    }
+
     # RemoteHost / Device Search
     New-UDRow -Endpoint {
         New-UDColumn -Endpoint {
-            New-UDHeading -Text "Find Remote Hosts" -Size 5
+            New-UDHeading -Text "Find Specific Remote Hosts" -Size 5
             New-UDElement -Id "SearchRemoteHosts" -Tag div -EndPoint {
                 if ($Session:SearchRemoteHosts) {
                     New-UDHeading -Text "Searching for RemoteHosts...Please wait..." -Size 6
@@ -425,10 +498,10 @@ $HomePageContent = {
                     $RHostTableData.Add("NewCreds",$(New-UDLink -Text "NewCreds" -Url "/PSRemotingCreds/$($RHost.HostName)"))
 
                     if ($PUDRSSyncHT."$($RHost.HostName)Info".Keys -contains "RHostTableData") {
-                        $PUDRSSyncHT.RHostTableData = $RHostTableData
+                        $PUDRSSyncHT."$($RHost.HostName)Info".RHostTableData = $RHostTableData
                     }
                     else {
-                        $PUDRSSyncHT.Add("RHostTableData",$RHostTableData)
+                        $PUDRSSyncHT."$($RHost.HostName)Info".Add("RHostTableData",$RHostTableData)
                     }
                     
                     [pscustomobject]$RHostTableData | Out-UDTableData -Property @("HostName","FQDN","OS_Guess","IPAddress","PingStatus","WSMan","WSManPorts","SSH","DateTime","ManageLink","NewCreds")
