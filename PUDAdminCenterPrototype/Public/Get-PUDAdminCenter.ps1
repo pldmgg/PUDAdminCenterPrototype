@@ -6746,112 +6746,59 @@ function Get-PUDAdminCenter {
                             }
                         }
     
-                        # This is basically what we're going for with the below string manipulation:
-                        #   & pwsh -c {Invoke-Command -HostName zerowin16sshb -KeyFilePath "$HOME\.ssh\zeroadmin_090618-cert.pub" -ScriptBlock {[pscustomobject]@{Output = "ConnectionSuccessful"}} | ConvertTo-Json}
-                        $PwshRemoteScriptBlockStringArray = @(
-                            '[pscustomobject]@{'
-                            '    Output = "ConnectionSuccessful"'
-                            '}'
-                        ) | foreach {"    $_"}
-                        $PwshRemoteScriptBlockString = $PwshRemoteScriptBlockStringArray -join "`n"
-                        [System.Collections.ArrayList]$PwshInvCmdStringArray = @(
-                            'Invoke-Command'
-                            '-HostName'
-                            $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $Session:ThisRemoteHost}).FQDN
-                            '-UserName'
-                            $FullUserName
-                        )
-                        if ($Preferred_PSRemotingCredType -eq "SSHCertificate") {
-                            $null = $PwshInvCmdStringArray.Add('-KeyFilePath')
-                            $null = $PwshInvCmdStringArray.Add("'$($GetSSHAuthSanity.PublicCertPath)'")
-                        }
-                        $null = $PwshInvCmdStringArray.Add('-HideComputerName')
-                        $null = $PwshInvCmdStringArray.Add("-ScriptBlock {`n$PwshRemoteScriptBlockString`n}")
-                        $null = $PwshInvCmdStringArray.Add('|')
-                        $null = $PwshInvCmdStringArray.Add('ConvertTo-Json')
-                        $PwshInvCmdString = $PwshInvCmdStringArray -join " "
-                        $PwshCmdStringArray = @(
-                            '&'
-                            '"' + $(Get-Command pwsh).Source + '"'
-                            "-c {$PwshInvCmdString}"
-                        )
-                        $PwshCmdString = $PwshCmdStringArray -join " "
-    
-                        if ($PUDRSSyncHT.Keys -contains "PwshCmdString") {
-                            $PUDRSSyncHT.PwshCmdString = $PwshCmdString
-                        }
-                        else {
-                            $PUDRSSyncHT.Add("PwshCmdString",$PwshCmdString)
-                        }
-    
-                        $null = Start-AwaitSession
-                        Start-Sleep -Seconds 1
-                        $null = Send-AwaitCommand '$host.ui.RawUI.WindowTitle = "PSAwaitSession"'
-                        $PSAwaitProcess = $($(Get-Process | Where-Object {$_.Name -eq "powershell"}) | Sort-Object -Property StartTime -Descending)[0]
-                        Start-Sleep -Seconds 1
-                        $null = Send-AwaitCommand "`$env:Path = '$env:Path'"
-                        Start-Sleep -Seconds 1
-                        $null = Send-AwaitCommand -Command $([scriptblock]::Create($PwshCmdString))
-                        Start-Sleep -Seconds 5
-    
-                        # This will either not prompt at all, prompt to accept the RemoteHost's RSA Host Key, or prompt for a password
-                        $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
-    
-                        [System.Collections.ArrayList]$CheckForExpectedResponses = @()
-                        $null = $CheckForExpectedResponses.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
-                        $Counter = 0
-                        while (![bool]$($($CheckForExpectedResponses -split "`n") -match [regex]::Escape("Are you sure you want to continue connecting (yes/no)?")) -and
-                        ![bool]$($($CheckForExpectedResponses -split "`n") -match [regex]::Escape("'s password:")) -and 
-                        ![bool]$($($CheckForExpectedResponses -split "`n") -match "^}") -and $Counter -le 10
-                        ) {
-                            $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
-                            $null = $CheckForExpectedResponses.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
-                            if ($CheckResponsesOutput -match "must be greater than zero" -or $CheckResponsesOutput[-1] -notmatch "[a-zA-Z]") {
-                                break
+                        $OSGuess = $PUDRSSyncHT."$Session:ThisRemoteHost`Info".RHostTableData.OS_Guess
+                        if ($OSGuess) {
+                            if ($OSGuess -match "Windows|Microsoft") {
+                                $UpdatedOSGuess = "Windows"
                             }
-                            Start-Sleep -Seconds 1
-                            $Counter++
-                        }
-                        if ($Counter -eq 11) {
-                            New-UDInputAction -Toast "SSH failed! Please check your credentials." -Duration 10000
-                            Sync-UDElement -Id "CredsForm"
-                            $CheckResponsesOutput = $CheckForExpectedResponses
-                            if ($PUDRSSyncHT.Keys -contains "CheckResponsesOutput") {
-                                $PUDRSSyncHT.CheckResponsesOutput = $CheckResponsesOutput
+                            elseif ($OSGuess -match "Linux") {
+                                $UpdatedOSGuess = "Linux"
                             }
                             else {
-                                $PUDRSSyncHT.Add("CheckResponsesOutput",$CheckResponsesOutput)
+                                $UpdatedOSGuess = "Windows"
                             }
-                            return
+                        }
+                        if (!$OSGuess) {
+                            $UpdatedOSGuess = "Windows"
                         }
     
-                        $CheckResponsesOutput = $CheckForExpectedResponses | foreach {$_ -split "`n"}
-                        if ($PUDRSSyncHT.Keys -contains "CheckResponsesOutput") {
-                            $PUDRSSyncHT.CheckResponsesOutput = $CheckResponsesOutput
-                        }
-                        else {
-                            $PUDRSSyncHT.Add("CheckResponsesOutput",$CheckResponsesOutput)
-                        }
-    
-                        #region >> Make Sure Await Module Is Working
-                        
-                        if ($CheckResponsesOutput -match "must be greater than zero" -or $CheckResponsesOutput[-1] -notmatch "[a-zA-Z]") {
-                            try {
-                                $null = Stop-AwaitSession
+                        if ($UpdatedOSGuess -eq "Windows") {
+                            # This is basically what we're going for with the below string manipulation:
+                            #   & pwsh -c {Invoke-Command -HostName zerowin16sshb -KeyFilePath "$HOME\.ssh\zeroadmin_090618-cert.pub" -ScriptBlock {[pscustomobject]@{Output = "ConnectionSuccessful"}} | ConvertTo-Json}
+                            $PwshRemoteScriptBlockStringArray = @(
+                                '[pscustomobject]@{'
+                                '    Output = "ConnectionSuccessful"'
+                                '}'
+                            ) | foreach {"    $_"}
+                            $PwshRemoteScriptBlockString = $PwshRemoteScriptBlockStringArray -join "`n"
+                            [System.Collections.ArrayList]$PwshInvCmdStringArray = @(
+                                'Invoke-Command'
+                                '-HostName'
+                                $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $Session:ThisRemoteHost}).FQDN
+                                '-UserName'
+                                $FullUserName
+                            )
+                            if ($Preferred_PSRemotingCredType -eq "SSHCertificate") {
+                                $null = $PwshInvCmdStringArray.Add('-KeyFilePath')
+                                $null = $PwshInvCmdStringArray.Add("'$($GetSSHAuthSanity.PublicCertPath)'")
                             }
-                            catch {
-                                if ($PSAwaitProcess.Id -eq $PID) {
-                                    Write-Error "The PSAwaitSession never spawned! Halting!"
-                                    $global:FunctionResult = "1"
-                                    return
-                                }
-                                else {
-                                    Stop-Process -Id $PSAwaitProcess.Id
-                                    while ([bool]$(Get-Process -Id $PSAwaitProcess.Id -ErrorAction SilentlyContinue)) {
-                                        Write-Verbose "Waiting for Await Module Process Id $($PSAwaitProcess.Id) to end..."
-                                        Start-Sleep -Seconds 1
-                                    }
-                                }
+                            $null = $PwshInvCmdStringArray.Add('-HideComputerName')
+                            $null = $PwshInvCmdStringArray.Add("-ScriptBlock {`n$PwshRemoteScriptBlockString`n}")
+                            $null = $PwshInvCmdStringArray.Add('|')
+                            $null = $PwshInvCmdStringArray.Add('ConvertTo-Json')
+                            $PwshInvCmdString = $PwshInvCmdStringArray -join " "
+                            $PwshCmdStringArray = @(
+                                '&'
+                                '"' + $(Get-Command pwsh).Source + '"'
+                                "-c {$PwshInvCmdString}"
+                            )
+                            $PwshCmdString = $PwshCmdStringArray -join " "
+    
+                            if ($PUDRSSyncHT.Keys -contains "PwshCmdString") {
+                                $PUDRSSyncHT.PwshCmdString = $PwshCmdString
+                            }
+                            else {
+                                $PUDRSSyncHT.Add("PwshCmdString",$PwshCmdString)
                             }
     
                             $null = Start-AwaitSession
@@ -6870,12 +6817,15 @@ function Get-PUDAdminCenter {
                             [System.Collections.ArrayList]$CheckForExpectedResponses = @()
                             $null = $CheckForExpectedResponses.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
                             $Counter = 0
-                            while ($SuccessOrAcceptHostKeyOrPwdPrompt -notmatch [regex]::Escape("Are you sure you want to continue connecting (yes/no)?") -and
-                            $SuccessOrAcceptHostKeyOrPwdPrompt -notmatch [regex]::Escape("'s password:") -and 
-                            $SuccessOrAcceptHostKeyOrPwdPrompt -notmatch "^}" -and $Counter -le 10
+                            while (![bool]$($($CheckForExpectedResponses -split "`n") -match [regex]::Escape("Are you sure you want to continue connecting (yes/no)?")) -and
+                            ![bool]$($($CheckForExpectedResponses -split "`n") -match [regex]::Escape("'s password:")) -and 
+                            ![bool]$($($CheckForExpectedResponses -split "`n") -match "^}") -and $Counter -le 10
                             ) {
                                 $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
                                 $null = $CheckForExpectedResponses.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
+                                if ($CheckResponsesOutput -match "must be greater than zero" -or $CheckResponsesOutput[-1] -notmatch "[a-zA-Z]") {
+                                    break
+                                }
                                 Start-Sleep -Seconds 1
                                 $Counter++
                             }
@@ -6899,10 +6849,275 @@ function Get-PUDAdminCenter {
                             else {
                                 $PUDRSSyncHT.Add("CheckResponsesOutput",$CheckResponsesOutput)
                             }
-                        }
-                        if ($CheckResponsesOutput -match "must be greater than zero" -or $CheckResponsesOutput[-1] -notmatch "[a-zA-Z]") {
-                            New-UDInputAction -Toast "Something went wrong with the PowerShell Await Module! Halting!" -Duration 10000
-                            Sync-UDElement -Id "CredsForm"
+    
+                            # Make sure we didn't already throw an error
+                            if ($CheckResponsesOutput -match "background process reported an error") {
+                                $TrySSHExe = $True
+                            }
+    
+                            #region >> Make Sure Await Module Is Working
+                            
+                            if ($CheckResponsesOutput -match "must be greater than zero" -or $CheckResponsesOutput[-1] -notmatch "[a-zA-Z]") {
+                                try {
+                                    $null = Stop-AwaitSession
+                                }
+                                catch {
+                                    if ($PSAwaitProcess.Id -eq $PID) {
+                                        Write-Error "The PSAwaitSession never spawned! Halting!"
+                                        $global:FunctionResult = "1"
+                                        return
+                                    }
+                                    else {
+                                        Stop-Process -Id $PSAwaitProcess.Id
+                                        while ([bool]$(Get-Process -Id $PSAwaitProcess.Id -ErrorAction SilentlyContinue)) {
+                                            Write-Verbose "Waiting for Await Module Process Id $($PSAwaitProcess.Id) to end..."
+                                            Start-Sleep -Seconds 1
+                                        }
+                                    }
+                                }
+    
+                                $null = Start-AwaitSession
+                                Start-Sleep -Seconds 1
+                                $null = Send-AwaitCommand '$host.ui.RawUI.WindowTitle = "PSAwaitSession"'
+                                $PSAwaitProcess = $($(Get-Process | Where-Object {$_.Name -eq "powershell"}) | Sort-Object -Property StartTime -Descending)[0]
+                                Start-Sleep -Seconds 1
+                                $null = Send-AwaitCommand "`$env:Path = '$env:Path'"
+                                Start-Sleep -Seconds 1
+                                $null = Send-AwaitCommand -Command $([scriptblock]::Create($PwshCmdString))
+                                Start-Sleep -Seconds 5
+    
+                                # This will either not prompt at all, prompt to accept the RemoteHost's RSA Host Key, or prompt for a password
+                                $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
+    
+                                [System.Collections.ArrayList]$CheckForExpectedResponses = @()
+                                $null = $CheckForExpectedResponses.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
+                                $Counter = 0
+                                while ($SuccessOrAcceptHostKeyOrPwdPrompt -notmatch [regex]::Escape("Are you sure you want to continue connecting (yes/no)?") -and
+                                $SuccessOrAcceptHostKeyOrPwdPrompt -notmatch [regex]::Escape("'s password:") -and 
+                                $SuccessOrAcceptHostKeyOrPwdPrompt -notmatch "^}" -and $Counter -le 10
+                                ) {
+                                    $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
+                                    $null = $CheckForExpectedResponses.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
+                                    Start-Sleep -Seconds 1
+                                    $Counter++
+                                }
+                                if ($Counter -eq 11) {
+                                    New-UDInputAction -Toast "SSH failed! Please check your credentials." -Duration 10000
+                                    Sync-UDElement -Id "CredsForm"
+                                    $CheckResponsesOutput = $CheckForExpectedResponses
+                                    if ($PUDRSSyncHT.Keys -contains "CheckResponsesOutput") {
+                                        $PUDRSSyncHT.CheckResponsesOutput = $CheckResponsesOutput
+                                    }
+                                    else {
+                                        $PUDRSSyncHT.Add("CheckResponsesOutput",$CheckResponsesOutput)
+                                    }
+                                    return
+                                }
+    
+                                $CheckResponsesOutput = $CheckForExpectedResponses | foreach {$_ -split "`n"}
+                                if ($PUDRSSyncHT.Keys -contains "CheckResponsesOutput") {
+                                    $PUDRSSyncHT.CheckResponsesOutput = $CheckResponsesOutput
+                                }
+                                else {
+                                    $PUDRSSyncHT.Add("CheckResponsesOutput",$CheckResponsesOutput)
+                                }
+                            }
+                            if ($CheckResponsesOutput -match "must be greater than zero" -or $CheckResponsesOutput[-1] -notmatch "[a-zA-Z]") {
+                                New-UDInputAction -Toast "Something went wrong with the PowerShell Await Module! Halting!" -Duration 10000
+                                Sync-UDElement -Id "CredsForm"
+    
+                                try {
+                                    $null = Stop-AwaitSession
+                                }
+                                catch {
+                                    if ($PSAwaitProcess.Id -eq $PID) {
+                                        Write-Error "The PSAwaitSession never spawned! Halting!"
+                                        $global:FunctionResult = "1"
+                                        return
+                                    }
+                                    else {
+                                        Stop-Process -Id $PSAwaitProcess.Id
+                                        while ([bool]$(Get-Process -Id $PSAwaitProcess.Id -ErrorAction SilentlyContinue)) {
+                                            Write-Verbose "Waiting for Await Module Process Id $($PSAwaitProcess.Id) to end..."
+                                            Start-Sleep -Seconds 1
+                                        }
+                                    }
+                                }
+    
+                                return
+                            }
+    
+                            #endregion >> Make Sure Await Module Is Working
+    
+                            if ($CheckResponsesOutput -match [regex]::Escape("Are you sure you want to continue connecting (yes/no)?")) {
+                                $null = Send-AwaitCommand "yes"
+                                Start-Sleep -Seconds 3
+                                
+                                # This will either not prompt at all or prompt for a password
+                                $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
+    
+                                [System.Collections.ArrayList]$CheckExpectedSendYesOutput = @()
+                                $null = $CheckExpectedSendYesOutput.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
+                                $Counter = 0
+                                while (![bool]$($($CheckExpectedSendYesOutput -split "`n") -match [regex]::Escape("'s password:")) -and 
+                                ![bool]$($($CheckExpectedSendYesOutput -split "`n") -match "^}") -and $Counter -le 10
+                                ) {
+                                    $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
+                                    $null = $CheckExpectedSendYesOutput.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
+                                    Start-Sleep -Seconds 1
+                                    $Counter++
+                                }
+                                if ($Counter -eq 11) {
+                                    New-UDInputAction -Toast "SSH failed! Please check your credentials." -Duration 10000
+                                    Sync-UDElement -Id "CredsForm"
+                                    return
+                                }
+    
+                                $CheckSendYesOutput = $CheckExpectedSendYesOutput | foreach {$_ -split "`n"}
+                                if ($PUDRSSyncHT.Keys -contains "CheckSendYesOutput") {
+                                    $PUDRSSyncHT.CheckResponsesOutput = $CheckSendYesOutput
+                                }
+                                else {
+                                    $PUDRSSyncHT.Add("CheckSendYesOutput",$CheckSendYesOutput)
+                                }
+                                
+                                if ($CheckSendYesOutput -match [regex]::Escape("'s password:")) {
+                                    if ($Local_Password) {
+                                        $null = Send-AwaitCommand $Local_Password
+                                    }
+                                    if ($Domain_Password) {
+                                        $null = Send-AwaitCommand $Domain_Password
+                                    }
+                                    Start-Sleep -Seconds 3
+    
+                                    $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
+    
+                                    [System.Collections.ArrayList]$JsonOutputPrep = @()
+                                    $null = $JsonOutputPrep.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
+                                    $Counter = 0
+                                    while (![bool]$($($JsonOutputPrep -split "`n") -match "^}") -and $Counter -le 10) {
+                                        $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
+                                        if (![System.String]::IsNullOrWhiteSpace($SuccessOrAcceptHostKeyOrPwdPrompt)) {
+                                            $null = $JsonOutputPrep.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
+                                        }
+                                        Start-Sleep -Seconds 1
+                                        $Counter++
+                                    }
+                                    if ($Counter -eq 10) {
+                                        if ($PUDRSSyncHT.Keys -contains "JsonOutputPrepA") {
+                                            $PUDRSSyncHT.JsonOutputPrepA = $JsonOutputPrep
+                                        }
+                                        else {
+                                            $PUDRSSyncHT.Add("JsonOutputPrepA",$JsonOutputPrep)
+                                        }
+    
+                                        New-UDInputAction -Toast "SSH failed! Please check your credentials." -Duration 10000
+                                        Sync-UDElement -Id "CredsForm"
+                                        return
+                                    }
+    
+                                    [System.Collections.ArrayList]$JsonOutputPrep = $($JsonOutputPrep | foreach {$_ -split "`n"}) | Where-Object {$_ -notmatch "^PS "}
+                                    if (![bool]$($JsonOutputPrep[0] -match "^{")) {
+                                        $null = $JsonOutputPrep.Insert(0,'{')
+                                    }
+                                }
+                            }
+                            elseif ($CheckResponsesOutput -match [regex]::Escape("'s password:")) {
+                                if ($Local_Password) {
+                                    $null = Send-AwaitCommand $Local_Password
+                                }
+                                if ($Domain_Password) {
+                                    $null = Send-AwaitCommand $Domain_Password
+                                }
+                                Start-Sleep -Seconds 3
+    
+                                $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
+    
+                                [System.Collections.ArrayList]$JsonOutputPrep = @()
+                                $null = $JsonOutputPrep.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
+                                $Counter = 0
+                                while (![bool]$($($JsonOutputPrep -split "`n") -match "^}") -and $Counter -le 10) {
+                                    $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
+                                    if (![System.String]::IsNullOrWhiteSpace($SuccessOrAcceptHostKeyOrPwdPrompt)) {
+                                        $null = $JsonOutputPrep.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
+                                    }
+                                    Start-Sleep -Seconds 1
+                                    $Counter++
+                                }
+                                if ($Counter -eq 10) {
+                                    if ($PUDRSSyncHT.Keys -contains "JsonOutputPrepB") {
+                                        $PUDRSSyncHT.JsonOutputPrepB = $JsonOutputPrep
+                                    }
+                                    else {
+                                        $PUDRSSyncHT.Add("JsonOutputPrepB",$JsonOutputPrep)
+                                    }
+    
+                                    New-UDInputAction -Toast "SSH failed! Please check your credentials." -Duration 10000
+                                    Sync-UDElement -Id "CredsForm"
+                                    return
+                                }
+    
+                                [System.Collections.ArrayList]$JsonOutputPrep = $($JsonOutputPrep | foreach {$_ -split "`n"}) | Where-Object {$_ -notmatch "^PS "}
+                                if (![bool]$($JsonOutputPrep[0] -match "^{")) {
+                                    $null = $JsonOutputPrep.Insert(0,'{')
+                                }
+                            }
+                            else {
+                                [System.Collections.ArrayList]$JsonOutputPrep = $($CheckResponsesOutput | foreach {$_ -split "`n"}) | Where-Object {
+                                    $_ -notmatch "^PS " -and ![System.String]::IsNullOrWhiteSpace($_)
+                                }
+                                $EndOfInputLineContent = $JsonOutputPrep -match [regex]::Escape("ConvertTo-Json}")
+                                $JsonOutputIndex = $JsonOutputPrep.IndexOf($EndOfInputLineContent) + 1
+    
+                                [System.Collections.ArrayList]$JsonOutputPrep = $JsonOutputPrep[$JsonOutputIndex..$($JsonOutputPrep.Count-1)]
+    
+                                if (![bool]$($JsonOutputPrep[0] -match "^{")) {
+                                    $null = $JsonOutputPrep.Insert(0,'{')
+                                }
+                            }
+    
+                            if (!$TrySSHExe) {
+                                $IndexesOfOpenBracket = for ($i=0; $i -lt $JsonOutputPrep.Count; $i++) {
+                                    if ($JsonOutputPrep[$i] -match "^{") {
+                                        $i
+                                    }
+                                }
+                                $LastIndexOfOpenBracket = $($IndexesOfOpenBracket | Measure-Object -Maximum).Maximum
+                                $IndexesOfCloseBracket = for ($i=0; $i -lt $JsonOutputPrep.Count; $i++) {
+                                    if ($JsonOutputPrep[$i] -match "^}") {
+                                        $i
+                                    }
+                                }
+                                $LastIndexOfCloseBracket = $($IndexesOfCloseBracket | Measure-Object -Maximum).Maximum
+                                [System.Collections.ArrayList]$JsonOutputPrep = $JsonOutputPrep[$LastIndexOfOpenBracket..$LastIndexOfCloseBracket] | foreach {$_ -split "`n"}
+                                if (![bool]$($JsonOutputPrep[0] -match "^{")) {
+                                    $null = $JsonOutputPrep.Insert(0,'{')
+                                }
+    
+                                if ($PUDRSSyncHT.Keys -contains "JsonOutputPrepC") {
+                                    $PUDRSSyncHT.JsonOutputPrepC = $JsonOutputPrep
+                                }
+                                else {
+                                    $PUDRSSyncHT.Add("JsonOutputPrepC",$JsonOutputPrep)
+                                }
+    
+                                $FinalJson = $JsonOutputPrep | foreach {if (![System.String]::IsNullOrWhiteSpace($_)) {$_.Trim()}}
+    
+                                if ($PUDRSSyncHT.Keys -contains "FinalJson") {
+                                    $PUDRSSyncHT.FinalJson = $FinalJson
+                                }
+                                else {
+                                    $PUDRSSyncHT.Add("FinalJson",$FinalJson)
+                                }
+    
+                                try {
+                                    $SSHCheckAsJson = $FinalJson | ConvertFrom-Json
+                                }
+                                catch {
+                                    New-UDInputAction -Toast $_.Exception.Message -Duration 10000
+                                    Sync-UDElement -Id "CredsForm"
+                                }
+                            }
     
                             try {
                                 $null = Stop-AwaitSession
@@ -6922,194 +7137,203 @@ function Get-PUDAdminCenter {
                                 }
                             }
     
-                            return
+                            if ($SSHCheckAsJson.Output -ne "ConnectionSuccessful") {
+                                $TrySSHExe = $True
+                                New-UDInputAction -Toast "SSH via PowerShell Core 'Invoke-Command' failed!" -Duration 10000
+                                Sync-UDElement -Id "CredsForm"
+                            }
                         }
     
-                        #endregion >> Make Sure Await Module Is Working
+                        if ($UpdatedOSGuess -eq "Linux" -or $TrySSHExe) {
+                            # This is what we're going for:
+                            # $test = ssh -t pdadmin@Mint18Dev.test2.lab "echo 'ConnectionSuccessful'"
+                            $RHostIP = @(
+                                $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $Session:ThisRemoteHost}).IPAddressList | Where-Object {$_ -notmatch "^169"}
+                            )[0]
     
-                        if ($CheckResponsesOutput -match [regex]::Escape("Are you sure you want to continue connecting (yes/no)?")) {
-                            $null = Send-AwaitCommand "yes"
-                            Start-Sleep -Seconds 3
-                            
-                            # This will either not prompt at all or prompt for a password
+                            [System.Collections.ArrayList]$SSHCmdStringArray = @(
+                                'ssh'
+                            )
+                            if ($Preferred_PSRemotingCredType -eq "SSHCertificate") {
+                                $null = $SSHCmdStringArray.Add("-i")
+                                $null = $SSHCmdStringArray.Add("'" + $GetSSHAuthSanity.PublicCertPath + "'")
+                            }
+                            $null = $SSHCmdStringArray.Add("-t")
+                            if ($Local_UserName -and $Local_Password) {
+                                $UserNameShort = $($Local_UserName -split "\\")[-1]
+                                $null = $SSHCmdStringArray.Add("$UserNameShort@$RHostIP")
+                            }
+                            if ($Domain_UserName -and $Domain_Password) {
+                                $UserNameShort = $($Domain_UserName -split "\\")[-1]
+                                $DomainNameShort = $($Domain_UserName -split "\\")[0]
+                                $null = $SSHCmdStringArray.Add("$UserNameShort@$DomainNameShort@$RHostIP")
+                            }
+                            $null = $SSHCmdStringArray.Add("`"echo 'ConnectionSuccessful'`"")
+                            $SSHCmdString = $SSHCmdStringArray -join " "
+    
+                            if ($PUDRSSyncHT.Keys -contains "SSHCmdString") {
+                                $PUDRSSyncHT.SSHCmdString = $SSHCmdString
+                            }
+                            else {
+                                $PUDRSSyncHT.Add("SSHCmdString",$SSHCmdString)
+                            }
+    
+                            $null = Start-AwaitSession
+                            Start-Sleep -Seconds 1
+                            $null = Send-AwaitCommand '$host.ui.RawUI.WindowTitle = "PSAwaitSession"'
+                            $PSAwaitProcess = $($(Get-Process | Where-Object {$_.Name -eq "powershell"}) | Sort-Object -Property StartTime -Descending)[0]
+                            Start-Sleep -Seconds 1
+                            $null = Send-AwaitCommand "`$env:Path = '$env:Path'"
+                            Start-Sleep -Seconds 1
+                            $null = Send-AwaitCommand -Command $([scriptblock]::Create($SSHCmdString))
+                            Start-Sleep -Seconds 5
+    
+                            # This will either not prompt at all, prompt to accept the RemoteHost's RSA Host Key, or prompt for a password
                             $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
     
-                            [System.Collections.ArrayList]$CheckExpectedSendYesOutput = @()
-                            $null = $CheckExpectedSendYesOutput.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
+                            [System.Collections.ArrayList]$CheckForExpectedResponses = @()
+                            $null = $CheckForExpectedResponses.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
                             $Counter = 0
-                            while (![bool]$($($CheckExpectedSendYesOutput -split "`n") -match [regex]::Escape("'s password:")) -and 
-                            ![bool]$($($CheckExpectedSendYesOutput -split "`n") -match "^}") -and $Counter -le 10
+                            while (![bool]$($($CheckForExpectedResponses -split "`n") -match [regex]::Escape("Are you sure you want to continue connecting (yes/no)?")) -and
+                            ![bool]$($($CheckForExpectedResponses -split "`n") -match [regex]::Escape("'s password:")) -and 
+                            ![bool]$($($CheckForExpectedResponses -split "`n") -match "^}") -and $Counter -le 10
                             ) {
                                 $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
-                                $null = $CheckExpectedSendYesOutput.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
+                                $null = $CheckForExpectedResponses.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
+                                if ($CheckResponsesOutput -match "must be greater than zero" -or $CheckResponsesOutput[-1] -notmatch "[a-zA-Z]") {
+                                    break
+                                }
                                 Start-Sleep -Seconds 1
                                 $Counter++
                             }
                             if ($Counter -eq 11) {
                                 New-UDInputAction -Toast "SSH failed! Please check your credentials." -Duration 10000
                                 Sync-UDElement -Id "CredsForm"
+                                $CheckResponsesOutput = $CheckForExpectedResponses
+                                if ($PUDRSSyncHT.Keys -contains "CheckResponsesOutput") {
+                                    $PUDRSSyncHT.CheckResponsesOutput = $CheckResponsesOutput
+                                }
+                                else {
+                                    $PUDRSSyncHT.Add("CheckResponsesOutput",$CheckResponsesOutput)
+                                }
                                 return
                             }
     
-                            $CheckSendYesOutput = $CheckExpectedSendYesOutput | foreach {$_ -split "`n"}
-                            if ($PUDRSSyncHT.Keys -contains "CheckSendYesOutput") {
-                                $PUDRSSyncHT.CheckResponsesOutput = $CheckSendYesOutput
+                            $CheckResponsesOutput = $CheckForExpectedResponses | foreach {$_ -split "`n"}
+                            if ($PUDRSSyncHT.Keys -contains "CheckResponsesOutput") {
+                                $PUDRSSyncHT.CheckResponsesOutput = $CheckResponsesOutput
                             }
                             else {
-                                $PUDRSSyncHT.Add("CheckSendYesOutput",$CheckSendYesOutput)
+                                $PUDRSSyncHT.Add("CheckResponsesOutput",$CheckResponsesOutput)
                             }
-                            
-                            if ($CheckSendYesOutput -match [regex]::Escape("'s password:")) {
-                                $null = Send-AwaitCommand $Domain_Password
+    
+                            if ($CheckResponsesOutput -match [regex]::Escape("Are you sure you want to continue connecting (yes/no)?")) {
+                                $null = Send-AwaitCommand "yes"
+                                Start-Sleep -Seconds 3
+                                
+                                # This will either not prompt at all or prompt for a password
+                                $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
+    
+                                [System.Collections.ArrayList]$CheckExpectedSendYesOutput = @()
+                                $null = $CheckExpectedSendYesOutput.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
+                                $Counter = 0
+                                while (![bool]$($($CheckExpectedSendYesOutput -split "`n") -match [regex]::Escape("'s password:")) -and 
+                                ![bool]$($($CheckExpectedSendYesOutput -split "`n") -match "^}") -and $Counter -le 10
+                                ) {
+                                    $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
+                                    $null = $CheckExpectedSendYesOutput.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
+                                    Start-Sleep -Seconds 1
+                                    $Counter++
+                                }
+                                if ($Counter -eq 11) {
+                                    New-UDInputAction -Toast "SSH failed! Please check your credentials." -Duration 10000
+                                    Sync-UDElement -Id "CredsForm"
+                                    return
+                                }
+    
+                                $CheckSendYesOutput = $CheckExpectedSendYesOutput | foreach {$_ -split "`n"}
+                                if ($PUDRSSyncHT.Keys -contains "CheckSendYesOutput") {
+                                    $PUDRSSyncHT.CheckResponsesOutput = $CheckSendYesOutput
+                                }
+                                else {
+                                    $PUDRSSyncHT.Add("CheckSendYesOutput",$CheckSendYesOutput)
+                                }
+                                
+                                if ($CheckSendYesOutput -match [regex]::Escape("'s password:")) {
+                                    if ($Local_Password) {
+                                        $null = Send-AwaitCommand $Local_Password
+                                    }
+                                    if ($Domain_Password) {
+                                        $null = Send-AwaitCommand $Domain_Password
+                                    }
+                                    Start-Sleep -Seconds 3
+    
+                                    $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
+    
+                                    [System.Collections.ArrayList]$SSHOutputPrep = @()
+                                    $null = $SSHOutputPrep.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
+                                    $Counter = 0
+                                    while (![bool]$($($SSHOutputPrep -split "`n") -match "^ConnectionSuccessful") -and $Counter -le 10) {
+                                        $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
+                                        if (![System.String]::IsNullOrWhiteSpace($SuccessOrAcceptHostKeyOrPwdPrompt)) {
+                                            $null = $SSHOutputPrep.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
+                                        }
+                                        Start-Sleep -Seconds 1
+                                        $Counter++
+                                    }
+                                    if ($Counter -eq 10) {
+                                        if ($PUDRSSyncHT.Keys -contains "SSHOutputPrepA") {
+                                            $PUDRSSyncHT.SSHOutputPrepA = $SSHOutputPrep
+                                        }
+                                        else {
+                                            $PUDRSSyncHT.Add("SSHOutputPrepA",$SSHOutputPrep)
+                                        }
+    
+                                        New-UDInputAction -Toast "SSH failed! Please check your credentials." -Duration 10000
+                                        Sync-UDElement -Id "CredsForm"
+                                        return
+                                    }
+                                }
+                            }
+                            elseif ($CheckResponsesOutput -match [regex]::Escape("'s password:")) {
+                                if ($Local_Password) {
+                                    $null = Send-AwaitCommand $Local_Password
+                                }
+                                if ($Domain_Password) {
+                                    $null = Send-AwaitCommand $Domain_Password
+                                }
                                 Start-Sleep -Seconds 3
     
                                 $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
     
-                                [System.Collections.ArrayList]$JsonOutputPrep = @()
-                                $null = $JsonOutputPrep.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
+                                [System.Collections.ArrayList]$SSHOutputPrep = @()
+                                $null = $SSHOutputPrep.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
                                 $Counter = 0
-                                while (![bool]$($($JsonOutputPrep -split "`n") -match "^}") -and $Counter -le 10) {
+                                while (![bool]$($($SSHOutputPrep -split "`n") -match "^ConnectionSuccessful") -and $Counter -le 10) {
                                     $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
                                     if (![System.String]::IsNullOrWhiteSpace($SuccessOrAcceptHostKeyOrPwdPrompt)) {
-                                        $null = $JsonOutputPrep.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
+                                        $null = $SSHOutputPrep.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
                                     }
                                     Start-Sleep -Seconds 1
                                     $Counter++
                                 }
                                 if ($Counter -eq 10) {
-                                    if ($PUDRSSyncHT.Keys -contains "JsonOutputPrepA") {
-                                        $PUDRSSyncHT.JsonOutputPrepA = $JsonOutputPrep
+                                    if ($PUDRSSyncHT.Keys -contains "SSHOutputPrepB") {
+                                        $PUDRSSyncHT.SSHOutputPrepA = $SSHOutputPrep
                                     }
                                     else {
-                                        $PUDRSSyncHT.Add("JsonOutputPrepA",$JsonOutputPrep)
+                                        $PUDRSSyncHT.Add("SSHOutputPrepB",$SSHOutputPrep)
                                     }
     
                                     New-UDInputAction -Toast "SSH failed! Please check your credentials." -Duration 10000
                                     Sync-UDElement -Id "CredsForm"
                                     return
                                 }
-    
-                                [System.Collections.ArrayList]$JsonOutputPrep = $($JsonOutputPrep | foreach {$_ -split "`n"}) | Where-Object {$_ -notmatch "^PS "}
-                                if (![bool]$($JsonOutputPrep[0] -match "^{")) {
-                                    $null = $JsonOutputPrep.Insert(0,'{')
-                                }
-                            }
-                        }
-                        elseif ($CheckResponsesOutput -match [regex]::Escape("'s password:")) {
-                            $null = Send-AwaitCommand $Domain_Password
-                            Start-Sleep -Seconds 3
-    
-                            $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
-    
-                            [System.Collections.ArrayList]$JsonOutputPrep = @()
-                            $null = $JsonOutputPrep.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
-                            $Counter = 0
-                            while (![bool]$($($JsonOutputPrep -split "`n") -match "^}") -and $Counter -le 10) {
-                                $SuccessOrAcceptHostKeyOrPwdPrompt = Receive-AwaitResponse
-                                if (![System.String]::IsNullOrWhiteSpace($SuccessOrAcceptHostKeyOrPwdPrompt)) {
-                                    $null = $JsonOutputPrep.Add($SuccessOrAcceptHostKeyOrPwdPrompt)
-                                }
-                                Start-Sleep -Seconds 1
-                                $Counter++
-                            }
-                            if ($Counter -eq 10) {
-                                if ($PUDRSSyncHT.Keys -contains "JsonOutputPrepB") {
-                                    $PUDRSSyncHT.JsonOutputPrepB = $JsonOutputPrep
-                                }
-                                else {
-                                    $PUDRSSyncHT.Add("JsonOutputPrepB",$JsonOutputPrep)
-                                }
-    
-                                New-UDInputAction -Toast "SSH failed! Please check your credentials." -Duration 10000
-                                Sync-UDElement -Id "CredsForm"
-                                return
-                            }
-    
-                            [System.Collections.ArrayList]$JsonOutputPrep = $($JsonOutputPrep | foreach {$_ -split "`n"}) | Where-Object {$_ -notmatch "^PS "}
-                            if (![bool]$($JsonOutputPrep[0] -match "^{")) {
-                                $null = $JsonOutputPrep.Insert(0,'{')
-                            }
-                        }
-                        else {
-                            [System.Collections.ArrayList]$JsonOutputPrep = $($CheckResponsesOutput | foreach {$_ -split "`n"}) | Where-Object {
-                                $_ -notmatch "^PS " -and ![System.String]::IsNullOrWhiteSpace($_)
-                            }
-                            $EndOfInputLineContent = $JsonOutputPrep -match [regex]::Escape("ConvertTo-Json}")
-                            $JsonOutputIndex = $JsonOutputPrep.IndexOf($EndOfInputLineContent) + 1
-    
-                            [System.Collections.ArrayList]$JsonOutputPrep = $JsonOutputPrep[$JsonOutputIndex..$($JsonOutputPrep.Count-1)]
-    
-                            if (![bool]$($JsonOutputPrep[0] -match "^{")) {
-                                $null = $JsonOutputPrep.Insert(0,'{')
                             }
                         }
     
-                        $IndexesOfOpenBracket = for ($i=0; $i -lt $JsonOutputPrep.Count; $i++) {
-                            if ($JsonOutputPrep[$i] -match "^{") {
-                                $i
-                            }
-                        }
-                        $LastIndexOfOpenBracket = $($IndexesOfOpenBracket | Measure-Object -Maximum).Maximum
-                        $IndexesOfCloseBracket = for ($i=0; $i -lt $JsonOutputPrep.Count; $i++) {
-                            if ($JsonOutputPrep[$i] -match "^}") {
-                                $i
-                            }
-                        }
-                        $LastIndexOfCloseBracket = $($IndexesOfCloseBracket | Measure-Object -Maximum).Maximum
-                        [System.Collections.ArrayList]$JsonOutputPrep = $JsonOutputPrep[$LastIndexOfOpenBracket..$LastIndexOfCloseBracket] | foreach {$_ -split "`n"}
-                        if (![bool]$($JsonOutputPrep[0] -match "^{")) {
-                            $null = $JsonOutputPrep.Insert(0,'{')
-                        }
-    
-                        if ($PUDRSSyncHT.Keys -contains "JsonOutputPrepC") {
-                            $PUDRSSyncHT.JsonOutputPrepC = $JsonOutputPrep
-                        }
-                        else {
-                            $PUDRSSyncHT.Add("JsonOutputPrepC",$JsonOutputPrep)
-                        }
-    
-                        $FinalJson = $JsonOutputPrep | foreach {if (![System.String]::IsNullOrWhiteSpace($_)) {$_.Trim()}}
-    
-                        if ($PUDRSSyncHT.Keys -contains "FinalJson") {
-                            $PUDRSSyncHT.FinalJson = $FinalJson
-                        }
-                        else {
-                            $PUDRSSyncHT.Add("FinalJson",$FinalJson)
-                        }
-    
-                        try {
-                            $SSHCheckAsJson = $FinalJson | ConvertFrom-Json
-                        }
-                        catch {
-                            $BadJson = $True
-                            New-UDInputAction -Toast $_.Exception.Message -Duration 10000
-                            Sync-UDElement -Id "CredsForm"
-                        }
-    
-                        try {
-                            $null = Stop-AwaitSession
-                        }
-                        catch {
-                            if ($PSAwaitProcess.Id -eq $PID) {
-                                Write-Error "The PSAwaitSession never spawned! Halting!"
-                                $global:FunctionResult = "1"
-                                return
-                            }
-                            else {
-                                Stop-Process -Id $PSAwaitProcess.Id
-                                while ([bool]$(Get-Process -Id $PSAwaitProcess.Id -ErrorAction SilentlyContinue)) {
-                                    Write-Verbose "Waiting for Await Module Process Id $($PSAwaitProcess.Id) to end..."
-                                    Start-Sleep -Seconds 1
-                                }
-                            }
-                        }
-    
-                        if ($BadJson) {
-                            return
-                        }
-    
-                        if ($SSHCheckAsJson.Output -ne "ConnectionSuccessful") {
-                            New-UDInputAction -Toast "pwsh SSH failed with the following output:`n$AllOutput" -Duration 10000
+                        if ($SSHCheckAsJson.Output -ne "ConnectionSuccessful" -and ![bool]$($($SSHOutputPrep -split "`n") -match "^ConnectionSuccessful")) {
+                            New-UDInputAction -Toast "SSH attempts via PowerShell Core 'Invoke-Command' and ssh.exe have failed!" -Duration 10000
                             Sync-UDElement -Id "CredsForm"
                             return
                         }
@@ -7261,8 +7485,6 @@ function Get-PUDAdminCenter {
     }
     $Page = New-UDPage -Url "/PSRemotingCreds/:RemoteHost" -Endpoint $PSRemotingCredsPageContent
     $null = $Pages.Add($Page)
-    
-    #endregion >> PSRemoting Creds Page
     
     $RegistryPageContent = {
         param($RemoteHost)
@@ -12440,8 +12662,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU/T147gN98jo7CulbIFxizpWp
-# W62gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUuO2fjtlAd2XlgBfaOo1uzQpR
+# Ylmgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -12498,11 +12720,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFAulbVHvdtk4BF8d
-# Ww/GI3k/CgkRMA0GCSqGSIb3DQEBAQUABIIBAEkrr6Dr7oyySZ+6eeVifnXtwypW
-# XSYRVh519tGxUo8kwmBHfrbKX4a+x3v32AKPA6Gz7cIDckbryHYsij5HmoiHJc4M
-# kjdPQ/3fkm8b9O4eou+Kpg5UyrCm482hfWf/5Kq1kHFdBA75Ud4CA5Pl1TcLupXS
-# mMDKPQF9Jc9M1COFQ362OUe/plFg7bw0+YsOwzODvfpXrPo57MBB2GsW/oZLs1l0
-# o68jxzroTpaDzoObflUlHlfnO0eJdMlOYeEdyzynNeeyJ2Nv4VFcZpBRhPicSte2
-# TxFVsxAIHJ3MbEGG4WnXavZpxGne2FdW/GOVJUgAw7if8ujOUlVf62g2v3E=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFBJvQma496AfgTiq
+# sl/zvjhwU4Z5MA0GCSqGSIb3DQEBAQUABIIBADQZjQL1cMwqfWG8z4ip2sgfBLke
+# Vr5CghpkLG0/WkCuXLIGtgYSkPtwKAIk0k72VF9Ry5ygpj9aB92pyHNGGkJBzVcL
+# 26yO0ucp1w0JQGAIxb3SvIMXk4Mt6Hnmc+2KLm/PQiNbMBksnaoX4qqW4/b5Ky8j
+# kiZDAgfcmRx7nuMAGxjyy3KG2Iy82BBIuiDFUqro80yVE20FzofMk69itep+MRcC
+# wZ4LvHLgnaHvaMuTErXTIss9uL3NOW35rM+2J8aMKN9uIW1bfFyIqzdWORxGQbhe
+# B4bwETa4207GK3InvoAwrn4l6v2xSHTcbPxyCF70fsz0IF+ObqKFb+hzNso=
 # SIG # End signature block
