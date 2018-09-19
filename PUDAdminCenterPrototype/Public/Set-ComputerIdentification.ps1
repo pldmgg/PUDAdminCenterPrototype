@@ -17,6 +17,61 @@
     
     .ROLE
         Administrators
+
+    .PARAMETER ComputerName
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER NewComputerName
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER Domain
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER NewDomain
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER Workgroup
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER UserName
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER Password
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER UserNameNew
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER PasswordNew
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER Restart
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Set-ComputerIdentification -ComputerName $env:ComputerName -NewComputerName "SQLServer01"
     
 #>
 function Set-ComputerIdentification {
@@ -116,8 +171,8 @@ function Set-ComputerIdentification {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUPkRutXneChBJ/MqBttHkeyyk
-# aeWgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU6ZBTUdTEXe/h98L6sP+P0Kqj
+# TN6gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -174,11 +229,11 @@ function Set-ComputerIdentification {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFFPEyuLc1eFX8h5K
-# q3hzCUN5gwPxMA0GCSqGSIb3DQEBAQUABIIBALO4xjqb48i5h9hkVBXlNDxw8y6v
-# V4U2ZFZVWzJkH1GL2g8SM3AWGDwUZjaxQ7Z/3H38BrpnmxSrQe3AhnDio+aHI23R
-# kMYw/5OIvffssfw1fXFlRFt9pStJXD6oBX4WYHrH4wgTDWsbrijCS4YbEcoJZ/dj
-# kepsuywS1YLf1NCBK+OzrY4b02G2gcHEwlK+FsL2eEL2U9QMEZkxav3JvSpRt/Vx
-# V6wfGo5ZfQ6/dFzIfl7qsZGIqX2TboZuE/CetWPTYygjW1B/AIoQ/6eI0VrkYmu4
-# U6tNqWxdq7ZmknaZqLz2y4HUYDfdofecFraKshvMHd9JBQ2I51ZHq8aezgs=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFGZbArwLTaGI2d/b
+# TcLwuthCm4Q4MA0GCSqGSIb3DQEBAQUABIIBAFgD2z3C+OQ7lXUT9wpJlAhySRwX
+# oTBSvJB8ms6qkAgk4rGmZlzjK8xWDO3tVsiZPBfapNvo9wZBY/TCVpDhJyHZ4abO
+# uvFRKhsANHWQr7E9ll3HSyHgLmfKZqyhlIObHen1RQ0ligkp/ST9AjMwtzYXFETU
+# YZSHCKoGwDBoEjTfZ7nNYJmsLolsSWEhY3xUDZ9w1bU/Ydt0pIFeZXLMey/ucjgW
+# mr30MOKueMkyuRCLrxajXA8wUIIGI+gR1mtyGGHk/YoScDXt4T0kN4/6J0TuFSvj
+# JfYaj3sVEDYxlqV1KUwmsjJ9ty91L6xWbjuo+Hy/q/Nq4e4wo3lFbDStzIU=
 # SIG # End signature block

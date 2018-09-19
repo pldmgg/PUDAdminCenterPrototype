@@ -69,7 +69,7 @@ PowerShellVersion = '5.1'
 # NestedModules = @()
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
-FunctionsToExport = 'Get-Certificates','Get-CertificatesOverview','Get-CimPnpEntity','Get-EnvironmentVariables',
+FunctionsToExport = 'Get-Certificates','Get-CertificateOverview','Get-CimPnpEntity','Get-EnvironmentVariables',
                     'Get-EventLogSummary','Get-FirewallProfile','Get-FirewallRules','Get-IPRange','Get-LocalGroups',
                     'Get-LocalGroupUsers','Get-LocalUserBelongGroups','Get-LocalUsers','Get-Networks',
                     'Get-PendingUpdates','Get-Processes','Get-PUDAdminCenter','Get-RegistrySubKeys','Get-RegistryValues',

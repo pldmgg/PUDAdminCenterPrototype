@@ -37,7 +37,7 @@ $HomePageContent = {
             $Session:HomePageLoadingTracker = $False
             $Session:SearchRemoteHosts = $False
         }
-        New-UDHeading -Text "Remote Hosts" -Size 4
+        New-UDHeading -Text "Home" -Size 4
     }
 
     New-UDRow -Columns {

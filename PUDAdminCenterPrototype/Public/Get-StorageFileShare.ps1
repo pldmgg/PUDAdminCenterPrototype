@@ -19,7 +19,14 @@
         Readers
     
     .PARAMETER FileShareId
-        The file share ID.
+        This parameter is OPTIONAL.    
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-StorageFileShare
 
 #>
 function Get-StorageFileShare {
@@ -130,8 +137,8 @@ function Get-StorageFileShare {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUgTIhgI1kLTiKdzcC0LFpcxti
-# s4Ogggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU25Jq7Mzbr60rF70dDDPiRoyV
+# Nnygggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -188,11 +195,11 @@ function Get-StorageFileShare {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFBwYr+t5syEzHtxv
-# ue+YPaKwWdxLMA0GCSqGSIb3DQEBAQUABIIBAFijMRqRgYW7dr5c+IAh9rhMQv6h
-# v58t2mWYrhKrTg9SyqMMYTRfzaQpuOquYmgbw832t9bXAO2P/lwyV3zqYlGxwaHy
-# XPw252ZBOS372iOfrewFtvg/4APOziNluetkiU9OrndYbnRkFai2pK+mSygSsAoz
-# q7dZ4GnvTNLGEuQHyzUFDdDYGl2eCn/HBHh/BzhatfqxCYJKFtsOiPPbnjy1cU2Q
-# NmUxhQFnzVQer4+HWCZmfDbIks/pxsxW4matmq80dDSGYJfzb1Uwvj6COUwZlxbZ
-# LxMiDxiobZHAAfINwUl68zIdAG3nljbsCbJgxZUkTPFCoAqZbaR2wwqVtWs=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFEk8Z1Fb7/ofw7Fg
+# DTMlTYT1HW21MA0GCSqGSIb3DQEBAQUABIIBAAXvrC7Jo9uKlgZeC5Kpfuzb2cRj
+# B5Iopo1XA41Ip3LYvzg9FYJfbHqS2haYZpVnCvnDe0512p0+bdgHtvELyrx+Taxu
+# 2sFUDw4sbdAW5V1wnZaGwPwnJNONY2B4KvES/f0Ohutq5K6m9o9R1Nx2HyRzo23b
+# us2AGpeHMMCRTtZMhaUxeYbhhh36sY0cFtWdRtAtWqyvp9J4V87H8ojpE/T9FLHQ
+# /YlCHYDKAKsiLvx2P2ZD52fRR4BLfqQPNiB0oFhboqkjZL54v6CmLSFuef0hFtSV
+# 84XgxYBvpgkq7REWg1vFG8TsAk5VcJmnx7eejfKARtknhchfReF2YNPZYek=
 # SIG # End signature block

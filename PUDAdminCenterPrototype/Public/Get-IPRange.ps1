@@ -1,3 +1,43 @@
+<#
+    
+    .SYNOPSIS
+        Get all IPs within the specified range.
+    
+    .DESCRIPTION
+        See .SYNOPSIS
+
+    .PARAMETER start
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER end
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER ip
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER mask
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER cidr
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-IPRange -Start 192.168.2.4 -End 192.168.2.50
+    
+#>
+
 function Get-IPRange {
     [CmdletBinding()]
     param ( 
@@ -43,8 +83,8 @@ function Get-IPRange {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUtN3RyeKp900b/QcS2di2BYwm
-# 4e+gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUg3hGzHwa+XFZq72q/kvufxrr
+# pkegggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -101,11 +141,11 @@ function Get-IPRange {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFDkhskKE0dNXk6xk
-# 8T8Am5D56R9mMA0GCSqGSIb3DQEBAQUABIIBAFfLe3bNQL3riSvSNPGv7GyM6fKI
-# ESIZxPFIMxGkmDCTL6OqgSNggXK/xvjcQkVETuuoNJbMQSnU2IHvq0AA47wzat0p
-# fjrPxJ4XE1WGxQFPkPGNosYU3deayv+NH1NfkAzSIuw7ly+Lp+olPTAdAELFxoWL
-# NAKA4B9+Gok3kLrFBAuv5eeNMeZdUU6vmgQvSYuGOXaIEPqEpXDfKgjxuOSiwkHz
-# JXwKFItrc5qY1/gJ759MTf8HCPNNImAUMuJ3Ly7eCK4QjZjxLD0mPC/z70KUUeCz
-# zQiCJZ1kw4QJsUjNpRC2SrxTa1Mlhh9xK98AhEhm2GdBo/S3ajoQw9rkjjQ=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFDcxR0TYNvpKUctG
+# SwH7s/C631kHMA0GCSqGSIb3DQEBAQUABIIBAF+v7UGlWgSsRhl9GW84WPBH4Uuy
+# s8OUav3X4op7LSJy33Okfnc6dNYdY+37SAG8i/qUiIcxKmY8QyUOrr9TD24vLy68
+# ihtNeNgee5VYwMCjyqgqPD+WOyYHsF3LFJOEatXEXKGX2niduvKqNsTejtPHBJrt
+# tDdDj/b/zgc/e2u8PRqacnq54TkNQd/9t8hsn/nsTgdr2isMnD4mJod53dFmRHWb
+# MVpLDwhDz4pIBcBiwiRbV3ueNlU9OANxAbM0y/hLPCC4iaPZZHhqbDMqa8ESnDdS
+# Y1/qc+4XNkeCgI8ur7YGdAB13grSgQ7GNl+DC/P5b2Pqqe5at+xlp6GBNkg=
 # SIG # End signature block

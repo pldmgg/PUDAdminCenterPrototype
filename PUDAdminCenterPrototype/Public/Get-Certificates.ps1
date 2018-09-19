@@ -17,6 +17,21 @@
     
     .ROLE
         Readers
+
+    .PARAMETER path
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER nearlyExpiredThresholdInDays
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-Certificates -path "Cert:\" -nearlyExpiredThresholdInDays 60
     
 #>
 function Get-Certificates {
@@ -541,8 +556,8 @@ function Get-Certificates {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUwBmimWdN8iI1b0dZ6WZCIYx+
-# tNqgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUVvGx/67ICHO8ntMYmQOrQtXl
+# 9A+gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -599,11 +614,11 @@ function Get-Certificates {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFOnKuSSsiRNNBkCJ
-# IaCGXmuq2NliMA0GCSqGSIb3DQEBAQUABIIBAEFFajKfKCecKxGBjvszbyx9cSJi
-# CXyDuw+iKfrrQm5qMp2WanFSpAall0b2A2dw7d/jrJQ1JeCDCHMj6WPeWUeIh87Q
-# tzS5wFYMJXqrNNNU7UMJPcOCRj2BuEQ97JzTb1RVjMrMxv/7uICweE9+MzRx3InF
-# R7q9iu7UGTxIvlu+VPiHmL9kOG95Scuw2ImajglEZW0Q4mmjn2f/oZlFrntJlDhU
-# qWQy9Uc65IjyyVEVbaa7VzGtUoE0/YWPHM+MmhBwLqL9MpiyyB5OzHxvP/2njUFS
-# gK6U7Y95koq1c7zkKUHweqrSecDgkUc7Xg3e6SRxSqdFe8BfJNcHAmoLmmU=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFBCAlBr5dU85/FSf
+# tDEgmDXmu0ODMA0GCSqGSIb3DQEBAQUABIIBAFPjdgxW7303XHXYSgsXxcbZs/xd
+# hSIaLPvwxGMqtTzagx2LZX4TvG+1GpZJgLcMxRuNdJ4GG1+Ck6Ocss5lrxEYc/ee
+# /kox1xGEZNTEhgm/5NzC89cNG7bxir13xd8LcNIED9t6GETmMwUNHws/kZoerw++
+# 8nZvhQGOs4BzlocWRDDtUku4Tlc4gTaWDeQdVTiYHCySvTCTbR5HpZYy1PYDDqaH
+# T1GMCJXKMcE22WJzqLN/3D240cqnDzl4E4QkbuZvt//kZ8dnKtdXzZks1mqDKcyN
+# ghgy6sKYXKr65Ote407L3FYBtHS0JPUcm/6mcexNEuuvdzkdoK4gwakAu48=
 # SIG # End signature block

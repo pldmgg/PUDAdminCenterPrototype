@@ -62,6 +62,26 @@ if ($ModulesToInstallAndImport.Count -gt 0) {
     
     .ROLE
         Readers
+
+    .PARAMETER channel
+        This parameter is MANDATORY.
+
+        TODO
+
+    .PARAMETER path
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER nearlyExpiredThresholdInDays
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-CertificateOverview -channel "Microsoft-Windows-CertificateServicesClient-Lifecycle-System*"
     
 #>
 function Get-CertificateOverview {
@@ -150,6 +170,21 @@ function Get-CertificateOverview {
     
     .ROLE
         Readers
+
+    .PARAMETER path
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER nearlyExpiredThresholdInDays
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-Certificates -path "Cert:\" -nearlyExpiredThresholdInDays 60
     
 #>
 function Get-Certificates {
@@ -691,6 +726,11 @@ function Get-Certificates {
     
     .ROLE
         Readers
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-CimPnpEntity
     
 #>
 function Get-CimPnpEntity {
@@ -719,6 +759,11 @@ function Get-CimPnpEntity {
     
     .ROLE
         Readers
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-EnvironmentVariables
     
 #>
 function Get-EnvironmentVariables {
@@ -764,6 +809,16 @@ function Get-EnvironmentVariables {
     .ROLE
         Readers
     
+    .PARAMETER channel
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-EventLogSummary
+    
 #>
 function Get-EventLogSummary {
     Param(
@@ -800,6 +855,11 @@ function Get-EventLogSummary {
     .ROLE
         Readers
     
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-FirewallProfile
+    
 #>
 function Get-FirewallProfile {
     Import-Module netsecurity
@@ -827,6 +887,11 @@ function Get-FirewallProfile {
     
     .ROLE
         Readers
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-FirewallRules
     
 #>
 function Get-FirewallRules {
@@ -1038,6 +1103,46 @@ function Get-FirewallRules {
 }
 
 
+<#
+    
+    .SYNOPSIS
+        Get all IPs within the specified range.
+    
+    .DESCRIPTION
+        See .SYNOPSIS
+
+    .PARAMETER start
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER end
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER ip
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER mask
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER cidr
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-IPRange -Start 192.168.2.4 -End 192.168.2.50
+    
+#>
+
 function Get-IPRange {
     [CmdletBinding()]
     param ( 
@@ -1101,6 +1206,16 @@ function Get-IPRange {
     
     .ROLE
         Readers
+
+    .PARAMETER SID
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-LocalGroups
     
 #>
 function Get-LocalGroups {
@@ -1191,6 +1306,16 @@ function Get-LocalGroups {
     
     .ROLE
         Readers
+
+    .PARAMETER group
+        This parameter is MANDATORY.
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-LocalGroupUsers -group Administrators
     
 #>
 function Get-LocalGroupUsers {
@@ -1259,6 +1384,16 @@ function Get-LocalGroupUsers {
     
     .ROLE
         Readers
+
+    .PARAMETER UserName
+        This parameter is MANDATORY.
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-LocalUserBelongGroups -UserName jsmith
     
 #>
 function Get-LocalUserBelongGroups {
@@ -1340,6 +1475,16 @@ function Get-LocalUserBelongGroups {
     
     .ROLE
         Readers
+
+    .PARAMETER SID
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-LocalUsers
     
 #>
 function Get-LocalUsers {
@@ -1518,6 +1663,12 @@ function Get-LocalUsers {
     
     .ROLE
         Readers
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-Certificates -path "Cert:\" -nearlyExpiredThresholdInDays 60
+
 #>
 function Get-Networks {
     Import-Module NetAdapter
@@ -1813,6 +1964,16 @@ Function Get-PendingUpdates {
     
     .COMPONENT
         ProcessList_Body
+
+    .PARAMETER isLocal
+        This parameter is MANDATORY.
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-Processes -isLocal $True
     
 #>
 function Get-Processes {
@@ -13411,7 +13572,7 @@ function Get-PUDAdminCenter {
                 $Session:HomePageLoadingTracker = $False
                 $Session:SearchRemoteHosts = $False
             }
-            New-UDHeading -Text "Remote Hosts" -Size 4
+            New-UDHeading -Text "Home" -Size 4
         }
     
         New-UDRow -Columns {
@@ -14003,6 +14164,16 @@ function Get-PUDAdminCenter {
     
     .ROLE
         Readers
+
+    .PARAMETER path
+        This parameter is MANDATORY.
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-RegistrySubkeys -path "HKLM:\SOFTWARE\OpenSSH"
     
 #>
 function Get-RegistrySubKeys {
@@ -14047,6 +14218,16 @@ function Get-RegistrySubKeys {
     
     .ROLE
         Readers
+
+    .PARAMETER path
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-RegistryValues -path "HKLM:\SOFTWARE\OpenSSH"
     
 #>
 function Get-RegistryValues {
@@ -14098,6 +14279,11 @@ function Get-RegistryValues {
     
     .ROLE
         Readers
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-RemoteDesktop
     
 #>
 function Get-RemoteDesktop {
@@ -14172,6 +14358,21 @@ function Get-RemoteDesktop {
     
     .ROLE
         Readers
+
+    .PARAMETER taskPath
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER taskName
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-ScheduledTasks
     
 #>
 function Get-ScheduledTasks {
@@ -14275,6 +14476,11 @@ function Get-ScheduledTasks {
     
     .ROLE
         Readers
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-ServerInventory
 #>
 function Get-ServerInventory {
     Set-StrictMode -Version 5.0
@@ -14600,6 +14806,16 @@ function Get-ServerInventory {
     
     .ROLE
         Readers
+
+    .PARAMETER DiskId
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-StorageDisk
     
 #>
 function Get-StorageDisk {
@@ -14766,7 +14982,14 @@ function Get-StorageDisk {
         Readers
     
     .PARAMETER FileShareId
-        The file share ID.
+        This parameter is OPTIONAL.    
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-StorageFileShare
 
 #>
 function Get-StorageFileShare {
@@ -14896,7 +15119,14 @@ function Get-StorageFileShare {
         Readers
     
     .PARAMETER VolumeId
-        The volume ID
+        This parameter is OPTIONAL.
+        
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-StorageVolume
     
 #>
 function Get-StorageVolume {
@@ -15214,7 +15444,23 @@ function Get-StorageVolume {
 }
 
 
-# From: https://stackoverflow.com/a/41626130
+<#
+    
+    .SYNOPSIS
+        Get Windows Update History.
+    
+    .DESCRIPTION
+        See .SYNOPSIS
+
+    .NOTES
+        From: https://stackoverflow.com/a/41626130
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-WuaHistory
+    
+#>
 function Get-WuaHistory {
     #region >> Helper Functions
 
@@ -15258,6 +15504,30 @@ function Get-WuaHistory {
 }
 
 
+<#
+    
+    .SYNOPSIS
+        Installs .Net 4.7.2
+    
+    .DESCRIPTION
+        See .SYNOPSIS
+
+    .PARAMETER DownloadDirectory
+        This parameter is OPTIONAL.
+
+        This parameter takes a string that represents the full path to the directory that will contain the installation .exe download.
+
+    .PARAMETER Restart
+        This parameter is OPTIONAL.
+
+        This parameter is a switch. If uses, the localhost will restart after .Net 4.7.2 is installed
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Install-DotNet472
+    
+#>
 function Install-DotNet472 {
     [CmdletBinding()]
     Param (
@@ -15267,6 +15537,12 @@ function Install-DotNet472 {
         [Parameter(Mandatory=$False)]
         [switch]$Restart
     )
+
+    $Net472Check = Get-ChildItem "HKLM:SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full\" | Get-ItemPropertyValue -Name Release | ForEach-Object { $_ -ge 461808 }
+    if ($Net472Check) {
+        Write-Warning ".Net 4.7.2 (or higher) is already installed! Halting!"
+        return
+    }
 
     $DotNet472OfflineInstallerUrl = "https://download.microsoft.com/download/6/E/4/6E48E8AB-DC00-419E-9704-06DD46E5F81D/NDP472-KB4054530-x86-x64-AllOS-ENU.exe"
     if (!$DownloadDirectory) {$DownloadDirectory = "$HOME\Downloads"}
@@ -15320,6 +15596,26 @@ function Install-DotNet472 {
     
     .ROLE
         Administrators
+
+    .PARAMETER name
+        This parameter is MANDATORY.
+
+        TODO
+
+    .PARAMETER value
+        This parameter is MANDATORY.
+
+        TODO
+
+    .PARAMETER type
+        This parameter is MANDATORY.
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> New-EnvironmentVariable -name "TestVar" -value "TestValue" -type "User"
     
 #>
 function New-EnvironmentVariable {
@@ -15977,6 +16273,21 @@ function New-RunSpace {
     
     .ROLE
         Administrators
+
+    .PARAMETER name
+        This parameter is MANDATORY.
+
+        TODO
+
+    .PARAMETER type
+        This parameter is MANDATORY.
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Remove-EnvironmentVariable -name "TestVar" -type "User"
     
 #>
 function Remove-EnvironmentVariable {
@@ -16020,6 +16331,61 @@ function Remove-EnvironmentVariable {
     
     .ROLE
         Administrators
+
+    .PARAMETER ComputerName
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER NewComputerName
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER Domain
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER NewDomain
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER Workgroup
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER UserName
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER Password
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER UserNameNew
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER PasswordNew
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER Restart
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Set-ComputerIdentification -ComputerName $env:ComputerName -NewComputerName "SQLServer01"
     
 #>
 function Set-ComputerIdentification {
@@ -16136,6 +16502,31 @@ function Set-ComputerIdentification {
     
     .ROLE
         Administrators
+
+    .PARAMETER oldName
+        This parameter is MANDATORY.
+
+        TODO
+
+    .PARAMETER newName
+        This parameter is MANDATORY.
+
+        TODO
+
+    .PARAMETER value
+        This parameter is MANDATORY.
+
+        TODO
+
+    .PARAMETER type
+        This parameter is MANDATORY.
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Set-EnvironmentVariable -oldName "OldVar" -newName "NewVar" -value "thing1" -type "User"
     
 #>
 function Set-EnvironmentVariable {
@@ -16205,6 +16596,26 @@ function Set-EnvironmentVariable {
     
     .ROLE
         Administrators
+
+    .PARAMETER AllowRemoteDesktop
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER AllowRemoteDesktopWithNLA
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER EnableRemoteApp
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Set-RemoteDesktop -AllowRemoteDesktop
     
 #>
 function Set-RemoteDesktop {
@@ -16271,6 +16682,11 @@ function Set-RemoteDesktop {
     
     .ROLE
         Administrators
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Start-DiskPerf
     
 #>
 function Start-DiskPerf {
@@ -16299,6 +16715,11 @@ function Start-DiskPerf {
     
     .ROLE
         Administrators
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Stop-DiskPerf
     
 #>
 function Stop-DiskPerf {
@@ -16309,11 +16730,29 @@ function Stop-DiskPerf {
 
 
 
+# Can't just install and import UniversalDashboard.Community automatically because of interactive license agreement prompt. So, it must be done
+# manually before trying to import PUDAdminCenterPrototype.
+if (![bool]$(Get-Module -ListAvailable UniversalDashboard.Community)) {
+    $InstallPUDCommunityMsg = "Please install the UniversalDashboard.Community PowerShell Module via...`n    Install-Module UniversalDashboard.Community`n..." +
+    "and try importing the PUDAdminCenterPrototype Module in a fresh Windows PowerShell 5.1 session."
+    Write-Warning $InstallPUDCommunityMsg
+    Write-Warning "The $ThisModule Module was NOT loaded successfully! Please run:`n    Remove-Module $ThisModule"
+    $global:FunctionResult = "1"
+    return
+}
+
 if (![bool]$(Get-Module UniversalDashboard.Community)) {
     try {
         Import-Module UniversalDashboard.Community -ErrorAction Stop
     }
     catch {
+        Write-Error $_
+        Write-Warning "The $ThisModule Module was NOT loaded successfully! Please run:`n    Remove-Module $ThisModule"
+        $global:FunctionResult = "1"
+        return
+
+        # The below is commented out because there's some concern about whether installing .Net 4.7.2 automatically on Module Import is a good practice
+        <#
         if ($_.Exception.Message -match "\.Net Framework") {
             $Net472Check = Get-ChildItem "HKLM:SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full\" | Get-ItemPropertyValue -Name Release | ForEach-Object { $_ -ge 461808 }
 
@@ -16348,6 +16787,7 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
             $global:FunctionResult = "1"
             return
         }
+        #>
     }
 }
 
@@ -16413,8 +16853,8 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUU5dknFI9IOU594f8titR7CQ7
-# dTagggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU5c3/BzHUjONVP5yW9u+dIQvK
+# 1Gigggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -16471,11 +16911,11 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFOJfsfgwvA7RSGbc
-# 407KAOcpht2iMA0GCSqGSIb3DQEBAQUABIIBABnpU2eNvuuJh/HYIQ8Q3PNy692z
-# yf/8ZMknPlNanepfRtq7a40U3wwSvXsVbV+QiDHCtNdozkVz9Y+ZNGBaCHQZULTq
-# 4VTGMg1tmJv/NUDKp1kv8Bb1TSTBRmHDYW5EwQQwpfVMLSd8YyNsgT0kU90/2TdR
-# I0i9gMEfbfB4O4/pStVUwg9jGzq43+6+3kPOHOnF6m2QV7La/VVX6neIbGBV3CMq
-# gmRsVTmW88nylo/R21ybbNmCIXMWf51DsIJ265STPFE9IwkTSDqOQOyU2vWI6Wel
-# XoQ6f/QFfJNyj8kFO5gjgLf4C+MdfMlHlNvVhSfrBMC1ah0yUZl0QD9NSgk=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFHb0Ak6tu0qfbErG
+# FuFD0oCswQimMA0GCSqGSIb3DQEBAQUABIIBAJB80V2aSK08vbM2FbIq66ThkyrB
+# 5IwaKgbo0wZef/o5lefuXDhpietBLp8nas5hDBlfgOkSV1UdHzuPyKntjSMvg4+R
+# 3mu97+/X54FG4PF+Lq/ehDDN3s+tk4Nunta9fYiYlrUToHYLWOaJNJYNijzi8t3+
+# cvXyQ//YHhr0da3rSwnmsysCsxPw+zrLN29rOKzsAYWAGWtbo2nSE8r/WGkda4CJ
+# ifgEFhE2+XtPFwXQgl6g0XG4x3Dwl1hjOVpI9dUk9pRLg0bP2PTAqwkbbJ+fFHhU
+# phH4PL0DRLyJuT0UAHl0611mZzTJqYs7E9X1qiS2hsUaI+1gCGk1zYoCqPI=
 # SIG # End signature block

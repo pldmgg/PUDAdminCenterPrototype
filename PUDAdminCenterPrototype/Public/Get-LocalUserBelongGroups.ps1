@@ -18,6 +18,16 @@
     
     .ROLE
         Readers
+
+    .PARAMETER UserName
+        This parameter is MANDATORY.
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-LocalUserBelongGroups -UserName jsmith
     
 #>
 function Get-LocalUserBelongGroups {
@@ -81,8 +91,8 @@ function Get-LocalUserBelongGroups {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUjrKnTz+F2mgjZiehfx8r8+xd
-# s5Cgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUYmr1MG42cBM+oi9u4oW+Sfen
+# W+igggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -139,11 +149,11 @@ function Get-LocalUserBelongGroups {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFPFBJOlsY2nTvab5
-# kr1+MsHRpqOCMA0GCSqGSIb3DQEBAQUABIIBADucnvnxMQ4Wp6+BecAPtZmvDUmy
-# DjSjHbzLQz9D3TmZe6SX4yL+9B7YPVBGoaV0vTMv/WbLcpuakupMcXE0UEMtLOch
-# GUZprI/O/AOEWuKoKtYOa/W/3Hl0VHzYBPQu0Q5lJ6kBU42KGZpLL2w3FYovqeyB
-# 8odjn4qx5iCxTVyruznGtnxb/xuq6e308RqE7ZsCSMglhClsIIOw2JQiyOVULdy4
-# FiuI26bc8a9NQHKjhU6jao1cGpiGMp67jwlkG+ifSyoBJna6K/pdMb0UD9vQ+4Va
-# RAxbnR9bILVu0QmakM5iBU6nWrQbFVbAyFKn/+4hJjpSvA1dzDUZ8bL1GDk=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFEiuX8u62W3riF/y
+# ynzPcArTl7TFMA0GCSqGSIb3DQEBAQUABIIBABnODSUhpfHVkjjXirru9x37mnRF
+# zLrolXB85+m8bLCbGiqHjxcSCe9r2npVfM54N3RDDaQ9yHM7lBszK3sGDUa1awqd
+# 05yR123lcSCqWZwlwsUF22vPxC5ahTsTAAhnb9uYSnc4416NmAkSb/7jUfmJLql2
+# xFopfMrNukpHL7zWpXR8Gj48tmXNH4ln3d0xYWs97EknUE0hV5xH5RdOpuX56TRc
+# pSO10C9Y5Wc+flBJ8K5rbfVGMT6N3K7cxhXimoG3LbpNLGtF63wdMjdBwCd2cl/E
+# Hrsywlw/nuKEXn2swGWnP8ivUIBcWu3giCFThYznpxOWiQXdupLVjgw5UB8=
 # SIG # End signature block

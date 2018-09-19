@@ -2,28 +2,44 @@
 
 
 # PUDAdminCenterPrototype
-Web-based GUI (PowerShell Universal Dashboard) that manages remote devices
+Web-based GUI (PowerShell Universal Dashboard) that manages remote devices. Based on Windows Admin Center: https://docs.microsoft.com/en-us/windows-server/manage/windows-admin-center/overview.
+
+# Screenshots
+
+![Home](/Media/1Home.png)
+![HostSelect](/Media/2ServerSelection.png)
+![Monitor](/Media/3Monitor.png)
 
 ## Getting Started
 
+Currently, PUDAdminCenterPrototype is not compatible with PowerShell Core 6.X (for various reasons). However, I will be working on refactoring this Module and bug fixing PowerShell Universal Dashboard in order to make a PowerShell Core 6.X solution. You can view my progress on this refactor here: "placeholder"
+
+In the mean time, you can install and run PUDAdminCenterPrototype by launch Windows PowerShell 5.1 via 'Run As Administrator' and do the following:
+
 ```powershell
-# One time setup
-    # Download the repository
-    # Unblock the zip
-    # Extract the PUDAdminCenterPrototype folder to a module path (e.g. $env:USERPROFILE\Documents\WindowsPowerShell\Modules\)
-# Or, with PowerShell 5 or later or PowerShellGet:
-    Install-Module PUDAdminCenterPrototype
+# Make sure you have .Net 4.7.2 (or later) installed
+# NOTE: The Install-DotNet472 function will not do anything if you already have .Net 4.7.2 installed.
+# NOTE: If you do NOT already have .Net 4.7.2 installed, you will need to restart computer post-install!
+$InstallDotNet472FunctionUrl = "https://raw.githubusercontent.com/pldmgg/misc-powershell/master/MyFunctions/Install-DotNet472.ps1"
+$OutFilePath = "$HOME\Downloads\Install-DotNet472.ps1"
+Invoke-WebRequest -Uri $InstallDotNet472FunctionUrl -OutFile $OutFilePath
+. $OutFilePath
+Install-DotNet472
 
-# Import the module.
-    Import-Module PUDAdminCenterPrototype    # Alternatively, Import-Module <PathToModuleFolder>
+# If you need to restart, do so now.
 
-# Get commands in the module
-    Get-Command -Module PUDAdminCenterPrototype
+# Install and Import the UniversalDashboard.Community Module
+Install-Module UniversalDashboard.Community
+# Accept the license agreement
+Import-Module UniversalDashboard.Community
 
-# Get help
-    Get-Help <PUDAdminCenterPrototype Function> -Full
-    Get-Help about_PUDAdminCenterPrototype
+# Finally, install and import the PUDAdminCenterPrototype Module
+Install-Module PUDAdminCenterPrototype
+Import-Module PUDAdminCenterPrototype
 ```
+
+There are many function available upon Module import, and they can all be used independent of the Web Application. However, the main
+function that handles starting the Universal Dashboard WebServer is `Get-PUDAdminPrototype`.
 
 ## Examples
 
@@ -37,6 +53,8 @@ Name       Port Running
 Dashboard0   80    True
 ```
 
+Navigate to http://localhost in Chrome, Firefox, or Edge. (Internet Explorer does NOT work)
+
 ### Scenario 2: Run the WebServer on localhost port 8888 from an interactive Windows PowerShell 5.1 Session
 
 ```powershell
@@ -46,6 +64,8 @@ Name         Port Running
 ----         ---- -------
 Dashboard0   8888    True
 ```
+
+Navigate to http://localhost:8888 in Chrome, Firefox, or Edge. (Internet Explorer does NOT work)
 
 ### Scenario 3: Run the WebServer as a Windows Service
 
@@ -65,6 +85,8 @@ $NssmArguments = '-ExecutionPolicy Bypass -NoProfile -File "{0}"' -f $ScriptPath
 Start-Service $NewServiceName
 Get-Service $NewServiceName
 ```
+
+Navigate to http://localhost in Chrome, Firefox, or Edge. (Internet Explorer does NOT work)
 
 ## Notes
 

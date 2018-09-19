@@ -16,6 +16,21 @@
     
     .ROLE
         Administrators
+
+    .PARAMETER name
+        This parameter is MANDATORY.
+
+        TODO
+
+    .PARAMETER type
+        This parameter is MANDATORY.
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Remove-EnvironmentVariable -name "TestVar" -type "User"
     
 #>
 function Remove-EnvironmentVariable {
@@ -42,8 +57,8 @@ function Remove-EnvironmentVariable {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUN31XRXJFYdQGqRA78a7l8+md
-# ea2gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUG4Ens4gbHYsYKDQlrud+XShy
+# TNqgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -100,11 +115,11 @@ function Remove-EnvironmentVariable {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFHpEq/f5f0A2y7Ox
-# mCZVWu0A7ca9MA0GCSqGSIb3DQEBAQUABIIBAFNo4n+XyiQc5Q0VlXt832UT2z5f
-# ubqVwX1bx7HJhbbonYXjCsZMDyVtZ1GtVzJGE5Vb88nfiXJMiUiwyaZtl+/Kcnhr
-# ZuAUOy5JOpJ0GqzVUbH1tkhNmMIx/NdUm1sTkhWxEyoJH+G9NUujO02tAxef/pfN
-# eZJ3cD1JXG3I9TYPOftYVKTkOHdPGJ8pqKKjTMgaAYCQPXJZJxAQRU4YpX7v7XGt
-# 2XGI+bmI8y0empoKNZAu4C7ZYa5FCHGYM7fSfD2cYQkb0dP3980n4Sd7xS5W8PSO
-# CsQt2p1v8Si1TUEM57DvMT7zGK9inM5gBbxlxr+qDcanWb2x5rXU8OkL6j8=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFA61Ho9rcoOF/Dpd
+# 46twSL/2LNT3MA0GCSqGSIb3DQEBAQUABIIBAB3s30eqohkCcVCXceaHyq0M6LnK
+# B1JBnfs/plU6qez+pb7ZPfvwr0/OZHyrFf/OGtlaRddkOZTpNKQXuHb2KLLANbBY
+# 7oJOV4/Bu+6mCPrSjjPW/ifBM0HG7040Mb4lywYW7ul2cojcH6tJgWtuCu6fH1oK
+# TQxFSCV6CLLlQOg26WD5rOkdzyYnlkIgT2LVlWJ1+C9IsvCfvyPM19EppQWto68q
+# EgeyGqkfYvqHXQr38vmEyGixmo1bb7i8opRivoGFrc66k3pvWgmj59CBkcg/GJ9j
+# OAC0H8B4XY/aqqoUzrMOV1T52ATV2B6rYiKumu/vm9gZQCayWDhkYwM3Wzg=
 # SIG # End signature block

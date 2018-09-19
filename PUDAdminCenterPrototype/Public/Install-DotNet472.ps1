@@ -1,3 +1,27 @@
+<#
+    
+    .SYNOPSIS
+        Installs .Net 4.7.2
+    
+    .DESCRIPTION
+        See .SYNOPSIS
+
+    .PARAMETER DownloadDirectory
+        This parameter is OPTIONAL.
+
+        This parameter takes a string that represents the full path to the directory that will contain the installation .exe download.
+
+    .PARAMETER Restart
+        This parameter is OPTIONAL.
+
+        This parameter is a switch. If uses, the localhost will restart after .Net 4.7.2 is installed
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Install-DotNet472
+    
+#>
 function Install-DotNet472 {
     [CmdletBinding()]
     Param (
@@ -7,6 +31,12 @@ function Install-DotNet472 {
         [Parameter(Mandatory=$False)]
         [switch]$Restart
     )
+
+    $Net472Check = Get-ChildItem "HKLM:SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full\" | Get-ItemPropertyValue -Name Release | ForEach-Object { $_ -ge 461808 }
+    if ($Net472Check) {
+        Write-Warning ".Net 4.7.2 (or higher) is already installed! Halting!"
+        return
+    }
 
     $DotNet472OfflineInstallerUrl = "https://download.microsoft.com/download/6/E/4/6E48E8AB-DC00-419E-9704-06DD46E5F81D/NDP472-KB4054530-x86-x64-AllOS-ENU.exe"
     if (!$DownloadDirectory) {$DownloadDirectory = "$HOME\Downloads"}
@@ -43,8 +73,8 @@ function Install-DotNet472 {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU2CELSzXN4bU3nRzXOgaKmyUp
-# cWSgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUknva1QOy0tuZ5Tanulzt6MHg
+# 2lSgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -101,11 +131,11 @@ function Install-DotNet472 {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFDRrDEK119CKEYCo
-# 3bWxj7CQzEWBMA0GCSqGSIb3DQEBAQUABIIBACS5zp128yJwZEfhPy00oF2DyCTf
-# u9b5Mnrd1UfstgN0/uQzp5BSXWNI/iB2qNE2T16h36DTwVan70Oj7epz0AwJ1JsL
-# qsNFtR0WkWf7NK9as0bINy0I7YIw2c5lfzhRa3Cr6QwJaVGbN5Fsuhwb3j7jw1Zf
-# eh6bo95MLNvQbuVdMGAruoF2hfvTC7lj7qpvUQITppnMTQy20wMWqWM+S3VGg6EI
-# +vVgnX1+XGz989fC0YscoKpJ7rja/mdnYDXaYYyQntySYIlGt2+LJnb7Jle4NoQ6
-# CMHv9wMBMsrJj+HbHF1rBweDtQJGXkbGmEoQcJMHxtz2v4Iz3ChIn3aEOg8=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFNDpp8gZt2Kuiy8+
+# l8cnozSwxu6ZMA0GCSqGSIb3DQEBAQUABIIBAIQUWtCu4KFcNEwrmsAj7icWkKL4
+# dX9Jx0siZBRcSa9IWR/x7sdTohZ2ga+Zdrcxw2QVOg2yaEF1FkuM9HC0jru1u45P
+# nFCKrirhMiNsEH3kXB9sJysIm8ODdXa8kDUvGbfiKT6qe6C1ogIQ8Q7pfwPjREwR
+# 0SSn+U0ppTeslKZSXaeCj9U6xi4cjiFocBQfnDl5DMi+i49kH89Vj/X2SGWyBJGD
+# OS91KcLn97LiJwv3BTV/bjxZ/W6mAawElLcAvNFputphSCGk3aN/yPg1JbGQeKMX
+# LPhvwujaB4Mr4M/MQQ2ZZD4sOSXNhFgxe4/JYKw49a2q/REU0vSZRUK9/xo=
 # SIG # End signature block

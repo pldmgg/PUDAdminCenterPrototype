@@ -17,6 +17,26 @@
     
     .ROLE
         Readers
+
+    .PARAMETER channel
+        This parameter is MANDATORY.
+
+        TODO
+
+    .PARAMETER path
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER nearlyExpiredThresholdInDays
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-CertificateOverview -channel "Microsoft-Windows-CertificateServicesClient-Lifecycle-System*"
     
 #>
 function Get-CertificateOverview {
@@ -88,8 +108,8 @@ function Get-CertificateOverview {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUMnHkdb/f9b9YUqVOtj0G0ZO9
-# Atygggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU8CcvaRozAi4QIBYxERQLDVha
+# MUGgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -146,11 +166,11 @@ function Get-CertificateOverview {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFGFi454i8qsqG15D
-# F3GYwsVX4i/2MA0GCSqGSIb3DQEBAQUABIIBAJVb4oGu5zJFhSXmYmA7nFsM6TBO
-# jVZjiTQMmXlqOZiMvhbSV6c7UXQye3MyVBTdxVpcykRBCidyWyN6LQwEJfK6kp/u
-# KF7nVKX7soOHvAe2RAf15qw+JqF/XoWJMCv8X9cJ3/zOtETJx3HHioTrurOEMZfz
-# cNd3x4m4Ex9XPh7MqvVGymqcuOJXWEuxsuQLIibxJUJoc3z+xYx+Ft5g1X/gMgqk
-# YMoVbSiGpTrIEe7mo93dgx0BVzegLDNGfR8+NqFOaPbn7lYLX/2atS5xHP7DZAOm
-# rKwaxJlIXngCumhROCc31A6Ox7OUbt9Kz4xMNI+Viv4On++2ASU5PXW6/xo=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFGDPZpfXrLBb/xb7
+# YjiJOWEPiEfHMA0GCSqGSIb3DQEBAQUABIIBAAufKenrrz0nSlSVlhhukmoWwJD3
+# Ponv1sRnsFpNeh3HxtRrsX3IPq5CLE/GSOhQQZyw5HBg/NEsx9sEZJMRVrp9DFh2
+# QxGdKfyu/U5eaG1NgJfNPIWawmSwXA2gw+sXfJnCY5bzvDyabBopZrj9w01ARIFh
+# aLZjRn027HJm+FXBm2r49vxyUvk0Mtb0XKp6B1lzhWvK19PCJgFrxrfnCQDQjnW5
+# 6undA2x6aaQNVlNLqpP5HW7izsCqaJA4w8s+tW4+y/CZ5pzM5nNMd6g9PlR/yhPC
+# kLNq1A70mZW07qKhgRkzPoHA/l46uQIjBSzRT9DD3B3cVxpWqfbXPnO1cc0=
 # SIG # End signature block

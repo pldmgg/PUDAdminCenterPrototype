@@ -1,4 +1,20 @@
-# From: https://stackoverflow.com/a/41626130
+<#
+    
+    .SYNOPSIS
+        Get Windows Update History.
+    
+    .DESCRIPTION
+        See .SYNOPSIS
+
+    .NOTES
+        From: https://stackoverflow.com/a/41626130
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Get-WuaHistory
+    
+#>
 function Get-WuaHistory {
     #region >> Helper Functions
 
@@ -44,8 +60,8 @@ function Get-WuaHistory {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZUN0YKTWFbqKg2IERG19U7Gp
-# 9bKgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUsyMNHxrh5MVabflOq1BxKjtY
+# RKigggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -102,11 +118,11 @@ function Get-WuaHistory {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFIJNMYLxHOAV+sSw
-# B5CCjvlCpVPaMA0GCSqGSIb3DQEBAQUABIIBALPzd3K7z6MUgnxn212xZYxHKp6K
-# 3nXb1+Sg5U5sJ3DcgamQ9P6S7zhdOR3gpC+reA3BfuedRopx+7CSQr+syfQ4C+Fb
-# uZRbnQFcvAqqx0xvRDYlvaeyVHj6R2mCJrwzlpyl+GtCIkiATJWWEtYw1/UqPD57
-# 9DMYTTo/x2hoxriL+Rzu7HixxsCJoP8x2iB76M8ZBNkkzcaJURn/MrTCTjlGFeP9
-# FMlHLCoNmO4WnHRn4r6HNS1uhcyC5h/455vR8h4XaFTUC+eoQn/KmIaOW6/l1Hx6
-# aVDz6+8LZDQH36AI00M2WaMO8O+j/EvmehQMvyvsQPauPYlUkzQPyNmVSww=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFO35MGm7qBy3RZl5
+# IAlnFvDTIPtCMA0GCSqGSIb3DQEBAQUABIIBAAak5zQk4wr2a6/7sY3ExLgDVEti
+# mjm9LZot83/bAid4g7iB7XXCeTquL+wG84beKfKZkTnkhkBPK52GAR5D9qmHpuxF
+# rB9GSHsgmWeO/jtIL6scaaGQjFFm/eiSflQ+oOkjDd7N940jNn+NRKNng3mTZJAM
+# SVjzU3I8JNd/Lz4rGYfOqiCvxWK3UvJZkbBWoKc+QVTYdFBJ6DI65rLcj3i+8sy8
+# LyUDZ9sl+5bo3ePQ9NooObCVP3oky5XBJdrFc3sUFHN+BbQOcne4nDNvDFNXizhT
+# VHUda/d0MtH7X4WvUBVy7IyuXe8gO+ptmt7AAXuVzA0g7wl3gtyiO1bBXvI=
 # SIG # End signature block

@@ -130,11 +130,29 @@ if ($ModulesToInstallAndImport.Count -gt 0) {
     # Add the Import-Module Universal.Dashboard Module else install .Net Framework 4.7.2 code
     $ImportUDCommCode = @'
 
+# Can't just install and import UniversalDashboard.Community automatically because of interactive license agreement prompt. So, it must be done
+# manually before trying to import PUDAdminCenterPrototype.
+if (![bool]$(Get-Module -ListAvailable UniversalDashboard.Community)) {
+    $InstallPUDCommunityMsg = "Please install the UniversalDashboard.Community PowerShell Module via...`n    Install-Module UniversalDashboard.Community`n..." +
+    "and try importing the PUDAdminCenterPrototype Module in a fresh Windows PowerShell 5.1 session."
+    Write-Warning $InstallPUDCommunityMsg
+    Write-Warning "The $ThisModule Module was NOT loaded successfully! Please run:`n    Remove-Module $ThisModule"
+    $global:FunctionResult = "1"
+    return
+}
+
 if (![bool]$(Get-Module UniversalDashboard.Community)) {
     try {
         Import-Module UniversalDashboard.Community -ErrorAction Stop
     }
     catch {
+        Write-Error $_
+        Write-Warning "The $ThisModule Module was NOT loaded successfully! Please run:`n    Remove-Module $ThisModule"
+        $global:FunctionResult = "1"
+        return
+
+        # The below is commented out because there's some concern about whether installing .Net 4.7.2 automatically on Module Import is a good practice
+        <#
         if ($_.Exception.Message -match "\.Net Framework") {
             $Net472Check = Get-ChildItem "HKLM:SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full\" | Get-ItemPropertyValue -Name Release | ForEach-Object { $_ -ge 461808 }
 
@@ -169,6 +187,7 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
             $global:FunctionResult = "1"
             return
         }
+        #>
     }
 }
 
@@ -271,8 +290,8 @@ Task Deploy -Depends Build {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUjVP//rY6bojW/7h/37DXHo0+
-# bMqgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUyjrMzCHtMzyDOPcnP9TPka7q
+# IPmgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -329,11 +348,11 @@ Task Deploy -Depends Build {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFKjJUFxZRevznGB3
-# nzNSRei6RdslMA0GCSqGSIb3DQEBAQUABIIBAIE+8PizP82UqC9z+lY5/23Um14O
-# 4+R3H7PD7MCZEnBeZ7JowZsFjBSfouUACOZ+LIbq4DX0X7QNXqheT8x7yahFMLNP
-# KUz8iHN5GaPe3yflo5X9dLfZ62/P95ioqD9ctwDx4LgHuTIXTlYhDAbJtp+uekZa
-# /Cxjg2lqVkRlpNFOtrwBaJPwhtjLfJmWcJqXstVYsfGzCG2EBAz9Wyy2Zak+UPi7
-# EHdaZ+zZHs/vEmi14LLV5AIuPgq2f2ON5pe6JxpKft9hq5W8UhxWT9211kemSAUK
-# 5H0nYdy5OT617kSVTtQ30yPD4f0fxybH+jjwMzGg76AsMFGJiCK80f2SmLg=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFGo4nn39zW4tpUL9
+# mWXgOIPK9fduMA0GCSqGSIb3DQEBAQUABIIBABsrM2qj9g3n/eJes19MIVXevMYn
+# 6GYqw1xjYqZWxTLI8GOc5+WCM+bPO5xc6v8W4lVAU/7KOZqAvzmPeQb74YSLLRDb
+# Da6FbGSmCinklGKfyja8OdWphSngegmTAgQc8UuJGNpBq5f17ksv/iit8o9ALRjE
+# tlA3oV75792duvdMn1Pvz9jdaY9jsb1Z78JNpm/c0d10ZCngG7/kXS2PcqpThXH/
+# WOiHVV3WP+9RdVVWvNnXqITh0UNOaKaaAdfL2F8+GjfDoW3BhDyc19HB4aC5lOWY
+# YNwA2DT5UGD9QYt4IdHEINauxpJOJz2kmR/Fwe8ReoXSQ4+D4kMlEe77Rvw=
 # SIG # End signature block

@@ -17,6 +17,31 @@
     
     .ROLE
         Administrators
+
+    .PARAMETER oldName
+        This parameter is MANDATORY.
+
+        TODO
+
+    .PARAMETER newName
+        This parameter is MANDATORY.
+
+        TODO
+
+    .PARAMETER value
+        This parameter is MANDATORY.
+
+        TODO
+
+    .PARAMETER type
+        This parameter is MANDATORY.
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Set-EnvironmentVariable -oldName "OldVar" -newName "NewVar" -value "thing1" -type "User"
     
 #>
 function Set-EnvironmentVariable {
@@ -69,8 +94,8 @@ function Set-EnvironmentVariable {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU5Rc9z7CP/8nnDW1qFbIqRblD
-# BL2gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU3FPu0Rrm4gqSVBLG3sin4LZk
+# D4ygggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -127,11 +152,11 @@ function Set-EnvironmentVariable {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFPdtRpBJd9C77/+H
-# iQ63PND73dtaMA0GCSqGSIb3DQEBAQUABIIBACMUjqyQ8RsiECiY7d4A/QnnR6X4
-# qelsbkZw3Qat7m2lOJiR6cbzdUQHp/S6m6Eu1x0pOCMhVCRRGWY9HZBE+UifumJ/
-# zTxouPGP02t0XlZbQneCj8V3wFpRNI8yQBEnVbEravZ8+YteMitQb2irVH2wKP4b
-# KBeASsuECq7z0EpJVuTwUHgC45FrPTEOsAGQaoXotOpK5iumLp+PuvMZl00yhhoe
-# c6qwyUzCDbTtq1XDSIlI2FgJmwKE7e7un1hpL8EPf7fkFsd1kV1ZZHljYqEZTkMs
-# KegkpTstTmfLuIrpcamfa5b+7DkT8Y7HeYYskpCVsUTL2Zez9xM0+ukz7mU=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFO44UPLdXqJqaWX/
+# NPklZYGYUSksMA0GCSqGSIb3DQEBAQUABIIBACbDqObSDSv5QU4PEz4oIcWJrA7D
+# 3ftpC8qRFV2/r0+pMDqMcUhubCvHslLMuUVPbX7K1Lcd0wIvYbNRMkFDrejXQsCw
+# Hb2LcRslR1PHRtNv8dWCTWgIJO+lq2tfG2ULkaVeNN4uRpMpyUeJ45NAh9MFUDVI
+# 3BNDwQJrXox9BmLJSCKGh0+dS1SW3sYpCH3sez3yFLYmoGjO62yM/JBx8cqe/19/
+# XG1GhPY/36u2U5KApjLuKeVXReC57EPyXw/cCnJ6I0MC2w09THCf7QvaVCuP3aEv
+# t3ycj5yI2BbrsxgPQtqAKSXjqbTCzM0j0FAV9WQffAA8PyFQQ8es46V3PY4=
 # SIG # End signature block

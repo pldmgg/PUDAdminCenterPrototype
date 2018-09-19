@@ -17,6 +17,26 @@
     
     .ROLE
         Administrators
+
+    .PARAMETER AllowRemoteDesktop
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER AllowRemoteDesktopWithNLA
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .PARAMETER EnableRemoteApp
+        This parameter is OPTIONAL.
+
+        TODO
+
+    .EXAMPLE
+        # Open an elevated PowerShell Session, import the module, and -
+
+        PS C:\Users\zeroadmin> Set-RemoteDesktop -AllowRemoteDesktop
     
 #>
 function Set-RemoteDesktop {
@@ -66,8 +86,8 @@ function Set-RemoteDesktop {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUcaSm3CUDCC66RZ88v/GGha1R
-# Obigggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUqDGyWCnB+qoTNIBYflRTt63y
+# zvagggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -124,11 +144,11 @@ function Set-RemoteDesktop {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFN2F/W/sorr53tja
-# WURoeQwqTT0RMA0GCSqGSIb3DQEBAQUABIIBAL5s+yZ3J6/a+zAfBhWPWILg91Qq
-# ykGTKmXeSvC2HBerhgtRJz43y4F/R4A+awOKVmOC7XUwnoDBv6rcJxRSxaOs9t33
-# Lp0rlfuMythFeYxP+U/KlAyav0yZlkwVUwSJdVF78Wk0KIMeRYwq3JcLemQHkJ2/
-# 2XD+KG3ROj+x5VHMqiJ67dN9Fk8oMbHttwlZPFQK9PR0nPQ4ppoDq04kPxhUeYkI
-# /rZWJARNUESPf2PYJ3V2NzVauhdmVI3z50GCyw0pbsELVm8nwE+AnAF9AfcCwEQ/
-# wBqMa7SswrF6Au4dooqO1huGaeffr6g/QpwYJ7vpTmlhonxehl9eI6fyPcU=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFBHXNBaselbu6/3r
+# WPcYjC7sYAA7MA0GCSqGSIb3DQEBAQUABIIBADNYmylkAxt5Uf/U3dO9TjCJqXFi
+# hNG5k1PHVfgTesiNs3MPzOQhgX0JX5LAazgOLYfhpt14fFeYq7ulaUmTioY6Jkr6
+# 7KF9WNvwxb76/kn7LjS9EUl6fB6ERCRzE0jIwHsPy1kMOTnIQfG5lKRprxavFf34
+# kNmztmD/LzwzkTBnQfc9yEnhC0K8tH6ytoUbqrD0zR5QHGtlvb+dnOI14L8vGkvD
+# rZ2i5NsOvPqCfoB/a2xLnBHye1TSQ0Ofppaoi3/y7msJuB9qWMQRyrolv7Lo+mgW
+# I7G+diaZBF/+ZjV1LSuTyNDpT3kGvxfyryYY2SNYnyt1UwiyER29UZ+J37A=
 # SIG # End signature block
