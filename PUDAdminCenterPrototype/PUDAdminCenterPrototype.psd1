@@ -30,7 +30,7 @@ CompanyName = 'pldmgg'
 Copyright = '(c) 2018 pldmgg. All rights reserved.'
 
 # Description of the functionality provided by this module
-Description = 'Recreating the Windows Admin Center (https://docs.microsoft.com/en-us/windows-server/manage/windows-admin-center/overview) via PowerShell Universal Dashboard. GitHub: https://github.com/pldmgg/PUDWinAdminCenter'
+Description = 'Recreating the Windows Admin Center (https://docs.microsoft.com/en-us/windows-server/manage/windows-admin-center/overview) via PowerShell Universal Dashboard to manage Windows and Linux via Web GUI. GitHub: https://github.com/pldmgg/PUDAdminCenterPrototype'
 
 # Minimum version of the Windows PowerShell engine required by this module
 PowerShellVersion = '5.1'
