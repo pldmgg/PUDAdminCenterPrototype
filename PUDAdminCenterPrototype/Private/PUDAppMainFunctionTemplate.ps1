@@ -13,6 +13,12 @@
         This parameter takes an integer between 1 and 32768 that represents the port on the localhost that the site
         will run on.
 
+    .PARAMETER InstallNmap
+        This parameter is OPTIONAL, however, it has a default value of $True.
+
+        This parameter is a switch. If used, nmap will be installed in order to guess the Operating System of
+        Remote Hosts on the network.
+
     .PARAMETER RemoveExistingPUD
         This parameter is OPTIONAL, however, it has a default value of $True.
 
@@ -30,6 +36,9 @@ function Get-PUDAdminCenter {
         [Parameter(Mandatory=$False)]
         [ValidateRange(1,32768)]
         [int]$Port = 80,
+
+        [Parameter(Mandatory=$False)]
+        [switch]$InstallNmap = $True,
 
         [Parameter(Mandatory=$False)]
         [switch]$RemoveExistingPUD = $True
@@ -188,41 +197,41 @@ function Get-PUDAdminCenter {
         $PUDRSSyncHT.Add($Key,$Value)
     }
 
-    # Install nmap
-    if ($(Get-Module -ListAvailable).Name -notcontains "ProgramManagement") {Install-Module ProgramManagement}
-    if ($(Get-Module).Name -notcontains "ProgramManagement") {Import-Module ProgramManagement}
-    if (!$(Get-Command nmap -ErrorAction SilentlyContinue)) {
-        try {
-            Write-Host "Installing 'nmap'. This could take up to 10 minutes..." -ForegroundColor Yellow
-            $InstallnmapResult = Install-Program -ProgramName nmap -CommandName nmap
+    if ($InstallNmap) {
+        # Install nmap
+        if ($(Get-Module -ListAvailable).Name -notcontains "ProgramManagement") {Install-Module ProgramManagement}
+        if ($(Get-Module).Name -notcontains "ProgramManagement") {Import-Module ProgramManagement}
+        if (!$(Get-Command nmap -ErrorAction SilentlyContinue)) {
+            try {
+                Write-Host "Installing 'nmap'. This could take up to 10 minutes..." -ForegroundColor Yellow
+                $InstallnmapResult = Install-Program -ProgramName nmap -CommandName nmap
+            }
+            catch {
+                Write-Error $_
+                $global:FunctionResult = "1"
+                return
+            }
         }
-        catch {
-            Write-Error $_
+        if (!$(Get-Command nmap -ErrorAction SilentlyContinue)) {
+            Write-Error "Unable to find the command 'nmap'! Halting!"
             $global:FunctionResult = "1"
             return
         }
+        $NmapParentDir = $(Get-Command nmap).Source | Split-Path -Parent
+        [System.Collections.Arraylist][array]$CurrentEnvPathArray = $env:Path -split ';' | Where-Object {![System.String]::IsNullOrWhiteSpace($_)}
+        if ($CurrentEnvPathArray -notcontains $NmapParentDir) {
+            $CurrentEnvPathArray.Insert(0,$NmapParentDir)
+            $env:Path = $CurrentEnvPathArray -join ';'
+        }
+        $SystemPathInRegistry = 'HKLM:\System\CurrentControlSet\Control\Session Manager\Environment'
+        $CurrentSystemPath = $(Get-ItemProperty -Path $SystemPathInRegistry -Name PATH).Path
+        [System.Collections.Arraylist][array]$CurrentSystemPathArray = $CurrentSystemPath -split ";" | Where-Object {![System.String]::IsNullOrWhiteSpace($_)}
+        if ($CurrentSystemPathArray -notcontains $NmapParentDir) {
+            $CurrentSystemPathArray.Insert(0,$NmapParentDir)
+            $UpdatedSystemPath = $CurrentSystemPathArray -join ';'
+            Set-ItemProperty -Path $SystemPathInRegistry -Name PATH -Value $UpdatedSystemPath
+        }
     }
-    if (!$(Get-Command nmap -ErrorAction SilentlyContinue)) {
-        Write-Error "Unable to find the command 'nmap'! Halting!"
-        $global:FunctionResult = "1"
-        return
-    }
-    $NmapParentDir = $(Get-Command nmap).Source | Split-Path -Parent
-    [System.Collections.Arraylist][array]$CurrentEnvPathArray = $env:Path -split ';' | Where-Object {![System.String]::IsNullOrWhiteSpace($_)}
-    if ($CurrentEnvPathArray -notcontains $NmapParentDir) {
-        $CurrentEnvPathArray.Insert(0,$NmapParentDir)
-        $env:Path = $CurrentEnvPathArray -join ';'
-    }
-    $SystemPathInRegistry = 'HKLM:\System\CurrentControlSet\Control\Session Manager\Environment'
-    $CurrentSystemPath = $(Get-ItemProperty -Path $SystemPathInRegistry -Name PATH).Path
-    [System.Collections.Arraylist][array]$CurrentSystemPathArray = $CurrentSystemPath -split ";" | Where-Object {![System.String]::IsNullOrWhiteSpace($_)}
-    if ($CurrentSystemPathArray -notcontains $NmapParentDir) {
-        $CurrentSystemPathArray.Insert(0,$NmapParentDir)
-        $UpdatedSystemPath = $CurrentSystemPathArray -join ';'
-        Set-ItemProperty -Path $SystemPathInRegistry -Name PATH -Value $UpdatedSystemPath
-    }
-    
-    
 
     #endregion >> Prep
 
@@ -255,8 +264,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUzUtQiisD2c+krtZ9Vk5sa/Pr
-# e9Sgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUqUoABhRLsrLpVaBayR2X+UXY
+# mTygggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -313,11 +322,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFHwTg7A6bRzh8QqC
-# QdLTx1HUhyJAMA0GCSqGSIb3DQEBAQUABIIBAA5k0ZirE/VJPR6C8quocX0uA4Iu
-# hZ6XS+R2pEFgesSunlrMhI8A4oMKNv/7hHwm0PSg+uYcqVQvxov9EX1lniPCl6+6
-# 93zLLh0pRoEuDjfd87GGbJJA4RT4ds2+Njq9CznGWnJS0eC0dMzZEirfFLlO6OSO
-# Vui6yu1r8JB/zqZSQh2EHz3kScBOCy6QsJG+wf7VanhoBMUGP9ZyLMtxrv7TmLwa
-# +m2Umj6+R4nSxZWtG+0YQms8+qR+ZHOZkGdiLfrVTqL4Chbf9oqjdT91cUaijGRq
-# PcRei5LUeAygkS3eYHvVqRSaa0bXwqt/lGm2RVjLP0R1/5TKHGvTgrVfjsw=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFELtqS0JTgl3risg
+# fO0YJVanN3MUMA0GCSqGSIb3DQEBAQUABIIBAJc4XWbgCbhBUvZq+6k4x7Y1l0Dc
+# KGQ/dRTE3dY02nP64evK1WynTntuxnQivv89OuCNTRQkZdHt0uCxweYevTMAEtAL
+# Cf2rOahRwQ2TRChC0cbuKREHeCIA4nqeS03OWFFS0oGu9ejICiQxYdykY+nr+c45
+# zcBJigpF4JvyoLL5DlB3uYYqtmedE7S9dyJOCna1/oyfpYUXmKse79kmKYLdhAB+
+# FA1fW5pi0yV93nZCmxieQ32uSRhJU0pvFI7upG5EFQDUEuChni3N0psgLngxT/XI
+# LYBMXZhxLKa1QhDAu8nKI4bIBu8f3aPZ1nkGGy640v/Zz7RggFg5oCo5nsk=
 # SIG # End signature block

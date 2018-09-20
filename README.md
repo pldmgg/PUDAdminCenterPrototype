@@ -44,6 +44,8 @@ function that handles starting the Universal Dashboard WebServer is `Get-PUDAdmi
 
 ### Scenario 1: Run the WebServer on localhost port 80 from an interactive Windows PowerShell 5.1 Session
 
+IMPORTANT NOTE: Running `Get-PUDAdminCenter` without any parameters will install nmap (https://nmap.org/book/inst-windows.html). If you do NOT want nmap installed, use the parameter `-InstallNmap:$False`
+
 ```powershell
 PS C:\Users\zeroadmin> Get-PUDAdminCenter
 

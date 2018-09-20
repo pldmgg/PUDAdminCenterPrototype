@@ -380,17 +380,22 @@ $HomePageContent = {
                         $OSGuess = $(Get-CimInstance Win32_OperatingSystem).Caption
                     }
                     else {
-                        $NmapOSResult = nmap -O $RHost.IPAddressList[0]
-                        if ($NmapOSResult -match "OS details:") {
-                            $OSGuessPrep = $($NmapOSResult | Where-Object {$_ -match "OS details:"}) -replace "OS details: ",""
-                            $OSGuess = if ($OSGuessPrep -match ',') {$($OSGuessPrep -split ',')[0].Trim()} else {$OSGuessPrep.Trim()}
+                        if ([bool]$(Get-Command nmap -ErrorAction SilentlyContinue)) {
+                            $NmapOSResult = nmap -O $RHost.IPAddressList[0]
+                            if ($NmapOSResult -match "OS details:") {
+                                $OSGuessPrep = $($NmapOSResult | Where-Object {$_ -match "OS details:"}) -replace "OS details: ",""
+                                $OSGuess = if ($OSGuessPrep -match ',') {$($OSGuessPrep -split ',')[0].Trim()} else {$OSGuessPrep.Trim()}
+                            }
+                            if ($NmapOSResult -match "Aggressive OS guesses:") {
+                                $OSGuessPrep = $($NmapOSResult | Where-Object {$_ -match "Aggressive OS guesses:"}) -replace "Aggressive OS guesses: ",""
+                                $OSGuessPrep = if ($OSGuessPrep -match ',') {$($OSGuessPrep -split ',')[0]} else {$OSGuessPrep}
+                                $OSGuess = $($OSGuessPrep -replace "[\s]\([0-9]+%\)","").Trim()
+                            }
+                            if (!$OSGuess) {
+                                $OSGuess = $null
+                            }
                         }
-                        if ($NmapOSResult -match "Aggressive OS guesses:") {
-                            $OSGuessPrep = $($NmapOSResult | Where-Object {$_ -match "Aggressive OS guesses:"}) -replace "Aggressive OS guesses: ",""
-                            $OSGuessPrep = if ($OSGuessPrep -match ',') {$($OSGuessPrep -split ',')[0]} else {$OSGuessPrep}
-                            $OSGuess = $($OSGuessPrep -replace "[\s]\([0-9]+%\)","").Trim()
-                        }
-                        if (!$OSGuess) {
+                        else {
                             $OSGuess = $null
                         }
                     }
