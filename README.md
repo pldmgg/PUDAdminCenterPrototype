@@ -6,9 +6,8 @@ Web-based GUI (PowerShell Universal Dashboard) that manages remote devices. Base
 
 # Screenshots
 
-![Home](/Media/1Home.png)
-![HostSelect](/Media/2ServerSelection.png)
-![Monitor](/Media/3Monitor.png)
+![Home](/Media/Home.png)
+![Overview](/Media/Overview.png)
 
 ## Getting Started
 
