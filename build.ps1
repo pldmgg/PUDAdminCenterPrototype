@@ -271,11 +271,11 @@ else {
     $PUDAppMainFunctionTemplateContent = Get-Content "$env:BHModulePath\Private\PUDAppMainFunctionTemplate.ps1"
     $DynamicPagesContent = foreach ($FileItem in $(Get-ChildItem -Path "$env:BHModulePath\Pages\Dynamic" -File)) {
         # Indent each line...
-        Get-Content $FileItem | foreach {"    $_"}
+        Get-Content $FileItem.FullName | foreach {"    $_"}
     }
     $StaticPagesContent = foreach ($FileItem in $(Get-ChildItem -Path "$env:BHModulePath\Pages\Static" -File)) {
         # Indent each line...
-        Get-Content $FileItem | foreach {"    $_"}
+        Get-Content $FileItem.FullName | foreach {"    $_"}
     }
     $GetPUDAdminCenterFunction = $(
         $PUDAppMainFunctionTemplateContent -replace '\# Add Dynamic Functions Here',$DynamicPagesContent
@@ -360,8 +360,8 @@ exit ( [int]( -not $psake.build_success ) )
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUCPbgtD3frDDf+Z3iyZw8K1Vg
-# BwGgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUBUpyd7YRM8FugilB7HMx96yR
+# 7T6gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -418,11 +418,11 @@ exit ( [int]( -not $psake.build_success ) )
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFA9OpajMZsV70cL1
-# LiwBrHKrGDqGMA0GCSqGSIb3DQEBAQUABIIBADPFtfqwJMOBW5lMjWFM1QJvwhJ9
-# 6EMrS5gFtYvcnjnfxkWwyutx5MMd+O0jPetsdtT/nb54MEnF5tx82ZatvTzlbJJi
-# S/UwRwZq1nO+DbcOW0z1DNanPUUnLNLlXkctEJmiRDqEHiuVH64WEfmjfBE0l+1H
-# LS6NXP9xMyzA36SX4XC68JVjNehoXsaKvt53wT/L80G0byHCkrxIPaAPYKzDFQV8
-# CVU7nsWS8Ln/GyFCBA7ltJZQeWlE1sIFE2zE+3/vUQSpZ6Kcs2GyiXTEa2YYXZw4
-# 0dMdwVTXV8QmaPl93wHyQ21DPH1gntsJMplR8ZITLO9Eat4FlaRDKg1Qe0U=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFPGStCUBpaZgVH8K
+# blBeqrfdk2kLMA0GCSqGSIb3DQEBAQUABIIBABnl4HOZ3oJyHq1IpBRnJYN00tkJ
+# a2039mnhFbAKhyMQL85G6CUG2TKNEo6lhv64cFLdNuHbWCrOrfaFAwC29QbZKhRH
+# IRaVhnKm5H1jM4R5V8CdiAfoqCDaxMrl3rMv8PFM7fvcjKmvDjTXFTyA9ToZBSQ9
+# Hl68em/HPPkrNOypGTh2Sz1wokFMQ1w/Oj69gbXkFlu8cGVWVk4xH9nroPuhaVce
+# aL14chmhbY/E3xqa7+UOkhpU/Vsvhwvo3oCETZxCbC+HS3hPcwpFbXoMBdl7TM3z
+# 7zT/KEyLt0/blFDSTesWtF1pP1Us/18uAfYK5cVWcB1kKELGS+RocKdUQNQ=
 # SIG # End signature block
