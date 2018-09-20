@@ -2,7 +2,12 @@
 
 
 # PUDAdminCenterPrototype
-Web-based GUI (PowerShell Universal Dashboard) that manages remote devices. Based on Windows Admin Center: https://docs.microsoft.com/en-us/windows-server/manage/windows-admin-center/overview.
+
+The goal of PUDAdminCenter is to provide a comprehensive, **easily customizable** Web App capable of managing Windows and Linux machines in your enviornment. It is based on functionality found in Microsoft's Windows Admin Center (https://docs.microsoft.com/en-us/windows-server/manage/windows-admin-center/overview).
+
+The PUDAdminCenterPrototype Module is a proof-of-concept that is currently only capable of managing Windows machines that have WinRM implemented via Windows PowerShell 5.1. PowerShell Core 6.X will allow for cross-platform management, however, for various reasons, the PUDAdminCenterPrototype Module is not fully compatible. As I refactor my own code and assist with bug fixes for PowerShell Universal Dashboard (https://github.com/ironmansoftware/universal-dashboard), I will slowly be adding features to the PowerShell Core compatible version here: 
+
+In the mean time, you can install and run PUDAdminCenterPrototype by using Windows PowerShell 5.1 on Windows 10, Windows 2012 R2, Windows 2016, or Windows 2019.
 
 # Screenshots
 
@@ -11,9 +16,7 @@ Web-based GUI (PowerShell Universal Dashboard) that manages remote devices. Base
 
 ## Getting Started
 
-Currently, PUDAdminCenterPrototype is not compatible with PowerShell Core 6.X (for various reasons). However, I will be working on refactoring this Module and bug fixing PowerShell Universal Dashboard in order to make a PowerShell Core 6.X solution. You can view my progress on this refactor here: "placeholder"
-
-In the mean time, you can install and run PUDAdminCenterPrototype by launch Windows PowerShell 5.1 via 'Run As Administrator' and do the following:
+Launch Windows PowerShell 5.1 via 'Run As Administrator' and do the following:
 
 ```powershell
 # Make sure you have .Net 4.7.2 (or later) installed
@@ -37,8 +40,7 @@ Install-Module PUDAdminCenterPrototype
 Import-Module PUDAdminCenterPrototype
 ```
 
-There are many function available upon Module import, and they can all be used independent of the Web Application. However, the main
-function that handles starting the Universal Dashboard WebServer is `Get-PUDAdminPrototype`.
+There are many functions available upon Module import, and they can all be used independent of the Web Application. However, the main function that handles starting the Universal Dashboard WebServer is `Get-PUDAdminPrototype`.
 
 ## Examples
 
