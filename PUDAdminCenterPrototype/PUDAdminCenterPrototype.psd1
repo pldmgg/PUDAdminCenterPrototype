@@ -12,7 +12,7 @@
 RootModule = 'PUDAdminCenterPrototype.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.1.1'
+ModuleVersion = '0.1.2'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -76,7 +76,7 @@ FunctionsToExport = 'Get-Certificates','Get-CertificateOverview','Get-CimPnpEnti
                     'Get-RemoteDesktop','Get-ScheduledTasks','Get-ServerInventory','Get-StorageDisk',
                     'Get-StorageFileShare','Get-StorageVolume','Get-WUAHistory','Install-DotNet472',
                     'New-EnvironmentVariable','New-Runspace','Remove-EnvironmentVariable','Set-ComputerIdentification',
-                    'Set-EnvironmentVariables','Set-RemoteDesktop','Start-DiskPerf','Stop-DiskPerf'
+                    'Set-EnvironmentVariable','Set-RemoteDesktop','Start-DiskPerf','Stop-DiskPerf'
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
 CmdletsToExport = '*'

@@ -269,17 +269,29 @@ if ($Cert) {
 else {
     # Build the Get-PUDAdminCenter Public Function
     $PUDAppMainFunctionTemplateContent = Get-Content "$env:BHModulePath\Private\PUDAppMainFunctionTemplate.ps1"
-    $DynamicPagesContent = foreach ($FileItem in $(Get-ChildItem -Path "$env:BHModulePath\Pages\Dynamic" -File)) {
-        # Indent each line...
-        Get-Content $FileItem.FullName | foreach {"    $_"}
+    $DynamicPagesContent = foreach ($FileItem in @(Get-ChildItem -Path "$env:BHModulePath\Pages\Dynamic" -File)) {
+        @(
+            Get-Content $FileItem.FullName
+            ""
+        )
     }
-    $StaticPagesContent = foreach ($FileItem in $(Get-ChildItem -Path "$env:BHModulePath\Pages\Static" -File)) {
-        # Indent each line...
-        Get-Content $FileItem.FullName | foreach {"    $_"}
+    $StaticPagesContent = foreach ($FileItem in @(Get-ChildItem -Path "$env:BHModulePath\Pages\Static" -File)) {
+        @(
+            Get-Content $FileItem.FullName
+            ""
+        )
     }
-    $GetPUDAdminCenterFunction = $(
-        $PUDAppMainFunctionTemplateContent -replace '\# Add Dynamic Functions Here',$DynamicPagesContent
-    ) -replace '\# Add Static Functions Here',$StaticPagesContent
+    $GetPUDAdminCenterFunction = $PUDAppMainFunctionTemplateContent | foreach {
+        if ($_ -eq "'Add Dynamic Pages Here'") {
+            $DynamicPagesContent | foreach {'    ' + $_}
+        }
+        elseif ($_ -eq "'Add Static Pages Here'") {
+            $StaticPagesContent | foreach {'    ' + $_}
+        }
+        else {
+            $_
+        }
+    }
     Set-Content -Path $env:BHModulePath\Public\Get-PUDAdminCenter.ps1 -Value $GetPUDAdminCenterFunction
 }
 
@@ -360,8 +372,8 @@ exit ( [int]( -not $psake.build_success ) )
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUBUpyd7YRM8FugilB7HMx96yR
-# 7T6gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUSx/YCClSO/2RSLktusEyk/jP
+# QG+gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -418,11 +430,11 @@ exit ( [int]( -not $psake.build_success ) )
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFPGStCUBpaZgVH8K
-# blBeqrfdk2kLMA0GCSqGSIb3DQEBAQUABIIBABnl4HOZ3oJyHq1IpBRnJYN00tkJ
-# a2039mnhFbAKhyMQL85G6CUG2TKNEo6lhv64cFLdNuHbWCrOrfaFAwC29QbZKhRH
-# IRaVhnKm5H1jM4R5V8CdiAfoqCDaxMrl3rMv8PFM7fvcjKmvDjTXFTyA9ToZBSQ9
-# Hl68em/HPPkrNOypGTh2Sz1wokFMQ1w/Oj69gbXkFlu8cGVWVk4xH9nroPuhaVce
-# aL14chmhbY/E3xqa7+UOkhpU/Vsvhwvo3oCETZxCbC+HS3hPcwpFbXoMBdl7TM3z
-# 7zT/KEyLt0/blFDSTesWtF1pP1Us/18uAfYK5cVWcB1kKELGS+RocKdUQNQ=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFGn3XegX8IhHzNN9
+# 8OCHrWfsgcUsMA0GCSqGSIb3DQEBAQUABIIBAKq0Wz4ElU+pJjAEPQVJhePib+Bd
+# iwZuxfnB7oNoODahWTIlWISqCx8b30V//hSEc2TkkyxPLZSxz7Ghdq4whAluzZ+z
+# yySfRCicxROEBnxhD2qRbkBwZ532QDhmOHC//MEXlT+RqLqPoyh8oT6RITgBHSuu
+# sQ5/iXKLVoVoK9u75/Ax/q4mzWlxNDpIhvn2RTyESXvNRcbDekSDkFShsiGm/o4v
+# teF0X+qBBPRuUl0yl4qzBqGeBF8fZp6oVUb8sP89ncUNsWUxbMxcj9Ynv4NAs4eR
+# 8FH5fMGBr5NFyvyns5NZCCiABUHK8bSQ3cBtGMaZrQ/8v92g/CGUKIGVjzI=
 # SIG # End signature block
