@@ -1,4 +1,4 @@
-[![Build status](https://ci.appveyor.com/api/projects/status/github/pldmgg/=master&svg=true)](https://ci.appveyor.com/project/pldmgg/PUDAdminCenterPrototype/branch/master)
+[![Build status](https://ci.appveyor.com/api/projects/status/github/pldmgg/pudadmincenterprototype?branch=master&svg=true)](https://ci.appveyor.com/project/pldmgg/pudadmincenterprototype/branch/master)
 
 
 # PUDAdminCenterPrototype
