@@ -3,7 +3,7 @@
 
 # PUDAdminCenterPrototype
 
-The goal of PUDAdminCenter is to provide a comprehensive, **easily customizable** Web App capable of managing Windows and Linux machines in your enviornment. It is based on functionality found in Microsoft's Windows Admin Center (https://docs.microsoft.com/en-us/windows-server/manage/windows-admin-center/overview).
+The goal of PUDAdminCenter is to provide a comprehensive, **easily customizable** Web App capable of managing Windows and Linux machines in your environment. It is based on functionality found in Microsoft's Windows Admin Center (https://docs.microsoft.com/en-us/windows-server/manage/windows-admin-center/overview).
 
 The PUDAdminCenterPrototype Module is a proof-of-concept that is currently only capable of managing Windows machines that have WinRM implemented via Windows PowerShell 5.1. PowerShell Core 6.X will allow for cross-platform management, however, for various reasons, the PUDAdminCenterPrototype Module is not fully compatible. As I refactor my own code and assist with bug fixes for PowerShell Universal Dashboard (https://github.com/ironmansoftware/universal-dashboard), I will slowly be adding features to the PowerShell Core compatible version here: https://github.com/pldmgg/PUDAdminCenter
 
