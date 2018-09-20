@@ -217,7 +217,8 @@ $FirewallPageContent = {
                         New-UDRow -Endpoint {
                             foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
                                 New-UDColumn -Endpoint {
-                                    New-UDLink -Text $ToolName -Url "/$ToolName/$RemoteHost" -Icon dashboard
+                                    $ToolNameNoSpaces = $ToolName -replace "[\s]",""
+                                    New-UDLink -Text $ToolName -Url "/$ToolNameNoSpaces/$RemoteHost" -Icon dashboard
                                 }
                             }
                             #New-UDCard -Links $Links

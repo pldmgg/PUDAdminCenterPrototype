@@ -2491,7 +2491,8 @@ function Get-PUDAdminCenter {
                             New-UDRow -Endpoint {
                                 foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
                                     New-UDColumn -Endpoint {
-                                        New-UDLink -Text $ToolName -Url "/$ToolName/$RemoteHost" -Icon dashboard
+                                        $ToolNameNoSpaces = $ToolName -replace "[\s]",""
+                                        New-UDLink -Text $ToolName -Url "/$ToolNameNoSpaces/$RemoteHost" -Icon dashboard
                                     }
                                 }
                                 #New-UDCard -Links $Links
@@ -2823,7 +2824,8 @@ function Get-PUDAdminCenter {
                             New-UDRow -Endpoint {
                                 foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
                                     New-UDColumn -Endpoint {
-                                        New-UDLink -Text $ToolName -Url "/$ToolName/$RemoteHost" -Icon dashboard
+                                        $ToolNameNoSpaces = $ToolName -replace "[\s]",""
+                                        New-UDLink -Text $ToolName -Url "/$ToolNameNoSpaces/$RemoteHost" -Icon dashboard
                                     }
                                 }
                                 #New-UDCard -Links $Links
@@ -3302,7 +3304,8 @@ function Get-PUDAdminCenter {
                             New-UDRow -Endpoint {
                                 foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
                                     New-UDColumn -Endpoint {
-                                        New-UDLink -Text $ToolName -Url "/$ToolName/$RemoteHost" -Icon dashboard
+                                        $ToolNameNoSpaces = $ToolName -replace "[\s]",""
+                                        New-UDLink -Text $ToolName -Url "/$ToolNameNoSpaces/$RemoteHost" -Icon dashboard
                                     }
                                 }
                                 #New-UDCard -Links $Links
@@ -3608,7 +3611,8 @@ function Get-PUDAdminCenter {
                             New-UDRow -Endpoint {
                                 foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
                                     New-UDColumn -Endpoint {
-                                        New-UDLink -Text $ToolName -Url "/$ToolName/$RemoteHost" -Icon dashboard
+                                        $ToolNameNoSpaces = $ToolName -replace "[\s]",""
+                                        New-UDLink -Text $ToolName -Url "/$ToolNameNoSpaces/$RemoteHost" -Icon dashboard
                                     }
                                 }
                                 #New-UDCard -Links $Links
@@ -4205,7 +4209,8 @@ function Get-PUDAdminCenter {
                             New-UDRow -Endpoint {
                                 foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
                                     New-UDColumn -Endpoint {
-                                        New-UDLink -Text $ToolName -Url "/$ToolName/$RemoteHost" -Icon dashboard
+                                        $ToolNameNoSpaces = $ToolName -replace "[\s]",""
+                                        New-UDLink -Text $ToolName -Url "/$ToolNameNoSpaces/$RemoteHost" -Icon dashboard
                                     }
                                 }
                                 #New-UDCard -Links $Links
@@ -4622,7 +4627,8 @@ function Get-PUDAdminCenter {
                             New-UDRow -Endpoint {
                                 foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
                                     New-UDColumn -Endpoint {
-                                        New-UDLink -Text $ToolName -Url "/$ToolName/$RemoteHost" -Icon dashboard
+                                        $ToolNameNoSpaces = $ToolName -replace "[\s]",""
+                                        New-UDLink -Text $ToolName -Url "/$ToolNameNoSpaces/$RemoteHost" -Icon dashboard
                                     }
                                 }
                                 #New-UDCard -Links $Links
@@ -5062,7 +5068,8 @@ function Get-PUDAdminCenter {
                             New-UDRow -Endpoint {
                                 foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
                                     New-UDColumn -Endpoint {
-                                        New-UDLink -Text $ToolName -Url "/$ToolName/$RemoteHost" -Icon dashboard
+                                        $ToolNameNoSpaces = $ToolName -replace "[\s]",""
+                                        New-UDLink -Text $ToolName -Url "/$ToolNameNoSpaces/$RemoteHost" -Icon dashboard
                                     }
                                 }
                                 #New-UDCard -Links $Links
@@ -7675,7 +7682,8 @@ function Get-PUDAdminCenter {
                             New-UDRow -Endpoint {
                                 foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
                                     New-UDColumn -Endpoint {
-                                        New-UDLink -Text $ToolName -Url "/$ToolName/$RemoteHost" -Icon dashboard
+                                        $ToolNameNoSpaces = $ToolName -replace "[\s]",""
+                                        New-UDLink -Text $ToolName -Url "/$ToolNameNoSpaces/$RemoteHost" -Icon dashboard
                                     }
                                 }
                                 #New-UDCard -Links $Links
@@ -9394,7 +9402,8 @@ function Get-PUDAdminCenter {
                             New-UDRow -Endpoint {
                                 foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
                                     New-UDColumn -Endpoint {
-                                        New-UDLink -Text $ToolName -Url "/$ToolName/$RemoteHost" -Icon dashboard
+                                        $ToolNameNoSpaces = $ToolName -replace "[\s]",""
+                                        New-UDLink -Text $ToolName -Url "/$ToolNameNoSpaces/$RemoteHost" -Icon dashboard
                                     }
                                 }
                                 #New-UDCard -Links $Links
@@ -10872,7 +10881,8 @@ function Get-PUDAdminCenter {
                             New-UDRow -Endpoint {
                                 foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
                                     New-UDColumn -Endpoint {
-                                        New-UDLink -Text $ToolName -Url "/$ToolName/$RemoteHost" -Icon dashboard
+                                        $ToolNameNoSpaces = $ToolName -replace "[\s]",""
+                                        New-UDLink -Text $ToolName -Url "/$ToolNameNoSpaces/$RemoteHost" -Icon dashboard
                                     }
                                 }
                                 #New-UDCard -Links $Links
@@ -11266,7 +11276,8 @@ function Get-PUDAdminCenter {
                             New-UDRow -Endpoint {
                                 foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
                                     New-UDColumn -Endpoint {
-                                        New-UDLink -Text $ToolName -Url "/$ToolName/$RemoteHost" -Icon dashboard
+                                        $ToolNameNoSpaces = $ToolName -replace "[\s]",""
+                                        New-UDLink -Text $ToolName -Url "/$ToolNameNoSpaces/$RemoteHost" -Icon dashboard
                                     }
                                 }
                                 #New-UDCard -Links $Links
@@ -11699,7 +11710,8 @@ function Get-PUDAdminCenter {
                             New-UDRow -Endpoint {
                                 foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
                                     New-UDColumn -Endpoint {
-                                        New-UDLink -Text $ToolName -Url "/$ToolName/$RemoteHost" -Icon dashboard
+                                        $ToolNameNoSpaces = $ToolName -replace "[\s]",""
+                                        New-UDLink -Text $ToolName -Url "/$ToolNameNoSpaces/$RemoteHost" -Icon dashboard
                                     }
                                 }
                                 #New-UDCard -Links $Links
@@ -12065,7 +12077,8 @@ function Get-PUDAdminCenter {
                             New-UDRow -Endpoint {
                                 foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
                                     New-UDColumn -Endpoint {
-                                        New-UDLink -Text $ToolName -Url "/$ToolName/$RemoteHost" -Icon dashboard
+                                        $ToolNameNoSpaces = $ToolName -replace "[\s]",""
+                                        New-UDLink -Text $ToolName -Url "/$ToolNameNoSpaces/$RemoteHost" -Icon dashboard
                                     }
                                 }
                                 #New-UDCard -Links $Links
@@ -12890,7 +12903,8 @@ function Get-PUDAdminCenter {
                             New-UDRow -Endpoint {
                                 foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
                                     New-UDColumn -Endpoint {
-                                        New-UDLink -Text $ToolName -Url "/$ToolName/$RemoteHost" -Icon dashboard
+                                        $ToolNameNoSpaces = $ToolName -replace "[\s]",""
+                                        New-UDLink -Text $ToolName -Url "/$ToolNameNoSpaces/$RemoteHost" -Icon dashboard
                                     }
                                 }
                                 #New-UDCard -Links $Links
@@ -13321,7 +13335,8 @@ function Get-PUDAdminCenter {
                             New-UDRow -Endpoint {
                                 foreach ($ToolName in $($Cache:DynamicPages | Where-Object {$_ -notmatch "PSRemotingCreds|ToolSelect"})) {
                                     New-UDColumn -Endpoint {
-                                        New-UDLink -Text $ToolName -Url "/$ToolName/$RemoteHost" -Icon dashboard
+                                        $ToolNameNoSpaces = $ToolName -replace "[\s]",""
+                                        New-UDLink -Text $ToolName -Url "/$ToolNameNoSpaces/$RemoteHost" -Icon dashboard
                                     }
                                 }
                                 #New-UDCard -Links $Links
@@ -16853,8 +16868,8 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU5c3/BzHUjONVP5yW9u+dIQvK
-# 1Gigggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZbJ7Ph8zwtLS8PYttEbYtdGl
+# Dc6gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -16911,11 +16926,11 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFHb0Ak6tu0qfbErG
-# FuFD0oCswQimMA0GCSqGSIb3DQEBAQUABIIBAJB80V2aSK08vbM2FbIq66ThkyrB
-# 5IwaKgbo0wZef/o5lefuXDhpietBLp8nas5hDBlfgOkSV1UdHzuPyKntjSMvg4+R
-# 3mu97+/X54FG4PF+Lq/ehDDN3s+tk4Nunta9fYiYlrUToHYLWOaJNJYNijzi8t3+
-# cvXyQ//YHhr0da3rSwnmsysCsxPw+zrLN29rOKzsAYWAGWtbo2nSE8r/WGkda4CJ
-# ifgEFhE2+XtPFwXQgl6g0XG4x3Dwl1hjOVpI9dUk9pRLg0bP2PTAqwkbbJ+fFHhU
-# phH4PL0DRLyJuT0UAHl0611mZzTJqYs7E9X1qiS2hsUaI+1gCGk1zYoCqPI=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFJ5OFHheCrDWeWar
+# 8LKL9iamxBP3MA0GCSqGSIb3DQEBAQUABIIBAAkzycb4Vuw2L8K0y+/5TVvVEj5B
+# f4rxwyZj1xfO4zOfYIWxYTdoFOH7FhebOj/mGjA0CQXz63OMWckA8OwhGCpsRBYg
+# QtFT1tI4XLNxRrdrX0/0/5/5lA1FzptK6Sg9NM+ddlUJllnUkRlqEEV0RHtj7Rt/
+# 8+v1p+2XLHhTzH06Dx+YWBA8RKLV2zqtdrMDZwDlXquVAn4sc9rpQLA5JmWBC6bi
+# nKWUjnGxq8R/ARi6h6xPByFytQYXroVnQUYmW5B9ZqIENSV1lwri65flxLCGxkk6
+# dM4VLdfIBlbmwsbBsHSc9u8DJGtxz8Rf+t3ZiJpqDVr7+QEkJiCZeEY4Jhw=
 # SIG # End signature block
