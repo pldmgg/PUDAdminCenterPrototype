@@ -70,7 +70,7 @@ $HomePageContent = {
                 $Session:ScanNetwork = $True
                 Sync-UDElement -Id "ScanNetwork"
 
-                [System.Collections.ArrayList]$ScanRemoteHostListPrep = $(GetComputerObjectsInLDAP).Name
+                [System.Collections.ArrayList]$ScanRemoteHostListPrep = $(GetComputerObjectsInLDAP -ObjectCount 20).Name
                 # Let's just get 20 of them initially. We want *something* on the HomePage but we don't want hundreds/thousands of entries. We want
                 # the user to specify individual/range of hosts/devices that they want to manage.
                 #$ScanRemoteHostListPrep = $ScanRemoteHostListPrep[0..20]

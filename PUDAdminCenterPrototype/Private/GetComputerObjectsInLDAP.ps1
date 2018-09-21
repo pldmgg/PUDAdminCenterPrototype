@@ -1,6 +1,9 @@
 function GetComputerObjectsInLDAP {
     [CmdletBinding()]
-    Param()
+    Param(
+        [Parameter(Mandatory=$False)]
+        [int]$ObjectCount = 0
+    )
 
     # Below $LDAPInfo Output is PSCustomObject with properties: DirectoryEntryInfo, LDAPBaseUri,
     # GlobalCatalogConfigured3268, GlobalCatalogConfiguredForSSL3269, Configured389, ConfiguredForSSL636,
@@ -48,7 +51,7 @@ function GetComputerObjectsInLDAP {
     $LDAPSearchRoot = [System.DirectoryServices.DirectoryEntry]::new($LDAPUri)
     $LDAPSearcher = [System.DirectoryServices.DirectorySearcher]::new($LDAPSearchRoot)
     $LDAPSearcher.Filter = "(objectClass=computer)"
-    $LDAPSearcher.SizeLimit = 0
+    $LDAPSearcher.SizeLimit = $ObjectCount
     $LDAPSearcher.PageSize = 250
     $ComputerObjectsInLDAP = $LDAPSearcher.FindAll() | foreach {$_.GetDirectoryEntry()}
     <#
@@ -63,8 +66,8 @@ function GetComputerObjectsInLDAP {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUKTp3cWeYwMA35rHO91CCUkR2
-# ebOgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU4RdFsbA4GOnkC4AOHHVdXqNm
+# dK6gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -121,11 +124,11 @@ function GetComputerObjectsInLDAP {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFBqp6Z2cKOR+8nV7
-# zMRZQdIRfkdjMA0GCSqGSIb3DQEBAQUABIIBAAyuviaiNOguwqZUEkjsxU5A/M7W
-# dOQ6v9urZ9zO1sh0CxA4LROYftyaMVI47mAWXpjahYvD1o9MAF2YjpsjfcY4fOPS
-# 7okSn3oMI3d6sn7yhhhiyXDOTiMamdiSA8BuMAN6Bco4J0Buy/xtLYSQxZL5TQ0i
-# L+DbJ+adjvYNdNd3einn0p39jEMjj0kqOqyyHASe14oXRZgFgZQcK5FOjHgYpJg7
-# 901WWdVGGg5smu2DJXEWPigiNGx+I+TtZvcfiHTJNt8OL3KUvKgQn2QxBbBEQvPS
-# 9wCoiSX29HNCxVX+u6aOen6bqpKSKFvCCP/2qI+nl1yHf3G9yM1aLO54nUA=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFALnShLMJCSt+SFE
+# 403hvQGvN3iOMA0GCSqGSIb3DQEBAQUABIIBAHiZvYLTcDZlj0R3Qv+Ck3YnYQlJ
+# s9FyBLK/9EB9PlJqeagPqyi0ZlQn7inmL/DHLUiPi9htbNZ2hnmhZg2a8YpIl7iv
+# /OTTq9+d98K1yTavy6vMoYLQcPsQgdEGMPFCu0rb0kryDCZyEZE6Ew0KIM1PqmnE
+# 1qtexDtgqB4ki8WDgoco13UAtlLdK0UW152y5c4l8JFoGvnUbeiIYohoiEhtlgFP
+# p4wsqT1BMzGUIVpn0H603WXQkWlxPWBgCp/BLzMrT6UYwObjHJnhRb7cRMlwPXGD
+# Ph0t88m7XdsTqma79ubtAlrT93yUcIT6h8XkWYhp2BysQBwJjuycGoDtLks=
 # SIG # End signature block

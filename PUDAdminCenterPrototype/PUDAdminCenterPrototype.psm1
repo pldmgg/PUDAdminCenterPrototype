@@ -2224,10 +2224,10 @@ function Get-PUDAdminCenter {
     # Let's populate $PUDRSSyncHT.RemoteHostList with information that will be needed immediately upon navigating to the $HomePage.
     # For this reason, we're gathering the info before we start the UDDashboard. (Note that the below 'GetComputerObjectInLDAP' Private
     # function gets all Computers in Active Directory without using the ActiveDirectory PowerShell Module)
-    [System.Collections.ArrayList]$InitialRemoteHostListPrep = $(GetComputerObjectsInLDAP).Name
+    [System.Collections.ArrayList]$InitialRemoteHostListPrep = $(GetComputerObjectsInLDAP -ObjectCount 20).Name
     # Let's just get 20 of them initially. We want *something* on the HomePage but we don't want hundreds/thousands of entries. We want
     # the user to specify individual/range of hosts/devices that they want to manage.
-    $InitialRemoteHostListPrep = $InitialRemoteHostListPrep[0..20]
+    #$InitialRemoteHostListPrep = $InitialRemoteHostListPrep[0..20]
     if ($PSVersionTable.PSEdition -eq "Core") {
         [System.Collections.ArrayList]$InitialRemoteHostListPrep = $InitialRemoteHostListPrep | foreach {$_ -replace "CN=",""}
     }
@@ -13629,7 +13629,7 @@ function Get-PUDAdminCenter {
                     $Session:ScanNetwork = $True
                     Sync-UDElement -Id "ScanNetwork"
     
-                    [System.Collections.ArrayList]$ScanRemoteHostListPrep = $(GetComputerObjectsInLDAP).Name
+                    [System.Collections.ArrayList]$ScanRemoteHostListPrep = $(GetComputerObjectsInLDAP -ObjectCount 20).Name
                     # Let's just get 20 of them initially. We want *something* on the HomePage but we don't want hundreds/thousands of entries. We want
                     # the user to specify individual/range of hosts/devices that they want to manage.
                     #$ScanRemoteHostListPrep = $ScanRemoteHostListPrep[0..20]
@@ -16882,8 +16882,8 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU5fj89Aw0/PqREhYWxsvf6kG2
-# aaygggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU1osrlJ9S6FcX7xGBSoQ7ssql
+# adqgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -16940,11 +16940,11 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFAFrbTAUWbJBGavp
-# uifdK5ewlP2YMA0GCSqGSIb3DQEBAQUABIIBADAjIvER5s9nl2q7un/bPAtzmYE8
-# +3ko60sPHOjhhKc0PC7tGtZOd4/n9j/GnfgRecF/T1xZe+9C9oeScg16C4atUEgO
-# QoseAExGir2DWSgCQKWNCLhrgGYXJNRGLZm0WBwPU/TkPIXhmo4RiI8vW1zKMcog
-# sACWkDLZJ3P8NuJhoV3fVSIvXV2zPU6zo1rCrzm0HZNS/QvcSfFUZlH1/nKlHJIW
-# dNEKMiIXRWoGdviM9Mqf+AFc0qd+Vsjk6jJDSNLP+LQH+KPsALFA1v4qYcX8jyxX
-# rP8k2ljZhgZ9yf8mjtGDbYiDWBMyM5M0X+vYvK9NHnYKVvMzhd9TghphVsI=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFN7BuNfXtzVdsTJ/
+# +rOXalJWTJXEMA0GCSqGSIb3DQEBAQUABIIBADTRWFE53zz2+S98KuP1LoXFwr9l
+# 16R0ZWMJd0uJ4ghoAQWkPz0qUly3hA56fNjT7OgPYlcg7KFMNG/fEi9HCi/mXHEE
+# 60GqjLvdLKPsclYQ6a7Mukk+/a1JQkoP1OVF7OGm3VNKjif//0wFPL3nfw81Pvm4
+# jU3KLwv7mwwv+74Na0vqDHv612hQTwz7S31X6ORXFTB2B2Ijh4KDUK0WHtpBlFXT
+# LnpITekZLFf/sg7+3Fmakt896NSmO9RaVEnEOuvd/YEPa0wUum6x8hdaIlL3bQ9v
+# jZNlzCL6gjAF5pOAmXhEvhy2HKPTFU5Rm2N/C//RV8WgPbrTiLzXm7NWt4M=
 # SIG # End signature block

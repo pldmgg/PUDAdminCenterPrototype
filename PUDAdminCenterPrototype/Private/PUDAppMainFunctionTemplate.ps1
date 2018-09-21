@@ -149,10 +149,10 @@ function Get-PUDAdminCenter {
     # Let's populate $PUDRSSyncHT.RemoteHostList with information that will be needed immediately upon navigating to the $HomePage.
     # For this reason, we're gathering the info before we start the UDDashboard. (Note that the below 'GetComputerObjectInLDAP' Private
     # function gets all Computers in Active Directory without using the ActiveDirectory PowerShell Module)
-    [System.Collections.ArrayList]$InitialRemoteHostListPrep = $(GetComputerObjectsInLDAP).Name
+    [System.Collections.ArrayList]$InitialRemoteHostListPrep = $(GetComputerObjectsInLDAP -ObjectCount 20).Name
     # Let's just get 20 of them initially. We want *something* on the HomePage but we don't want hundreds/thousands of entries. We want
     # the user to specify individual/range of hosts/devices that they want to manage.
-    $InitialRemoteHostListPrep = $InitialRemoteHostListPrep[0..20]
+    #$InitialRemoteHostListPrep = $InitialRemoteHostListPrep[0..20]
     if ($PSVersionTable.PSEdition -eq "Core") {
         [System.Collections.ArrayList]$InitialRemoteHostListPrep = $InitialRemoteHostListPrep | foreach {$_ -replace "CN=",""}
     }
@@ -264,8 +264,8 @@ function Get-PUDAdminCenter {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUqUoABhRLsrLpVaBayR2X+UXY
-# mTygggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUPFyC6v4PCcHd+oXb943Nbh73
+# 5DGgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -322,11 +322,11 @@ function Get-PUDAdminCenter {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFELtqS0JTgl3risg
-# fO0YJVanN3MUMA0GCSqGSIb3DQEBAQUABIIBAJc4XWbgCbhBUvZq+6k4x7Y1l0Dc
-# KGQ/dRTE3dY02nP64evK1WynTntuxnQivv89OuCNTRQkZdHt0uCxweYevTMAEtAL
-# Cf2rOahRwQ2TRChC0cbuKREHeCIA4nqeS03OWFFS0oGu9ejICiQxYdykY+nr+c45
-# zcBJigpF4JvyoLL5DlB3uYYqtmedE7S9dyJOCna1/oyfpYUXmKse79kmKYLdhAB+
-# FA1fW5pi0yV93nZCmxieQ32uSRhJU0pvFI7upG5EFQDUEuChni3N0psgLngxT/XI
-# LYBMXZhxLKa1QhDAu8nKI4bIBu8f3aPZ1nkGGy640v/Zz7RggFg5oCo5nsk=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFA8Uu51YYUEfDejS
+# m/IfdPgrjRR6MA0GCSqGSIb3DQEBAQUABIIBAJCyJ1wq5IGrxG7lzLHQlmBMbyyT
+# ch5eA3rbTLBJLS+/q4buwY/KFJtoqa+Iq5UBpSsm1/TAvh0xuL01BEY/IdbS4AZg
+# pSGwTPJ7D27q41JAS5kL/s94G+QrZLwtMpSmP/W7CtMm78pN6lVFsxZxXqGBRWzI
+# AvhA6RszQY6wPZhHWAZDUMshfZCJcVBRyS1PjbJ882Q6Z6NrPQpIR732rGKOBMRs
+# X7RNokAMVWJeVdm7AVgTYVZhGbdsua5VOuconHdIGf6/DsqVhyiCLDv8L+2SVtTk
+# fwKs/vXFQI6Pq/69P7whwubOnuSo9zm/GSz/zSC0bG//Q0KAkamFzF/vK/g=
 # SIG # End signature block
