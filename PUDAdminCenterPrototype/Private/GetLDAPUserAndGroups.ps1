@@ -1,4 +1,4 @@
-function GetGroupObjectsInLDAP {
+function GetLDAPUserAndGroups {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$False)]
@@ -158,10 +158,6 @@ function GetGroupObjectsInLDAP {
         $LDAPUri = $LDAPInfo.LDAPBaseUri + ":$Port"
     }
 
-    #endregion >> Prep
-
-    #region >> Main
-
     if ($PSVersionTable.Platform -eq "Unix") {
         $SimpleDomainPrep = $PDC -split "\."
         $SimpleDomain = $SimpleDomainPrep[1..$($SimpleDomainPrep.Count-1)] -join "."
@@ -174,10 +170,10 @@ function GetGroupObjectsInLDAP {
         $BindUserNameForExpect = $BindUserName -replace [regex]::Escape('\'),'\\\'
         $BindPassword = $LDAPCreds.GetNetworkCredential().Password
 
-        $ldapSearchOutput = ldapsearch -x -h $PDC -D $BindUserName -w $BindPassword -b $DomainLDAPContainers -s sub "(objectClass=group)" cn
+        $ldapSearchOutput = ldapsearch -x -h $PDC -D $BindUserName -w $BindPassword -b "$DomainLDAPContainers" -s sub "(&(objectClass=user)(!(objectClass=computer)))" memberOf
         
         <#
-        $ldapSearchCmdForExpect = "ldapsearch -x -h $PDC -D $BindUserNameForExpect -W -b `"$DomainLDAPContainers`" -s sub `"(objectClass=group)`" cn"
+        $ldapSearchCmdForExpect = "ldapsearch -x -h $PDC -D $BindUserNameForExpect -W -b `"$DomainLDAPContainers`" -s sub `"(&(objectClass=user)(!(objectClass=computer)))`" memberOf"
 
         [System.Collections.ArrayList]$ExpectScriptPrep = @(
             'expect - << EOF'
@@ -203,9 +199,46 @@ function GetGroupObjectsInLDAP {
         $ExpectOutput = $ldapSearchOutput = bash -c "$ExpectScript"
         #>
 
-        $Groups = $ldapSearchOutput -match "cn:" | foreach {$_ -replace 'cn:[\s]+'}
+        $UserAndGroupsPrep = $ldapSearchOutput -match "dn:|memberof:"
+        [System.Collections.ArrayList]$UserAndGroupsPrepSorted = @()
+        foreach ($Line in $UserAndGroupsPrep) {
+            if ($Line -match 'dn:') {
+                if ($Collection.Count -gt 0) {
+                    $null = $UserAndGroupsPrepSorted.Add($Collection)
+                }
+                [System.Collections.ArrayList]$Collection = @()
+                $null = $Collection.Add($Line)
+            }
+            else {
+                $null = $Collection.Add($Line)
+            }
+        }
+        if ($UserAndGroupsPrepSorted.Count -eq 0) {
+            Write-Error "Unable to parse output of 'ldapsearch'! Output is as follows:`n$ldapSearchOutput"
+            $global:FunctionResult = "1"
+            return
+        }
+
+        $UserAndGroups = foreach ($Collection in $UserAndGroupsPrepSorted) {
+            try {
+                $User = $($($Collection -match 'dn:') -split ',')[0] -replace 'dn:[\s]+CN='
+                $GroupsPrep = $Collection -match 'memberof:'
+                $Groups = foreach ($GroupLine in $GroupsPrep) {
+                    $($GroupLine -split ',')[0] -replace 'memberof:[\s]+CN='
+                }
+            }
+            catch {
+                continue
+            }
+
+            [pscustomobject]@{
+                User    = $User
+                Groups  = @($Groups)
+            }
+        }
+
         if ($ObjectCount -gt 0) {
-            $Groups = $Groups[0..$($ObjectCount-1)]
+            $UserAndGroups = $UserAndGroups[0..$($ObjectCount-1)]
         }
     }
     else {
@@ -219,13 +252,27 @@ function GetGroupObjectsInLDAP {
                 $LDAPSearchRoot = [System.DirectoryServices.DirectoryEntry]::new($LDAPUri)
             }
             $LDAPSearcher = [System.DirectoryServices.DirectorySearcher]::new($LDAPSearchRoot)
-            $LDAPSearcher.Filter = "(&(objectCategory=Group))"
+            $LDAPSearcher.Filter = "(&(objectClass=user)(!(objectClass=computer)))"
             $LDAPSearcher.SizeLimit = 0
             $LDAPSearcher.PageSize = 250
-            $Groups = $LDAPSearcher.FindAll() | foreach {$_.GetDirectoryEntry()}
+            $UserAndGroupsPrep = $LDAPSearcher.FindAll() | foreach {$_.GetDirectoryEntry()}
 
             if ($ObjectCount -gt 0) {
-                $Groups = $Groups[0..$($ObjectCount-1)]
+                $UserAndGroupsPrep = $UserAndGroupsPrep[0..$($ObjectCount-1)]
+            }
+
+            $UserAndGroups = foreach ($DEObject in $UserAndGroupsPrep) {
+                $User = $($DEObject.Name | Out-String).Trim()
+                $Groups = $DEObject.memberof | foreach {$($_ -split ',')[0] -replace 'CN='}
+
+                [pscustomobject]@{
+                    User    = $User
+                    Groups  = @($Groups)
+                }
+            }
+
+            if ($ObjectCount -gt 0) {
+                $UserAndGroups = $UserAndGroups[0..$($ObjectCount-1)]
             }
         }
         catch {
@@ -235,16 +282,14 @@ function GetGroupObjectsInLDAP {
         }
     }
 
-    $Groups
-
-    #endregion >> Main
+    $UserAndGroups
 }
 
 # SIG # Begin signature block
 # MIIM3gYJKoZIhvcNAQcCoIIMzzCCDMsCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUHv8BwFS7OUMiNkUeyPl2XMfp
-# JO6gggpPMIIEKTCCAxGgAwIBAgITRAAAAALGGh0rrvpIiwAAAAAAAjANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUeuNSW2Wg7A9iBM4duWDY2o4D
+# ou+gggpPMIIEKTCCAxGgAwIBAgITRAAAAALGGh0rrvpIiwAAAAAAAjANBgkqhkiG
 # 9w0BAQsFADBAMRMwEQYKCZImiZPyLGQBGRYDbGFiMRUwEwYKCZImiZPyLGQBGRYF
 # YWxwaGExEjAQBgNVBAMTCUFscGhhREMwMTAeFw0xODExMDYxNTQ2MjhaFw0yMDEx
 # MDYxNTU2MjhaMEExEzARBgoJkiaJk/IsZAEZFgNsYWIxFTATBgoJkiaJk/IsZAEZ
@@ -303,11 +348,11 @@ function GetGroupObjectsInLDAP {
 # kiaJk/IsZAEZFgVhbHBoYTETMBEGA1UEAxMKQWxwaGFTdWJDQQITcAAAAAeFdIhd
 # 6FNaKwAAAAAABzAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKA
 # ADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYK
-# KwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU51eceTtkV/TVEQyWQcLstBWr5OQw
-# DQYJKoZIhvcNAQEBBQAEggEAgxxzRrwOP7P9+0FOrQ7dirc5VH7KJgxdzbu9OhoB
-# l3OpJfZVWofIFutEWkmQ/JJEgQk1BNN0t0klHJH9p9SkhR2lNbb7Pd6BAaPnrKnP
-# jt1y9oHggI64/bNf+Lidf3Zn5QcXWjQoDr2X+WDgGKEieK55kZ3hIToaqP7PPVBE
-# 4bIF9LjX6Z6D02vkcmgckk8AHJNptmoWumKsfrKZPePl2NRCRuTs0RtFdhXK+8EC
-# FIn9W6s4BJ02FKMNwLedNHSWpU2M52XTDGFVhWfVziC5DVMmAkapfeWKL2bMO0/L
-# KhG1i5mKhykrLlOP4PLt2L2FBax+vBJs9RtLBreYg+1QPA==
+# KwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUiAZ+1bby9Kv5Yqpqj4zhmBpo1qcw
+# DQYJKoZIhvcNAQEBBQAEggEAKAcmrIgWolNU9AMhnptP5LKz2KDNgz2bgpZwubIK
+# rgjHD4EFs34/OXK92QCEaBvHnPnO7aDiMAFCoIrNymQrM2ofp/hVucWHKWQ1UNQe
+# euYYNupCBe7SFhe25WLIfA65QypkpODmlwu0z/gkJSr0dnD84tcdreuerWFRrLRd
+# BqCZOF32ABjmeNWkvO+bISWP3Fc1F3Z34JGgxiDmcOa5tSugMbdyMYNYlaL0jVWZ
+# psWgVgWKHncr5bMTyayU6GIHQQZTvrkYpSYuFZYgXrdTT+Cgj+mGbpor8Fz9JnPq
+# ZbrxDAORU2ExheR35/g5XYuiL6HK53kgWkKiG/92M4WAlQ==
 # SIG # End signature block

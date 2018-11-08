@@ -75,7 +75,7 @@ $RegistryPageContent = {
         }
 
         try {
-            $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+            $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
         }
         catch {
             $ConnectionStatus = "Disconnected"
@@ -100,16 +100,24 @@ $RegistryPageContent = {
                         
                         $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
 
-                        $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
-                        $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
+                        #$WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
+                        #$WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
 
-                        if ($WSMan5985Available -or $WSMan5986Available) {
+                        $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+
+                        if ($ConnectionStatus -eq "Connected") {
                             $TableData = @{
                                 RemoteHost      = $RemoteHost.ToUpper()
                                 Status          = "Connected"
                             }
                         }
                         else {
+                            <#
+                            $TableData = @{
+                                RemoteHost      = $RemoteHost.ToUpper()
+                                Status          = "Disconnected"
+                            }
+                            #>
                             Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
                         }
 
@@ -141,7 +149,7 @@ $RegistryPageContent = {
         if (!$Session:HKLMChildKeys -or !$Session:HKCUChildKeys -or !$Session:HKCRChildKeys -or !$Session:HKUChildKeys -or !$Session:HKCCChildKeys) {
             $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
             $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+            $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                 $null = Invoke-Expression $using:GetRegistrySubKeysFunc
                 $null = Invoke-Expression $using:GetRegistryValuesFunc
 
@@ -451,7 +459,7 @@ $RegistryPageContent = {
                     Get-Runspace | Where-Object {
                         $_.RunspaceIsRemote -and
                         $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".Registry.LiveDataRSInfo.ThisRunspace.Id -and
-                        $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
+                        $_.OriginalConnectionInfo.ComputerName -eq $RemoteHost
                     }
                 )
                 if ($PSSessionRunspacePrep.Count -gt 0) {
@@ -467,7 +475,7 @@ $RegistryPageContent = {
             New-Runspace -RunspaceName "Registry$RemoteHost`LiveData" -ScriptBlock {
                 $PUDRSSyncHT = $global:PUDRSSyncHT
             
-                $LiveDataPSSession = New-PSSession -Name "Registry$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
+                $LiveDataPSSession = New-PSSession -Name "Registry$RemoteHost`LiveData" -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
 
                 # Load needed functions in the PSSession
                 Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
@@ -567,7 +575,7 @@ $RegistryPageContent = {
 
                             $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                             $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                            $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                            $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                 Invoke-Expression $using:GetRegistrySubKeysFunc
                                 Invoke-Expression $using:GetRegistryValuesFunc
 
@@ -614,7 +622,7 @@ $RegistryPageContent = {
 
                             $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                             $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                            $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                            $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                 Invoke-Expression $using:GetRegistrySubKeysFunc
                                 Invoke-Expression $using:GetRegistryValuesFunc
 
@@ -704,7 +712,7 @@ $RegistryPageContent = {
 
                                                 $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                                                 $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                                $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                                $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                                     Invoke-Expression $using:GetRegistrySubKeysFunc
                                                     Invoke-Expression $using:GetRegistryValuesFunc
 
@@ -794,7 +802,7 @@ $RegistryPageContent = {
 
                             $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                             $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                            $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                            $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                 Invoke-Expression $using:GetRegistrySubKeysFunc
                                 Invoke-Expression $using:GetRegistryValuesFunc
 
@@ -841,7 +849,7 @@ $RegistryPageContent = {
 
                             $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                             $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                            $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                            $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                 Invoke-Expression $using:GetRegistrySubKeysFunc
                                 Invoke-Expression $using:GetRegistryValuesFunc
 
@@ -933,7 +941,7 @@ $RegistryPageContent = {
 
                                                         $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                                                         $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                                        $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                                        $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                                             Invoke-Expression $using:GetRegistrySubKeysFunc
                                                             Invoke-Expression $using:GetRegistryValuesFunc
 
@@ -1025,7 +1033,7 @@ $RegistryPageContent = {
 
                             $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                             $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                            $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                            $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                 Invoke-Expression $using:GetRegistrySubKeysFunc
                                 Invoke-Expression $using:GetRegistryValuesFunc
 
@@ -1074,7 +1082,7 @@ $RegistryPageContent = {
 
                             $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                             $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                            $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                            $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                 Invoke-Expression $using:GetRegistrySubKeysFunc
                                 Invoke-Expression $using:GetRegistryValuesFunc
 
@@ -1168,7 +1176,7 @@ $RegistryPageContent = {
 
                                                         $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                                                         $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                                        $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                                        $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                                             Invoke-Expression $using:GetRegistrySubKeysFunc
                                                             Invoke-Expression $using:GetRegistryValuesFunc
 
@@ -1263,7 +1271,7 @@ $RegistryPageContent = {
 
                             $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                             $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                            $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                            $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                 Invoke-Expression $using:GetRegistrySubKeysFunc
                                 Invoke-Expression $using:GetRegistryValuesFunc
 
@@ -1312,7 +1320,7 @@ $RegistryPageContent = {
 
                             $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                             $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                            $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                            $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                 Invoke-Expression $using:GetRegistrySubKeysFunc
                                 Invoke-Expression $using:GetRegistryValuesFunc
 
@@ -1406,7 +1414,7 @@ $RegistryPageContent = {
 
                                                         $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                                                         $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                                        $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                                        $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                                             Invoke-Expression $using:GetRegistrySubKeysFunc
                                                             Invoke-Expression $using:GetRegistryValuesFunc
 
@@ -1501,7 +1509,7 @@ $RegistryPageContent = {
 
                             $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                             $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                            $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                            $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                 Invoke-Expression $using:GetRegistrySubKeysFunc
                                 Invoke-Expression $using:GetRegistryValuesFunc
 
@@ -1550,7 +1558,7 @@ $RegistryPageContent = {
 
                             $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                             $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                            $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                            $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                 Invoke-Expression $using:GetRegistrySubKeysFunc
                                 Invoke-Expression $using:GetRegistryValuesFunc
 
@@ -1644,7 +1652,7 @@ $RegistryPageContent = {
 
                                                         $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                                                         $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                                        $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                                        $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                                             Invoke-Expression $using:GetRegistrySubKeysFunc
                                                             Invoke-Expression $using:GetRegistryValuesFunc
 

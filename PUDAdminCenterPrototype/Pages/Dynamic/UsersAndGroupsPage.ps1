@@ -75,7 +75,7 @@ $UsersAndGroupsPageContent = {
         }
 
         try {
-            $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+            $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
         }
         catch {
             $ConnectionStatus = "Disconnected"
@@ -100,16 +100,24 @@ $UsersAndGroupsPageContent = {
                         
                         $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
 
-                        $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
-                        $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
+                        #$WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
+                        #$WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
 
-                        if ($WSMan5985Available -or $WSMan5986Available) {
+                        $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+
+                        if ($ConnectionStatus -eq "Connected") {
                             $TableData = @{
                                 RemoteHost      = $RemoteHost.ToUpper()
                                 Status          = "Connected"
                             }
                         }
                         else {
+                            <#
+                            $TableData = @{
+                                RemoteHost      = $RemoteHost.ToUpper()
+                                Status          = "Disconnected"
+                            }
+                            #>
                             Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
                         }
 
@@ -144,7 +152,7 @@ $UsersAndGroupsPageContent = {
         $GetLocalGroupUsersFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-LocalGroupUsers" -and $_ -notmatch "function Get-PUDAdminCenter"}
         $GetLocalUserBelongGroupsFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-LocalUserBelongGroups" -and $_ -notmatch "function Get-PUDAdminCenter"}
         $FunctionsToLoad = @($GetLocalUsersFunc,$GetLocalGroupsFunc,$GetLocalGroupUsersFunc,$GetLocalUserBelongGroupsFunc)
-        $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+        $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
             $using:FunctionsToLoad | foreach {Invoke-Expression $_}
 
             $LocalUsersInfo = Get-LocalUsers | foreach {
@@ -233,7 +241,7 @@ $UsersAndGroupsPageContent = {
                     Get-Runspace | Where-Object {
                         $_.RunspaceIsRemote -and
                         $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LiveDataRSInfo.ThisRunspace.Id -and
-                        $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
+                        $_.OriginalConnectionInfo.ComputerName -eq $RemoteHost
                     }
                 )
                 if ($PSSessionRunspacePrep.Count -gt 0) {
@@ -252,7 +260,7 @@ $UsersAndGroupsPageContent = {
             New-Runspace -RunspaceName "UsersAndGroups$RemoteHost`LiveData" -ScriptBlock {
                 $PUDRSSyncHT = $global:PUDRSSyncHT
             
-                $LiveDataPSSession = New-PSSession -Name "UsersAndGroups$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
+                $LiveDataPSSession = New-PSSession -Name "UsersAndGroups$RemoteHost`LiveData" -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
 
                 # Load needed functions in the PSSession
                 Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
@@ -321,7 +329,7 @@ $UsersAndGroupsPageContent = {
             $GetLocalUsersFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-LocalUsers" -and $_ -notmatch "function Get-PUDAdminCenter"}
             $GetLocalUserBelongGroupsFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-LocalUserBelongGroups" -and $_ -notmatch "function Get-PUDAdminCenter"}
             $FunctionsToLoad = @($GetLocalUsersFunc,$GetLocalUserBelongGroupsFunc)
-            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+            $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                 $using:FunctionsToLoad | foreach {Invoke-Expression $_}
 
                 $LocalUsersInfo = Get-LocalUsers | foreach {
@@ -372,7 +380,7 @@ $UsersAndGroupsPageContent = {
             $GetLocalGroupsFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-LocalGroups" -and $_ -notmatch "function Get-PUDAdminCenter"}
             $GetLocalGroupUsersFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-LocalGroupUsers" -and $_ -notmatch "function Get-PUDAdminCenter"}
             $FunctionsToLoad = @($GetLocalGroupsFunc,$GetLocalGroupUsersFunc)
-            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+            $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                 $using:FunctionsToLoad | foreach {Invoke-Expression $_}
 
                 $LocalGroupsInfo = Get-LocalGroups | foreach {

@@ -75,7 +75,7 @@ $DevicesPageContent = {
         }
 
         try {
-            $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+            $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
         }
         catch {
             $ConnectionStatus = "Disconnected"
@@ -100,16 +100,24 @@ $DevicesPageContent = {
                         
                         $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
 
-                        $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
-                        $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
+                        #$WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
+                        #$WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
 
-                        if ($WSMan5985Available -or $WSMan5986Available) {
+                        $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+
+                        if ($ConnectionStatus -eq "Connected") {
                             $TableData = @{
                                 RemoteHost      = $RemoteHost.ToUpper()
                                 Status          = "Connected"
                             }
                         }
                         else {
+                            <#
+                            $TableData = @{
+                                RemoteHost      = $RemoteHost.ToUpper()
+                                Status          = "Disconnected"
+                            }
+                            #>
                             Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
                         }
 
@@ -140,7 +148,7 @@ $DevicesPageContent = {
         #region >> Gather Some Initial Info From $RemoteHost
 
         $GetCimPnPFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-CimPnpEntity" -and $_ -notmatch "function Get-PUDAdminCenter"}
-        $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+        $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
             Invoke-Expression $using:GetCimPnPFunc
             
             $DevicesInfo = Get-CimPnpEntity
@@ -203,7 +211,7 @@ $DevicesPageContent = {
                     Get-Runspace | Where-Object {
                         $_.RunspaceIsRemote -and
                         $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".Devices.LiveDataRSInfo.ThisRunspace.Id -and
-                        $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
+                        $_.OriginalConnectionInfo.ComputerName -eq $RemoteHost
                     }
                 )
                 if ($PSSessionRunspacePrep.Count -gt 0) {
@@ -221,7 +229,7 @@ $DevicesPageContent = {
             New-Runspace -RunspaceName "Devices$RemoteHost`LiveData" -ScriptBlock {
                 $PUDRSSyncHT = $global:PUDRSSyncHT
             
-                $LiveDataPSSession = New-PSSession -Name "Devices$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
+                $LiveDataPSSession = New-PSSession -Name "Devices$RemoteHost`LiveData" -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
 
                 # Load needed functions in the PSSession
                 Invoke-Command -Session $LiveDataPSSession -ScriptBlock {

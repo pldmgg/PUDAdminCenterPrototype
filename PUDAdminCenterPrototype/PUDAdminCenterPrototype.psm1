@@ -2390,7 +2390,7 @@ function Get-PUDAdminCenter {
             }
     
             try {
-                $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+                $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
             }
             catch {
                 $ConnectionStatus = "Disconnected"
@@ -2415,16 +2415,24 @@ function Get-PUDAdminCenter {
                             
                             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
-                            $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
-                            $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
+                            #$WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
+                            #$WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
     
-                            if ($WSMan5985Available -or $WSMan5986Available) {
+                            $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+    
+                            if ($ConnectionStatus -eq "Connected") {
                                 $TableData = @{
                                     RemoteHost      = $RemoteHost.ToUpper()
                                     Status          = "Connected"
                                 }
                             }
                             else {
+                                <#
+                                $TableData = @{
+                                    RemoteHost      = $RemoteHost.ToUpper()
+                                    Status          = "Disconnected"
+                                }
+                                #>
                                 Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
                             }
     
@@ -2456,7 +2464,7 @@ function Get-PUDAdminCenter {
     
             $GetCertificateOverviewFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-CertificateOverview" -and $_ -notmatch "function Get-PUDAdminCenter"}
             $GetCertificatesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-Certificates" -and $_ -notmatch "function Get-PUDAdminCenter"}
-            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+            $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                 Invoke-Expression $using:GetCertificateOverviewFunc
                 Invoke-Expression $using:GetCertificatesFunc
                 
@@ -2528,7 +2536,7 @@ function Get-PUDAdminCenter {
                         Get-Runspace | Where-Object {
                             $_.RunspaceIsRemote -and
                             $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".Certificates.LiveDataRSInfo.ThisRunspace.Id -and
-                            $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
+                            $_.OriginalConnectionInfo.ComputerName -eq $RemoteHost
                         }
                     )
                     if ($PSSessionRunspacePrep.Count -gt 0) {
@@ -2547,7 +2555,7 @@ function Get-PUDAdminCenter {
                 New-Runspace -RunspaceName "Certificates$RemoteHost`LiveData" -ScriptBlock {
                     $PUDRSSyncHT = $global:PUDRSSyncHT
                 
-                    $LiveDataPSSession = New-PSSession -Name "Certificates$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
+                    $LiveDataPSSession = New-PSSession -Name "Certificates$RemoteHost`LiveData" -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
     
                     # Load needed functions in the PSSession
                     Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
@@ -2734,7 +2742,7 @@ function Get-PUDAdminCenter {
             }
     
             try {
-                $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+                $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
             }
             catch {
                 $ConnectionStatus = "Disconnected"
@@ -2759,16 +2767,24 @@ function Get-PUDAdminCenter {
                             
                             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
-                            $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
-                            $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
+                            #$WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
+                            #$WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
     
-                            if ($WSMan5985Available -or $WSMan5986Available) {
+                            $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+    
+                            if ($ConnectionStatus -eq "Connected") {
                                 $TableData = @{
                                     RemoteHost      = $RemoteHost.ToUpper()
                                     Status          = "Connected"
                                 }
                             }
                             else {
+                                <#
+                                $TableData = @{
+                                    RemoteHost      = $RemoteHost.ToUpper()
+                                    Status          = "Disconnected"
+                                }
+                                #>
                                 Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
                             }
     
@@ -2799,7 +2815,7 @@ function Get-PUDAdminCenter {
             #region >> Gather Some Initial Info From $RemoteHost
     
             $GetCimPnPFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-CimPnpEntity" -and $_ -notmatch "function Get-PUDAdminCenter"}
-            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+            $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                 Invoke-Expression $using:GetCimPnPFunc
                 
                 $DevicesInfo = Get-CimPnpEntity
@@ -2862,7 +2878,7 @@ function Get-PUDAdminCenter {
                         Get-Runspace | Where-Object {
                             $_.RunspaceIsRemote -and
                             $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".Devices.LiveDataRSInfo.ThisRunspace.Id -and
-                            $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
+                            $_.OriginalConnectionInfo.ComputerName -eq $RemoteHost
                         }
                     )
                     if ($PSSessionRunspacePrep.Count -gt 0) {
@@ -2880,7 +2896,7 @@ function Get-PUDAdminCenter {
                 New-Runspace -RunspaceName "Devices$RemoteHost`LiveData" -ScriptBlock {
                     $PUDRSSyncHT = $global:PUDRSSyncHT
                 
-                    $LiveDataPSSession = New-PSSession -Name "Devices$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
+                    $LiveDataPSSession = New-PSSession -Name "Devices$RemoteHost`LiveData" -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
     
                     # Load needed functions in the PSSession
                     Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
@@ -3214,7 +3230,7 @@ function Get-PUDAdminCenter {
             }
     
             try {
-                $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+                $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
             }
             catch {
                 $ConnectionStatus = "Disconnected"
@@ -3239,16 +3255,24 @@ function Get-PUDAdminCenter {
                             
                             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
-                            $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
-                            $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
+                            #$WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
+                            #$WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
     
-                            if ($WSMan5985Available -or $WSMan5986Available) {
+                            $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+    
+                            if ($ConnectionStatus -eq "Connected") {
                                 $TableData = @{
                                     RemoteHost      = $RemoteHost.ToUpper()
                                     Status          = "Connected"
                                 }
                             }
                             else {
+                                <#
+                                $TableData = @{
+                                    RemoteHost      = $RemoteHost.ToUpper()
+                                    Status          = "Disconnected"
+                                }
+                                #>
                                 Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
                             }
     
@@ -3279,7 +3303,7 @@ function Get-PUDAdminCenter {
             #region >> Gather Some Initial Info From $RemoteHost
     
             $GetEventLogSummaryFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-EventLogSummary" -and $_ -notmatch "function Get-PUDAdminCenter"}
-            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+            $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                 Invoke-Expression $using:GetEventLogSummaryFunc
                 
                 $EventLogChannelSummaries = Get-EventLogSummary -channel *
@@ -3341,7 +3365,7 @@ function Get-PUDAdminCenter {
                         Get-Runspace | Where-Object {
                             $_.RunspaceIsRemote -and
                             $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".Events.LiveDataRSInfo.ThisRunspace.Id -and
-                            $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
+                            $_.OriginalConnectionInfo.ComputerName -eq $RemoteHost
                         }
                     )
                     if ($PSSessionRunspacePrep.Count -gt 0) {
@@ -3359,7 +3383,7 @@ function Get-PUDAdminCenter {
                 New-Runspace -RunspaceName "Events$RemoteHost`LiveData" -ScriptBlock {
                     $PUDRSSyncHT = $global:PUDRSSyncHT
                 
-                    $LiveDataPSSession = New-PSSession -Name "Events$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
+                    $LiveDataPSSession = New-PSSession -Name "Events$RemoteHost`LiveData" -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
     
                     # Load needed functions in the PSSession
                     Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
@@ -3513,7 +3537,7 @@ function Get-PUDAdminCenter {
             }
     
             try {
-                $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+                $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
             }
             catch {
                 $ConnectionStatus = "Disconnected"
@@ -3538,16 +3562,24 @@ function Get-PUDAdminCenter {
                             
                             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
-                            $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
-                            $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
+                            #$WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
+                            #$WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
     
-                            if ($WSMan5985Available -or $WSMan5986Available) {
+                            $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+    
+                            if ($ConnectionStatus -eq "Connected") {
                                 $TableData = @{
                                     RemoteHost      = $RemoteHost.ToUpper()
                                     Status          = "Connected"
                                 }
                             }
                             else {
+                                <#
+                                $TableData = @{
+                                    RemoteHost      = $RemoteHost.ToUpper()
+                                    Status          = "Disconnected"
+                                }
+                                #>
                                 Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
                             }
     
@@ -3578,7 +3610,7 @@ function Get-PUDAdminCenter {
             #region >> Gather Some Initial Info From $RemoteHost
     
             if (!$Session:RootDirChildItems) {
-                $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                     $RootDirChildItems = Get-ChildItem -Path "$env:SystemDrive\"
                     $RootDirItem = Get-Item -Path "$env:SystemDrive\"
     
@@ -3649,7 +3681,7 @@ function Get-PUDAdminCenter {
                         Get-Runspace | Where-Object {
                             $_.RunspaceIsRemote -and
                             $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".Files.LiveDataRSInfo.ThisRunspace.Id -and
-                            $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
+                            $_.OriginalConnectionInfo.ComputerName -eq $RemoteHost
                         }
                     )
                     if ($PSSessionRunspacePrep.Count -gt 0) {
@@ -3665,7 +3697,7 @@ function Get-PUDAdminCenter {
                 New-Runspace -RunspaceName "Files$RemoteHost`LiveData" -ScriptBlock {
                     $PUDRSSyncHT = $global:PUDRSSyncHT
                 
-                    $LiveDataPSSession = New-PSSession -Name "Files$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
+                    $LiveDataPSSession = New-PSSession -Name "Files$RemoteHost`LiveData" -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
     
                     # Load needed functions in the PSSession
                     Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
@@ -3730,7 +3762,7 @@ function Get-PUDAdminCenter {
                                 $NewRootDirTextBox = Get-UDElement -Id "NewRootDirTB"
                                 $FullPathToExplore = $NewRootDirTextBox.Attributes['value']
     
-                                $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                     $RootDirChildItems = Get-ChildItem -Path $using:FullPathToExplore
                         
                                     [pscustomobject]@{
@@ -3760,7 +3792,7 @@ function Get-PUDAdminCenter {
                                 $NewRootDirTextBox = Get-UDElement -Id "NewRootDirTBProper"
                                 $FullPathToExplore = $NewRootDirTextBox.Attributes['value']
     
-                                $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                     $RootDirChildItems = Get-ChildItem -Path $args[0]
                                     $RootDirItem = Get-Item -Path $args[0]
     
@@ -3781,7 +3813,7 @@ function Get-PUDAdminCenter {
                             New-UDButton -Text "Parent Directory" -OnClick {
                                 $FullPathToExplore = if ($($Session:RootDirItem.FullName | Split-Path -Parent) -eq "") {$Session:RootDirItem.FullName} else {$Session:RootDirItem.FullName | Split-Path -Parent}
     
-                                $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                     $RootDirChildItems = Get-ChildItem -Path $args[0]
                                     $RootDirItem = Get-Item -Path $args[0]
     
@@ -3827,7 +3859,7 @@ function Get-PUDAdminCenter {
                                                 #$NewRootDirTextBox = Get-UDElement -Id "NewRootDirTB"
                                                 $FullPathToExplore = $_.FullName
                     
-                                                $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                                $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                                     $RootDirChildItems = Get-ChildItem -Path $args[0]
                                                     $RootDirItem = Get-Item -Path $args[0]
     
@@ -3875,7 +3907,7 @@ function Get-PUDAdminCenter {
                 }
     
                 try {
-                    $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                    $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                         $RootDirChildItems = Get-ChildItem -Path $using:FullPathToExplore
             
                         [pscustomobject]@{
@@ -3954,7 +3986,7 @@ function Get-PUDAdminCenter {
                                 }
     
                                 try {
-                                    $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                    $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                         $RootDirChildItems = Get-ChildItem -Path $using:FullPathToExplore
                             
                                         [pscustomobject]@{
@@ -4076,7 +4108,7 @@ function Get-PUDAdminCenter {
             }
     
             try {
-                $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+                $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
             }
             catch {
                 $ConnectionStatus = "Disconnected"
@@ -4101,16 +4133,24 @@ function Get-PUDAdminCenter {
                             
                             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
-                            $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
-                            $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
+                            #$WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
+                            #$WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
     
-                            if ($WSMan5985Available -or $WSMan5986Available) {
+                            $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+    
+                            if ($ConnectionStatus -eq "Connected") {
                                 $TableData = @{
                                     RemoteHost      = $RemoteHost.ToUpper()
                                     Status          = "Connected"
                                 }
                             }
                             else {
+                                <#
+                                $TableData = @{
+                                    RemoteHost      = $RemoteHost.ToUpper()
+                                    Status          = "Disconnected"
+                                }
+                                #>
                                 Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
                             }
     
@@ -4143,7 +4183,7 @@ function Get-PUDAdminCenter {
             $GetFirewallProfileFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-FirewallProfile" -and $_ -notmatch "function Get-PUDAdminCenter"}
             $GetFirewallRulesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-FirewallRules" -and $_ -notmatch "function Get-PUDAdminCenter"}
             $FunctionsToLoad = @($GetFirewallProfileFunc,$GetFirewallRulesFunc)
-            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+            $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                 $using:FunctionsToLoad | foreach {Invoke-Expression $_}
                 
                 $FirewallSummary = Get-FirewallProfile -ErrorAction SilentlyContinue | foreach {
@@ -4247,7 +4287,7 @@ function Get-PUDAdminCenter {
                         Get-Runspace | Where-Object {
                             $_.RunspaceIsRemote -and
                             $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".Firewall.LiveDataRSInfo.ThisRunspace.Id -and
-                            $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
+                            $_.OriginalConnectionInfo.ComputerName -eq $RemoteHost
                         }
                     )
                     if ($PSSessionRunspacePrep.Count -gt 0) {
@@ -4265,7 +4305,7 @@ function Get-PUDAdminCenter {
                 New-Runspace -RunspaceName "Firewall$RemoteHost`LiveData" -ScriptBlock {
                     $PUDRSSyncHT = $global:PUDRSSyncHT
                 
-                    $LiveDataPSSession = New-PSSession -Name "Firewall$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
+                    $LiveDataPSSession = New-PSSession -Name "Firewall$RemoteHost`LiveData" -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
     
                     # Load needed functions in the PSSession
                     Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
@@ -4330,7 +4370,7 @@ function Get-PUDAdminCenter {
                 $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
                 $GetFirewallProfileFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-FirewallProfile" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                     Invoke-Expression $using:GetFirewallProfileFunc
                     
                     $FirewallSummary = Get-FirewallProfile -ErrorAction SilentlyContinue | foreach {
@@ -4369,7 +4409,7 @@ function Get-PUDAdminCenter {
                 $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
                 $GetFirewallRulesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-FirewallRules" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                     Invoke-Expression $using:GetFirewallRulesFunc
                     
                     $FirewallRulesPrep = Get-FirewallRules -ErrorAction SilentlyContinue
@@ -4502,7 +4542,7 @@ function Get-PUDAdminCenter {
             }
     
             try {
-                $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+                $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
             }
             catch {
                 $ConnectionStatus = "Disconnected"
@@ -4527,16 +4567,24 @@ function Get-PUDAdminCenter {
                             
                             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
-                            $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
-                            $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
+                            #$WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
+                            #$WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
     
-                            if ($WSMan5985Available -or $WSMan5986Available) {
+                            $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+    
+                            if ($ConnectionStatus -eq "Connected") {
                                 $TableData = @{
                                     RemoteHost      = $RemoteHost.ToUpper()
                                     Status          = "Connected"
                                 }
                             }
                             else {
+                                <#
+                                $TableData = @{
+                                    RemoteHost      = $RemoteHost.ToUpper()
+                                    Status          = "Disconnected"
+                                }
+                                #>
                                 Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
                             }
     
@@ -4568,7 +4616,7 @@ function Get-PUDAdminCenter {
     
             $GetNetworksFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-Networks" -and $_ -notmatch "function Get-PUDAdminCenter"}
             $TestIsValidIPFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function TestIsValidIPAddress" -and $_ -notmatch "function Get-PUDAdminCenter"}
-            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+            $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                 Invoke-Expression $using:GetNetworksFunc
                 Invoke-Expression $using:TestIsValidIPFunc
                 
@@ -4665,7 +4713,7 @@ function Get-PUDAdminCenter {
                         Get-Runspace | Where-Object {
                             $_.RunspaceIsRemote -and
                             $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".Network.LiveDataRSInfo.ThisRunspace.Id -and
-                            $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
+                            $_.OriginalConnectionInfo.ComputerName -eq $RemoteHost
                         }
                     )
                     if ($PSSessionRunspacePrep.Count -gt 0) {
@@ -4684,7 +4732,7 @@ function Get-PUDAdminCenter {
                 New-Runspace -RunspaceName "Network$RemoteHost`LiveData" -ScriptBlock {
                     $PUDRSSyncHT = $global:PUDRSSyncHT
                 
-                    $LiveDataPSSession = New-PSSession -Name "Network$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
+                    $LiveDataPSSession = New-PSSession -Name "Network$RemoteHost`LiveData" -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
     
                     # Load needed functions in the PSSession
                     Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
@@ -4766,7 +4814,7 @@ function Get-PUDAdminCenter {
     
                 $GetNetworksFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-Networks" -and $_ -notmatch "function Get-PUDAdminCenter"}
                 $TestIsValidIPFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function TestIsValidIPAddress" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                     Invoke-Expression $using:GetNetworksFunc
                     Invoke-Expression $using:TestIsValidIPFunc
                     
@@ -4918,7 +4966,7 @@ function Get-PUDAdminCenter {
             }
     
             try {
-                $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+                $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
             }
             catch {
                 $ConnectionStatus = "Disconnected"
@@ -4943,10 +4991,12 @@ function Get-PUDAdminCenter {
                             
                             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
-                            $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
-                            $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
+                            #$WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
+                            #$WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
     
-                            if ($WSMan5985Available -or $WSMan5986Available) {
+                            $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+    
+                            if ($ConnectionStatus -eq "Connected") {
                                 $TableData = @{
                                     RemoteHost      = $RemoteHost.ToUpper()
                                     Status          = "Connected"
@@ -5011,7 +5061,7 @@ function Get-PUDAdminCenter {
     
             $GetServerInventoryFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-ServerInventory" -and $_ -notmatch "function Get-PUDAdminCenter"}
             #$GetEnvVarsFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-EnvironmentVariables" -and $_ -notmatch "function Get-PUDAdminCenter"}
-            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+            $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                 Invoke-Expression $using:GetServerInventoryFunc
                 #Invoke-Expression $using:GetEnvVarsFunc
                 
@@ -5103,7 +5153,7 @@ function Get-PUDAdminCenter {
                 if (!$Session:ServerInventoryStatic) {
                     # Gather Basic Info From $RemoteHost
                     $GetServerInventoryFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-ServerInventory" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                    $StaticInfoA = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                    $StaticInfoA = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                         Invoke-Expression $using:GetServerInventoryFunc
     
                         $SrvInv = Get-ServerInventory
@@ -5128,7 +5178,7 @@ function Get-PUDAdminCenter {
                         Get-Runspace | Where-Object {
                             $_.RunspaceIsRemote -and
                             $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.ThisRunspace.Id -and
-                            $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
+                            $_.OriginalConnectionInfo.ComputerName -eq $RemoteHost
                         }
                     )
                     if ($PSSessionRunspacePrep.Count -gt 0) {
@@ -5147,7 +5197,7 @@ function Get-PUDAdminCenter {
                 New-Runspace -RunspaceName "Overview$RemoteHost`LiveData" -ScriptBlock {
                     $PUDRSSyncHT = $global:PUDRSSyncHT
                 
-                    $LiveDataPSSession = New-PSSession -Name "Overview$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
+                    $LiveDataPSSession = New-PSSession -Name "Overview$RemoteHost`LiveData" -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
     
                     # Load needed functions in the PSSession
                     Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
@@ -5282,7 +5332,7 @@ function Get-PUDAdminCenter {
                                 $Session:RestartingRemoteHost = $True
                                 Sync-UDElement -Id "RestartComputerMsg"
     
-                                Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                     Restart-Computer -Force
                                 }
     
@@ -5306,7 +5356,7 @@ function Get-PUDAdminCenter {
     
                                 #region >> Main
                                 
-                                Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                     Restart-Computer -Force
                                 }
     
@@ -5335,7 +5385,7 @@ function Get-PUDAdminCenter {
                                 $Session:ShutdownRemoteHost = $True
                                 Sync-UDElement -Id "ShutdownComputerMsg"
     
-                                Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                     Stop-Computer -Force
                                 }
                             }
@@ -5355,7 +5405,7 @@ function Get-PUDAdminCenter {
     
                                 #region >> Main
     
-                                Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                     Stop-Computer -Force
                                 }
     
@@ -5392,7 +5442,7 @@ function Get-PUDAdminCenter {
                                         # TODO: Figure out a way to check if the disk performance counters are actually enabled or disabled.
                                         # Can't get consistent results using the below method
                                         <#
-                                        $DiskPerfState = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                        $DiskPerfState = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                             try {
                                                 $null = Get-Counter "\physicaldisk(0 c:)\disk writes/sec" -ErrorAction Stop
                                                 $DiskPerfStatus = "Enabled"
@@ -5419,7 +5469,7 @@ function Get-PUDAdminCenter {
                                         Sync-UDElement -Id "EnableDiskPerfMsg"
     
                                         $StartDiskPerfFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Start-DiskPerf" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                        $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                        $null = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                             Invoke-Expression $using:StartDiskPerfFunc
                                             $null = Start-DiskPerf
                                         }
@@ -5438,7 +5488,7 @@ function Get-PUDAdminCenter {
                                         Sync-UDElement -Id "DisableDiskPerfMsg"
     
                                         $StopDiskPerfFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Stop-DiskPerf" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                        $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                        $null = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                             Invoke-Expression $using:StopDiskPerfFunc
                                             Stop-DiskPerf
                                         }
@@ -5522,7 +5572,7 @@ function Get-PUDAdminCenter {
                                         if ($CredSSPStatus -ne "Disabled") {
                                             $Session:DisableCredSSP = $True
     
-                                            $CredSSPChanges = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                            $CredSSPChanges = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                                 $Output = @{}
                                                 $GetCredSSPStatus = Get-WSManCredSSP
                                                 if ($GetCredSSPStatus -match "The machine is configured to allow delegating fresh credentials.") {
@@ -5591,7 +5641,7 @@ function Get-PUDAdminCenter {
     
                                         #region >> Main
     
-                                        $CredSSPChanges = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                        $CredSSPChanges = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                             $Output = @{}
                                             $GetCredSSPStatus = Get-WSManCredSSP
                                             if ($GetCredSSPStatus -match "The machine is configured to allow delegating fresh credentials.") {
@@ -5666,7 +5716,7 @@ function Get-PUDAdminCenter {
                                     }
                                     New-UDElement -Id "RDState" -Tag div -EndPoint {
                                         $GetRDFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RemoteDesktop" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                        $RemoteDesktopSettings = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                        $RemoteDesktopSettings = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                             Invoke-Expression $using:GetRDFunc
                                             Get-RemoteDesktop
                                         } -HideComputerName
@@ -5688,7 +5738,7 @@ function Get-PUDAdminCenter {
                                             AllowRemoteDesktopWithNLA = $True
                                         }
                                         $SetRDFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Set-RemoteDesktop" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                        $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                        $null = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                             Invoke-Expression $using:SetRDFunc
     
                                             $SplatParams = $args[0]
@@ -5713,7 +5763,7 @@ function Get-PUDAdminCenter {
                                             AllowRemoteDesktopWithNLA = $False
                                         }
                                         $SetRDFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Set-RemoteDesktop" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                        $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                        $null = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                             Invoke-Expression $using:SetRDFunc
     
                                             $SplatParams = $args[0]
@@ -5729,7 +5779,7 @@ function Get-PUDAdminCenter {
                                     <#
                                     New-UDInput -SubmitText "Submit" -Id "RemoteDesktopForm" -Content {
                                         $GetRDFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RemoteDesktop" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                        $RemoteDesktopSettings = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                        $RemoteDesktopSettings = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                             Invoke-Expression $using:GetRDFunc
                                             Get-RemoteDesktop
                                         } -HideComputerName
@@ -5766,7 +5816,7 @@ function Get-PUDAdminCenter {
                                         }
     
                                         try {
-                                            $SetRemoteDesktopResult = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                            $SetRemoteDesktopResult = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                                 Set-ItemProperty -Path "HKLM:\SYSTEM\Currentcontrolset\control\Terminal Server" -Name TSServerDrainMode -Value 1
                                             } -ArgumentList $SetRemoteDesktopSplatParams
     
@@ -5813,7 +5863,7 @@ function Get-PUDAdminCenter {
                                         }
                                     }
                                     New-UDElement -Id "SSHState" -Tag div -EndPoint {
-                                        $SSHStatusInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                        $SSHStatusInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                             $SSHState = if ($(Get-Command ssh -ErrorAction SilentlyContinue) -or $(Test-Path "$env:ProgramFiles\OpenSSH-Win64\ssh.exe")) {"Enabled"} else {"Disabled"}
                                             $SSHDState = if ($(Get-Service sshd -ErrorAction SilentlyContinue).Status -eq "Running") {"Enabled"} else {"Disabled"}
     
@@ -5835,7 +5885,7 @@ function Get-PUDAdminCenter {
                                         $Session:EnableSSH = $True
                                         Sync-UDElement -Id "EnableSSHMsg"
     
-                                        $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                        $null = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                             if ($(Get-Module -ListAvailable).Name -notcontains "WinSSH") {Install-Module WinSSH}
                                             if ($(Get-Module).Name -notcontains "WinSSH") {Import-Module WinSSH}
     
@@ -5855,7 +5905,7 @@ function Get-PUDAdminCenter {
                                         $Session:DisableSSH = $True
                                         Sync-UDElement -Id "DisableSSHMsg"
     
-                                        $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                        $null = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                             if ($(Get-Module -ListAvailable).Name -notcontains "WinSSH") {Install-Module WinSSH}
                                             if ($(Get-Module).Name -notcontains "WinSSH") {Import-Module WinSSH}
     
@@ -5956,7 +6006,7 @@ function Get-PUDAdminCenter {
                                     $SetComputerIdSplatParams.Add("UserName",$AuthorizationUName)
                                     $SetComputerIdSplatParams.Add("Password",$AuthorizationPwd)
     
-                                    Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                    Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                         Invoke-Expression $using:SetComputerIdFunc
     
                                         $SplatParams = $args[0]
@@ -6083,7 +6133,7 @@ function Get-PUDAdminCenter {
                                         $SetComputerIdSplatParams.Add("Password",$NewDomain_Password)
                                     }
     
-                                    Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                    Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                         Invoke-Expression $using:SetComputerIdFunc
     
                                         $SplatParams = $args[0]
@@ -6150,7 +6200,7 @@ function Get-PUDAdminCenter {
                                         $SetComputerIdSplatParams.Add("Password",$Session:CredentialHT.$RemoteHost.DomainCreds.GetNetworkCredential().Password)
                                     }
     
-                                    Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                    Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                         Invoke-Expression $using:SetComputerIdFunc
     
                                         $SplatParams = $args[0]
@@ -6239,7 +6289,7 @@ function Get-PUDAdminCenter {
                                     $SetComputerIdSplatParams.Add("UserName",$AuthorizationUName)
                                     $SetComputerIdSplatParams.Add("Password",$AuthorizationPwd)
     
-                                    Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                    Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                         Invoke-Expression $using:SetComputerIdFunc
     
                                         $SplatParams = $args[0]
@@ -6319,7 +6369,7 @@ function Get-PUDAdminCenter {
                                     $SetComputerIdSplatParams.Add("UserName",$AuthorizationUName)
                                     $SetComputerIdSplatParams.Add("Password",$AuthorizationPwd)
     
-                                    Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                    Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                         Invoke-Expression $using:SetComputerIdFunc
     
                                         $SplatParams = $args[0]
@@ -6379,7 +6429,7 @@ function Get-PUDAdminCenter {
                                         $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
                                         $GetEnvVarsFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-EnvironmentVariables" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                        $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                        $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                             Invoke-Expression $using:GetEnvVarsFunc
                                             
                                             $EnvVars = Get-EnvironmentVariables
@@ -6435,7 +6485,7 @@ function Get-PUDAdminCenter {
                                         #>
     
                                         $NewEnvVarFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function New-EnvironmentVariable" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                        $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                        $null = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                             Invoke-Expression $using:NewEnvVarFunc
                                             New-EnvironmentVariable -name $using:EnvVarName -value $using:EnvVarValue -type $using:EnvVarType
                                         }
@@ -6483,7 +6533,7 @@ function Get-PUDAdminCenter {
                                         }
     
                                         # NOTE: Set-EnvironmentVariable outputs @{Status = "Succcess"} otherwise, Error
-                                        $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                        $null = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                             Invoke-Expression $using:SetEnvVarFunc
                                             $SplatParams = $args[0]
                                             Set-EnvironmentVariable @SplatParams
@@ -6511,7 +6561,7 @@ function Get-PUDAdminCenter {
                                         } | Where-Object {$_.attributes.selected.isPresent}).attributes.value
     
                                         $RemoveEnvVarFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Remove-EnvironmentVariable" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                        $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                        $null = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                             Invoke-Expression $using:RemoveEnvVarFunc
                                             Remove-EnvironmentVariable -name $using:EnvVarName -type $using:EnvVarType
                                         }
@@ -6550,7 +6600,7 @@ function Get-PUDAdminCenter {
     
                                         try {
                                             # NOTE: New-EnvironmentVariable does not output anything
-                                            $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                            $null = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                                 $using:NewEnvVarFunc
     
                                                 New-EnvironmentVariable -name $using:Name -value $using:Value -type $using:Type
@@ -6596,7 +6646,7 @@ function Get-PUDAdminCenter {
     
                                         try {
                                             # NOTE: Remove-EnvironmentVariable does not output anything
-                                            $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                            $null = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                                 Invoke-Expression $using:RemoveEnvVarFunc
     
                                                 Remove-EnvironmentVariable -name $using:Name -type $using:Type
@@ -6658,7 +6708,7 @@ function Get-PUDAdminCenter {
     
                                         try {
                                             # NOTE: Set-EnvironmentVariable outputs @{Status = "Succcess"} otherwise, Error
-                                            $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                            $null = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                                 Invoke-Expression $using:SetEnvVarFunc
     
                                                 $SplatParams = $args[0]
@@ -6732,7 +6782,7 @@ function Get-PUDAdminCenter {
                     # Summary B
                     $SummaryInfoBGridProperties = @("C_DiskSpace_FreeVsTotal","Processors","Manufacturer","Model","Logical_Processors")
                     
-                    $SummaryBInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                    $SummaryBInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                         $CimDiskResult = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='C:'"
                         $CimDiskOutput = [Math]::Round($CimDiskResult.FreeSpace / 1GB).ToString() + "GB" +
                         ' / ' + [Math]::Round($CimDiskResult.Size / 1GB).ToString() + "GB"
@@ -6773,7 +6823,7 @@ function Get-PUDAdminCenter {
                     New-UdTable @SummaryInfoBUdGridSplatParams
     
                     # Summary C
-                    $SummaryCInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                    $SummaryCInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                         $using:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
                         
                         $DefenderInfo = Get-MpComputerStatus
@@ -7591,7 +7641,7 @@ function Get-PUDAdminCenter {
             }
     
             try {
-                $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+                $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
             }
             catch {
                 $ConnectionStatus = "Disconnected"
@@ -7616,16 +7666,24 @@ function Get-PUDAdminCenter {
                             
                             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
-                            $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
-                            $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
+                            #$WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
+                            #$WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
     
-                            if ($WSMan5985Available -or $WSMan5986Available) {
+                            $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+    
+                            if ($ConnectionStatus -eq "Connected") {
                                 $TableData = @{
                                     RemoteHost      = $RemoteHost.ToUpper()
                                     Status          = "Connected"
                                 }
                             }
                             else {
+                                <#
+                                $TableData = @{
+                                    RemoteHost      = $RemoteHost.ToUpper()
+                                    Status          = "Disconnected"
+                                }
+                                #>
                                 Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
                             }
     
@@ -7656,7 +7714,7 @@ function Get-PUDAdminCenter {
             #region >> Gather Some Initial Info From $RemoteHost
     
             $GetProcessesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-Processes" -and $_ -notmatch "function Get-PUDAdminCenter"}
-            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+            $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                 Invoke-Expression $using:GetProcessesFunc
     
                 # Returns an array of CimInstance Objects
@@ -7719,7 +7777,7 @@ function Get-PUDAdminCenter {
                         Get-Runspace | Where-Object {
                             $_.RunspaceIsRemote -and
                             $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".Processes.LiveDataRSInfo.ThisRunspace.Id -and
-                            $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
+                            $_.OriginalConnectionInfo.ComputerName -eq $RemoteHost
                         }
                     )
                     if ($PSSessionRunspacePrep.Count -gt 0) {
@@ -7737,7 +7795,7 @@ function Get-PUDAdminCenter {
                 New-Runspace -RunspaceName "Processes$RemoteHost`LiveData" -ScriptBlock {
                     $PUDRSSyncHT = $global:PUDRSSyncHT
                 
-                    $LiveDataPSSession = New-PSSession -Name "Processes$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
+                    $LiveDataPSSession = New-PSSession -Name "Processes$RemoteHost`LiveData" -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
     
                     # Load needed functions in the PSSession
                     Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
@@ -9064,7 +9122,7 @@ function Get-PUDAdminCenter {
             }
     
             try {
-                $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+                $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
             }
             catch {
                 $ConnectionStatus = "Disconnected"
@@ -9089,16 +9147,24 @@ function Get-PUDAdminCenter {
                             
                             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
-                            $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
-                            $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
+                            #$WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
+                            #$WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
     
-                            if ($WSMan5985Available -or $WSMan5986Available) {
+                            $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+    
+                            if ($ConnectionStatus -eq "Connected") {
                                 $TableData = @{
                                     RemoteHost      = $RemoteHost.ToUpper()
                                     Status          = "Connected"
                                 }
                             }
                             else {
+                                <#
+                                $TableData = @{
+                                    RemoteHost      = $RemoteHost.ToUpper()
+                                    Status          = "Disconnected"
+                                }
+                                #>
                                 Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
                             }
     
@@ -9130,7 +9196,7 @@ function Get-PUDAdminCenter {
             if (!$Session:HKLMChildKeys -or !$Session:HKCUChildKeys -or !$Session:HKCRChildKeys -or !$Session:HKUChildKeys -or !$Session:HKCCChildKeys) {
                 $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                 $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                     $null = Invoke-Expression $using:GetRegistrySubKeysFunc
                     $null = Invoke-Expression $using:GetRegistryValuesFunc
     
@@ -9440,7 +9506,7 @@ function Get-PUDAdminCenter {
                         Get-Runspace | Where-Object {
                             $_.RunspaceIsRemote -and
                             $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".Registry.LiveDataRSInfo.ThisRunspace.Id -and
-                            $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
+                            $_.OriginalConnectionInfo.ComputerName -eq $RemoteHost
                         }
                     )
                     if ($PSSessionRunspacePrep.Count -gt 0) {
@@ -9456,7 +9522,7 @@ function Get-PUDAdminCenter {
                 New-Runspace -RunspaceName "Registry$RemoteHost`LiveData" -ScriptBlock {
                     $PUDRSSyncHT = $global:PUDRSSyncHT
                 
-                    $LiveDataPSSession = New-PSSession -Name "Registry$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
+                    $LiveDataPSSession = New-PSSession -Name "Registry$RemoteHost`LiveData" -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
     
                     # Load needed functions in the PSSession
                     Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
@@ -9556,7 +9622,7 @@ function Get-PUDAdminCenter {
     
                                 $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                                 $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                     Invoke-Expression $using:GetRegistrySubKeysFunc
                                     Invoke-Expression $using:GetRegistryValuesFunc
     
@@ -9603,7 +9669,7 @@ function Get-PUDAdminCenter {
     
                                 $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                                 $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                     Invoke-Expression $using:GetRegistrySubKeysFunc
                                     Invoke-Expression $using:GetRegistryValuesFunc
     
@@ -9693,7 +9759,7 @@ function Get-PUDAdminCenter {
     
                                                     $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                                                     $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                                    $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                                    $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                                         Invoke-Expression $using:GetRegistrySubKeysFunc
                                                         Invoke-Expression $using:GetRegistryValuesFunc
     
@@ -9783,7 +9849,7 @@ function Get-PUDAdminCenter {
     
                                 $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                                 $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                     Invoke-Expression $using:GetRegistrySubKeysFunc
                                     Invoke-Expression $using:GetRegistryValuesFunc
     
@@ -9830,7 +9896,7 @@ function Get-PUDAdminCenter {
     
                                 $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                                 $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                     Invoke-Expression $using:GetRegistrySubKeysFunc
                                     Invoke-Expression $using:GetRegistryValuesFunc
     
@@ -9922,7 +9988,7 @@ function Get-PUDAdminCenter {
     
                                                             $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                                                             $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                                            $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                                            $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                                                 Invoke-Expression $using:GetRegistrySubKeysFunc
                                                                 Invoke-Expression $using:GetRegistryValuesFunc
     
@@ -10014,7 +10080,7 @@ function Get-PUDAdminCenter {
     
                                 $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                                 $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                     Invoke-Expression $using:GetRegistrySubKeysFunc
                                     Invoke-Expression $using:GetRegistryValuesFunc
     
@@ -10063,7 +10129,7 @@ function Get-PUDAdminCenter {
     
                                 $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                                 $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                     Invoke-Expression $using:GetRegistrySubKeysFunc
                                     Invoke-Expression $using:GetRegistryValuesFunc
     
@@ -10157,7 +10223,7 @@ function Get-PUDAdminCenter {
     
                                                             $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                                                             $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                                            $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                                            $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                                                 Invoke-Expression $using:GetRegistrySubKeysFunc
                                                                 Invoke-Expression $using:GetRegistryValuesFunc
     
@@ -10252,7 +10318,7 @@ function Get-PUDAdminCenter {
     
                                 $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                                 $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                     Invoke-Expression $using:GetRegistrySubKeysFunc
                                     Invoke-Expression $using:GetRegistryValuesFunc
     
@@ -10301,7 +10367,7 @@ function Get-PUDAdminCenter {
     
                                 $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                                 $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                     Invoke-Expression $using:GetRegistrySubKeysFunc
                                     Invoke-Expression $using:GetRegistryValuesFunc
     
@@ -10395,7 +10461,7 @@ function Get-PUDAdminCenter {
     
                                                             $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                                                             $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                                            $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                                            $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                                                 Invoke-Expression $using:GetRegistrySubKeysFunc
                                                                 Invoke-Expression $using:GetRegistryValuesFunc
     
@@ -10490,7 +10556,7 @@ function Get-PUDAdminCenter {
     
                                 $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                                 $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                     Invoke-Expression $using:GetRegistrySubKeysFunc
                                     Invoke-Expression $using:GetRegistryValuesFunc
     
@@ -10539,7 +10605,7 @@ function Get-PUDAdminCenter {
     
                                 $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                                 $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                     Invoke-Expression $using:GetRegistrySubKeysFunc
                                     Invoke-Expression $using:GetRegistryValuesFunc
     
@@ -10633,7 +10699,7 @@ function Get-PUDAdminCenter {
     
                                                             $GetRegistrySubKeysFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistrySubKeys" -and $_ -notmatch "function Get-PUDAdminCenter"}
                                                             $GetRegistryValuesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RegistryValues" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                                            $NewPathInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                                            $NewPathInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                                                 Invoke-Expression $using:GetRegistrySubKeysFunc
                                                                 Invoke-Expression $using:GetRegistryValuesFunc
     
@@ -10770,7 +10836,7 @@ function Get-PUDAdminCenter {
             }
     
             try {
-                $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+                $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
             }
             catch {
                 $ConnectionStatus = "Disconnected"
@@ -10795,16 +10861,24 @@ function Get-PUDAdminCenter {
                             
                             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
-                            $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
-                            $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
+                            #$WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
+                            #$WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
     
-                            if ($WSMan5985Available -or $WSMan5986Available) {
+                            $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+    
+                            if ($ConnectionStatus -eq "Connected") {
                                 $TableData = @{
                                     RemoteHost      = $RemoteHost.ToUpper()
                                     Status          = "Connected"
                                 }
                             }
                             else {
+                                <#
+                                $TableData = @{
+                                    RemoteHost      = $RemoteHost.ToUpper()
+                                    Status          = "Disconnected"
+                                }
+                                #>
                                 Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
                             }
     
@@ -10834,7 +10908,7 @@ function Get-PUDAdminCenter {
     
             #region >> Gather Some Initial Info From $RemoteHost
     
-            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+            $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                 $OSInfo = Get-CimInstance Win32_OperatingSystem
                 if ($OSInfo.Caption -match "Server") {
                     Import-Module ServerManager
@@ -10919,7 +10993,7 @@ function Get-PUDAdminCenter {
                         Get-Runspace | Where-Object {
                             $_.RunspaceIsRemote -and
                             $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".RolesAndFeatures.LiveDataRSInfo.ThisRunspace.Id -and
-                            $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
+                            $_.OriginalConnectionInfo.ComputerName -eq $RemoteHost
                         }
                     )
                     if ($PSSessionRunspacePrep.Count -gt 0) {
@@ -10938,7 +11012,7 @@ function Get-PUDAdminCenter {
                 New-Runspace -RunspaceName "RolesAndFeatures$RemoteHost`LiveData" -ScriptBlock {
                     $PUDRSSyncHT = $global:PUDRSSyncHT
                 
-                    $LiveDataPSSession = New-PSSession -Name "RolesAndFeatures$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
+                    $LiveDataPSSession = New-PSSession -Name "RolesAndFeatures$RemoteHost`LiveData" -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
     
                     # Load needed functions in the PSSession
                     Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
@@ -11038,7 +11112,7 @@ function Get-PUDAdminCenter {
     
                 $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
-                $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                     $OSInfo = Get-CimInstance Win32_OperatingSystem
     
                     if ($OSInfo.Caption -match "Server") {
@@ -11186,7 +11260,7 @@ function Get-PUDAdminCenter {
             }
     
             try {
-                $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+                $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
             }
             catch {
                 $ConnectionStatus = "Disconnected"
@@ -11211,16 +11285,24 @@ function Get-PUDAdminCenter {
                             
                             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
-                            $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
-                            $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
+                            #$WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
+                            #$WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
     
-                            if ($WSMan5985Available -or $WSMan5986Available) {
+                            $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+    
+                            if ($ConnectionStatus -eq "Connected") {
                                 $TableData = @{
                                     RemoteHost      = $RemoteHost.ToUpper()
                                     Status          = "Connected"
                                 }
                             }
                             else {
+                                <#
+                                $TableData = @{
+                                    RemoteHost      = $RemoteHost.ToUpper()
+                                    Status          = "Disconnected"
+                                }
+                                #>
                                 Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
                             }
     
@@ -11251,7 +11333,7 @@ function Get-PUDAdminCenter {
             #region >> Gather Some Initial Info From $RemoteHost
     
             $GetScheduledTasksFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-ScheduledTasks" -and $_ -notmatch "function Get-PUDAdminCenter"}
-            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+            $StaticInfo = Invoke-Command -ComputerName $RemoteHosts -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                 Invoke-Expression $using:GetScheduledTasksFunc
                 
                 $AllScheduledTasks = Get-ScheduledTasks
@@ -11314,7 +11396,7 @@ function Get-PUDAdminCenter {
                         Get-Runspace | Where-Object {
                             $_.RunspaceIsRemote -and
                             $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".ScheduledTasks.LiveDataRSInfo.ThisRunspace.Id -and
-                            $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
+                            $_.OriginalConnectionInfo.ComputerName -eq $RemoteHost
                         }
                     )
                     if ($PSSessionRunspacePrep.Count -gt 0) {
@@ -11333,7 +11415,7 @@ function Get-PUDAdminCenter {
                 New-Runspace -RunspaceName "ScheduledTasks$RemoteHost`LiveData" -ScriptBlock {
                     $PUDRSSyncHT = $global:PUDRSSyncHT
                 
-                    $LiveDataPSSession = New-PSSession -Name "ScheduledTasks$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
+                    $LiveDataPSSession = New-PSSession -Name "ScheduledTasks$RemoteHost`LiveData" -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
     
                     # Load needed functions in the PSSession
                     Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
@@ -11445,7 +11527,7 @@ function Get-PUDAdminCenter {
                 $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
                 $GetScheduledTasksFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-ScheduledTasks" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                $SchTsksInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                $SchTsksInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                     Invoke-Expression $using:GetScheduledTasksFunc
                     
                     $AllScheduledTasks = Get-ScheduledTasks
@@ -11623,7 +11705,7 @@ function Get-PUDAdminCenter {
             }
     
             try {
-                $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+                $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
             }
             catch {
                 $ConnectionStatus = "Disconnected"
@@ -11648,16 +11730,24 @@ function Get-PUDAdminCenter {
                             
                             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
-                            $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
-                            $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
+                            #$WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
+                            #$WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
     
-                            if ($WSMan5985Available -or $WSMan5986Available) {
+                            $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+    
+                            if ($ConnectionStatus -eq "Connected") {
                                 $TableData = @{
                                     RemoteHost      = $RemoteHost.ToUpper()
                                     Status          = "Connected"
                                 }
                             }
                             else {
+                                <#
+                                $TableData = @{
+                                    RemoteHost      = $RemoteHost.ToUpper()
+                                    Status          = "Disconnected"
+                                }
+                                #>
                                 Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
                             }
     
@@ -11687,7 +11777,7 @@ function Get-PUDAdminCenter {
     
             #region >> Gather Some Initial Info From $RemoteHost
     
-            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+            $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                 $AllServices = Get-CimInstance Win32_Service
     
                 [pscustomobject]@{
@@ -11748,7 +11838,7 @@ function Get-PUDAdminCenter {
                         Get-Runspace | Where-Object {
                             $_.RunspaceIsRemote -and
                             $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".Services.LiveDataRSInfo.ThisRunspace.Id -and
-                            $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
+                            $_.OriginalConnectionInfo.ComputerName -eq $RemoteHost
                         }
                     )
                     if ($PSSessionRunspacePrep.Count -gt 0) {
@@ -11767,7 +11857,7 @@ function Get-PUDAdminCenter {
                 New-Runspace -RunspaceName "Services$RemoteHost`LiveData" -ScriptBlock {
                     $PUDRSSyncHT = $global:PUDRSSyncHT
                 
-                    $LiveDataPSSession = New-PSSession -Name "Services$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
+                    $LiveDataPSSession = New-PSSession -Name "Services$RemoteHost`LiveData" -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
     
                     # Load needed functions in the PSSession
                     Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
@@ -11865,7 +11955,7 @@ function Get-PUDAdminCenter {
     
                 $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
-                $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                     $AllServices = Get-CimInstance Win32_Service
         
                     [pscustomobject]@{
@@ -11966,7 +12056,7 @@ function Get-PUDAdminCenter {
             }
     
             try {
-                $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+                $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
             }
             catch {
                 $ConnectionStatus = "Disconnected"
@@ -11991,16 +12081,24 @@ function Get-PUDAdminCenter {
                             
                             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
-                            $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
-                            $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
+                            #$WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
+                            #$WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
     
-                            if ($WSMan5985Available -or $WSMan5986Available) {
+                            $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+    
+                            if ($ConnectionStatus -eq "Connected") {
                                 $TableData = @{
                                     RemoteHost      = $RemoteHost.ToUpper()
                                     Status          = "Connected"
                                 }
                             }
                             else {
+                                <#
+                                $TableData = @{
+                                    RemoteHost      = $RemoteHost.ToUpper()
+                                    Status          = "Disconnected"
+                                }
+                                #>
                                 Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
                             }
     
@@ -12034,7 +12132,7 @@ function Get-PUDAdminCenter {
             $GetStorageFileShareFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-StorageFileShare" -and $_ -notmatch "function Get-PUDAdminCenter"}
             $GetStorageVolumeFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-StorageVolume" -and $_ -notmatch "function Get-PUDAdminCenter"}
             $FunctionsToLoad = @($GetStorageDiskFunc,$GetStorageFileShareFunc,$GetStorageVolumeFunc)
-            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+            $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                 $using:FunctionsToLoad | foreach {Invoke-Expression $_}
                 
                 $DiskSummary = Get-StorageDisk
@@ -12115,7 +12213,7 @@ function Get-PUDAdminCenter {
                         Get-Runspace | Where-Object {
                             $_.RunspaceIsRemote -and
                             $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".Storage.LiveDataRSInfo.ThisRunspace.Id -and
-                            $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
+                            $_.OriginalConnectionInfo.ComputerName -eq $RemoteHost
                         }
                     )
                     if ($PSSessionRunspacePrep.Count -gt 0) {
@@ -12134,7 +12232,7 @@ function Get-PUDAdminCenter {
                 New-Runspace -RunspaceName "Storage$RemoteHost`LiveData" -ScriptBlock {
                     $PUDRSSyncHT = $global:PUDRSSyncHT
                 
-                    $LiveDataPSSession = New-PSSession -Name "Storage$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
+                    $LiveDataPSSession = New-PSSession -Name "Storage$RemoteHost`LiveData" -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
     
                     # Load needed functions in the PSSession
                     Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
@@ -12282,7 +12380,7 @@ function Get-PUDAdminCenter {
                 $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
                 $GetStorageDiskFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-StorageDisk" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                     Invoke-Expression $using:GetStorageDiskFunc
                     
                     $DiskSummary = Get-StorageDisk
@@ -12329,7 +12427,7 @@ function Get-PUDAdminCenter {
                 $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
                 $GetStorageVolumeFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-StorageVolume" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                     Invoke-Expression $using:GetStorageVolumeFunc
                     
                     $VolumeSummary = Get-StorageVolume
@@ -12388,7 +12486,7 @@ function Get-PUDAdminCenter {
                 $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
                 $GetStorageFileShareFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-StorageFileShare" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                     Invoke-Expression $using:GetStorageFileShareFunc
                     
                     $FileShareSummary = Get-StorageFileShare
@@ -12556,7 +12654,7 @@ function Get-PUDAdminCenter {
             else {
                 # Check $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCreds Credentials. If they don't work, redirect to "/PSRemotingCreds/$Session:ThisRemoteHost"
                 try {
-                    $GetWorkingCredsResult = GetWorkingCredentials -RemoteHostNameOrIP $RHostIP -AltCredentials $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCreds -ErrorAction Stop
+                    $GetWorkingCredsResult = GetWorkingCredentials -RemoteHostNameOrIP $RemoteHost -AltCredentials $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCreds -ErrorAction Stop
     
                     if ($GetWorkingCredsResult.DeterminedCredsThatWorkedOnRemoteHost) {
                         if ($GetWorkingCredsResult.WorkingCredentials.GetType().FullName -ne "System.Management.Automation.PSCredential") {
@@ -12576,7 +12674,7 @@ function Get-PUDAdminCenter {
             }
     
             try {
-                $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+                $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
             }
             catch {
                 $ConnectionStatus = "Disconnected"
@@ -12600,10 +12698,12 @@ function Get-PUDAdminCenter {
                             
                             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $Session:ThisRemoteHost}).IPAddressList[0]
     
-                            $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
-                            $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
+                            #$WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
+                            #$WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
     
-                            if ($WSMan5985Available -or $WSMan5986Available) {
+                            $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$Session:ThisRemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+    
+                            if ($ConnectionStatus -eq "Connected") {
                                 $TableData = @{
                                     RemoteHost      = $Session:ThisRemoteHost.ToUpper()
                                     Status          = "Connected"
@@ -12622,7 +12722,7 @@ function Get-PUDAdminCenter {
                             #region >> Gather Some Initial Info From $Session:ThisRemoteHost
     
                             $GetServerInventoryFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-ServerInventory" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                            $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                 Invoke-Expression $using:GetServerInventoryFunc
     
                                 [pscustomobject]@{ServerInventoryStatic = Get-ServerInventory}
@@ -12802,7 +12902,7 @@ function Get-PUDAdminCenter {
             }
     
             try {
-                $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+                $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
             }
             catch {
                 $ConnectionStatus = "Disconnected"
@@ -12827,16 +12927,24 @@ function Get-PUDAdminCenter {
                             
                             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
-                            $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
-                            $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
+                            #$WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
+                            #$WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
     
-                            if ($WSMan5985Available -or $WSMan5986Available) {
+                            $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+    
+                            if ($ConnectionStatus -eq "Connected") {
                                 $TableData = @{
                                     RemoteHost      = $RemoteHost.ToUpper()
                                     Status          = "Connected"
                                 }
                             }
                             else {
+                                <#
+                                $TableData = @{
+                                    RemoteHost      = $RemoteHost.ToUpper()
+                                    Status          = "Disconnected"
+                                }
+                                #>
                                 Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
                             }
     
@@ -12868,7 +12976,7 @@ function Get-PUDAdminCenter {
     
             $GetWUAHistoryFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-WUAHistory" -and $_ -notmatch "function Get-PUDAdminCenter"}
             $GetPendingUpdatesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-PendingUpdates" -and $_ -notmatch "function Get-PUDAdminCenter"}
-            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+            $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                 Invoke-Expression $using:GetPendingUpdatesFunc
                 Invoke-Expression $using:GetWUAHistoryFunc
                 
@@ -12941,7 +13049,7 @@ function Get-PUDAdminCenter {
                         Get-Runspace | Where-Object {
                             $_.RunspaceIsRemote -and
                             $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".Updates.LiveDataRSInfo.ThisRunspace.Id -and
-                            $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
+                            $_.OriginalConnectionInfo.ComputerName -eq $RemoteHost
                         }
                     )
                     if ($PSSessionRunspacePrep.Count -gt 0) {
@@ -12960,7 +13068,7 @@ function Get-PUDAdminCenter {
                 New-Runspace -RunspaceName "Updates$RemoteHost`LiveData" -ScriptBlock {
                     $PUDRSSyncHT = $global:PUDRSSyncHT
                 
-                    $LiveDataPSSession = New-PSSession -Name "Updates$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
+                    $LiveDataPSSession = New-PSSession -Name "Updates$RemoteHost`LiveData" -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
     
                     # Load needed functions in the PSSession
                     Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
@@ -13065,7 +13173,7 @@ function Get-PUDAdminCenter {
                 $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
                 $GetWUAHistoryFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-WUAHistory" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                     Invoke-Expression $using:GetWUAHistoryFunc
                     
                     $UpdatesHistory = Get-WUAHistory
@@ -13103,7 +13211,7 @@ function Get-PUDAdminCenter {
                 $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
                 $GetPendingUpdatesFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-PendingUpdates" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                     Invoke-Expression $using:GetPendingUpdatesFunc
                     
                     $PendingUpdates = Get-PendingUpdates
@@ -13215,7 +13323,7 @@ function Get-PUDAdminCenter {
             }
     
             try {
-                $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+                $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
             }
             catch {
                 $ConnectionStatus = "Disconnected"
@@ -13240,16 +13348,24 @@ function Get-PUDAdminCenter {
                             
                             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
     
-                            $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
-                            $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
+                            #$WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
+                            #$WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
     
-                            if ($WSMan5985Available -or $WSMan5986Available) {
+                            $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+    
+                            if ($ConnectionStatus -eq "Connected") {
                                 $TableData = @{
                                     RemoteHost      = $RemoteHost.ToUpper()
                                     Status          = "Connected"
                                 }
                             }
                             else {
+                                <#
+                                $TableData = @{
+                                    RemoteHost      = $RemoteHost.ToUpper()
+                                    Status          = "Disconnected"
+                                }
+                                #>
                                 Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
                             }
     
@@ -13284,7 +13400,7 @@ function Get-PUDAdminCenter {
             $GetLocalGroupUsersFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-LocalGroupUsers" -and $_ -notmatch "function Get-PUDAdminCenter"}
             $GetLocalUserBelongGroupsFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-LocalUserBelongGroups" -and $_ -notmatch "function Get-PUDAdminCenter"}
             $FunctionsToLoad = @($GetLocalUsersFunc,$GetLocalGroupsFunc,$GetLocalGroupUsersFunc,$GetLocalUserBelongGroupsFunc)
-            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+            $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                 $using:FunctionsToLoad | foreach {Invoke-Expression $_}
     
                 $LocalUsersInfo = Get-LocalUsers | foreach {
@@ -13373,7 +13489,7 @@ function Get-PUDAdminCenter {
                         Get-Runspace | Where-Object {
                             $_.RunspaceIsRemote -and
                             $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".UsersAndGroups.LiveDataRSInfo.ThisRunspace.Id -and
-                            $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
+                            $_.OriginalConnectionInfo.ComputerName -eq $RemoteHost
                         }
                     )
                     if ($PSSessionRunspacePrep.Count -gt 0) {
@@ -13392,7 +13508,7 @@ function Get-PUDAdminCenter {
                 New-Runspace -RunspaceName "UsersAndGroups$RemoteHost`LiveData" -ScriptBlock {
                     $PUDRSSyncHT = $global:PUDRSSyncHT
                 
-                    $LiveDataPSSession = New-PSSession -Name "UsersAndGroups$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
+                    $LiveDataPSSession = New-PSSession -Name "UsersAndGroups$RemoteHost`LiveData" -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
     
                     # Load needed functions in the PSSession
                     Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
@@ -13461,7 +13577,7 @@ function Get-PUDAdminCenter {
                 $GetLocalUsersFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-LocalUsers" -and $_ -notmatch "function Get-PUDAdminCenter"}
                 $GetLocalUserBelongGroupsFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-LocalUserBelongGroups" -and $_ -notmatch "function Get-PUDAdminCenter"}
                 $FunctionsToLoad = @($GetLocalUsersFunc,$GetLocalUserBelongGroupsFunc)
-                $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                     $using:FunctionsToLoad | foreach {Invoke-Expression $_}
     
                     $LocalUsersInfo = Get-LocalUsers | foreach {
@@ -13512,7 +13628,7 @@ function Get-PUDAdminCenter {
                 $GetLocalGroupsFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-LocalGroups" -and $_ -notmatch "function Get-PUDAdminCenter"}
                 $GetLocalGroupUsersFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-LocalGroupUsers" -and $_ -notmatch "function Get-PUDAdminCenter"}
                 $FunctionsToLoad = @($GetLocalGroupsFunc,$GetLocalGroupUsersFunc)
-                $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                     $using:FunctionsToLoad | foreach {Invoke-Expression $_}
     
                     $LocalGroupsInfo = Get-LocalGroups | foreach {
@@ -16826,8 +16942,11 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
     ${Function:EnableWinRMViaRPC}.Ast.Extent.Text
     ${Function:GetComputerObjectsInLDAP}.Ast.Extent.Text
     ${Function:GetDomainController}.Ast.Extent.Text
+    ${Function:GetDomainName}.Ast.Extent.Text
     ${Function:GetElevation}.Ast.Extent.Text
     ${Function:GetGroupObjectsInLDAP}.Ast.Extent.Text
+    ${Function:GetLDAPGroupAndUsers}.Ast.Extent.Text
+    ${Function:GetLDAPUserAndGroups}.Ast.Extent.Text
     ${Function:GetModuleDependencies}.Ast.Extent.Text
     ${Function:GetNativePath}.Ast.Extent.Text
     ${Function:GetUserObjectsInLDAP}.Ast.Extent.Text
@@ -16880,71 +16999,73 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
 )
 
 # SIG # Begin signature block
-# MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
+# MIIM3gYJKoZIhvcNAQcCoIIMzzCCDMsCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU1osrlJ9S6FcX7xGBSoQ7ssql
-# adqgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
-# 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
-# CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
-# CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
-# B1plcm9TQ0EwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDCwqv+ROc1
-# bpJmKx+8rPUUfT3kPSUYeDxY8GXU2RrWcL5TSZ6AVJsvNpj+7d94OEmPZate7h4d
-# gJnhCSyh2/3v0BHBdgPzLcveLpxPiSWpTnqSWlLUW2NMFRRojZRscdA+e+9QotOB
-# aZmnLDrlePQe5W7S1CxbVu+W0H5/ukte5h6gsKa0ktNJ6X9nOPiGBMn1LcZV/Ksl
-# lUyuTc7KKYydYjbSSv2rQ4qmZCQHqxyNWVub1IiEP7ClqCYqeCdsTtfw4Y3WKxDI
-# JaPmWzlHNs0nkEjvnAJhsRdLFbvY5C2KJIenxR0gA79U8Xd6+cZanrBUNbUC8GCN
-# wYkYp4A4Jx+9AgMBAAGjggEqMIIBJjASBgkrBgEEAYI3FQEEBQIDAQABMCMGCSsG
-# AQQBgjcVAgQWBBQ/0jsn2LS8aZiDw0omqt9+KWpj3DAdBgNVHQ4EFgQUicLX4r2C
-# Kn0Zf5NYut8n7bkyhf4wGQYJKwYBBAGCNxQCBAweCgBTAHUAYgBDAEEwDgYDVR0P
-# AQH/BAQDAgGGMA8GA1UdEwEB/wQFMAMBAf8wHwYDVR0jBBgwFoAUdpW6phL2RQNF
-# 7AZBgQV4tgr7OE0wMQYDVR0fBCowKDAmoCSgIoYgaHR0cDovL3BraS9jZXJ0ZGF0
-# YS9aZXJvREMwMS5jcmwwPAYIKwYBBQUHAQEEMDAuMCwGCCsGAQUFBzAChiBodHRw
-# Oi8vcGtpL2NlcnRkYXRhL1plcm9EQzAxLmNydDANBgkqhkiG9w0BAQsFAAOCAQEA
-# tyX7aHk8vUM2WTQKINtrHKJJi29HaxhPaHrNZ0c32H70YZoFFaryM0GMowEaDbj0
-# a3ShBuQWfW7bD7Z4DmNc5Q6cp7JeDKSZHwe5JWFGrl7DlSFSab/+a0GQgtG05dXW
-# YVQsrwgfTDRXkmpLQxvSxAbxKiGrnuS+kaYmzRVDYWSZHwHFNgxeZ/La9/8FdCir
-# MXdJEAGzG+9TwO9JvJSyoGTzu7n93IQp6QteRlaYVemd5/fYqBhtskk1zDiv9edk
-# mHHpRWf9Xo94ZPEy7BqmDuixm4LdmmzIcFWqGGMo51hvzz0EaE8K5HuNvNaUB/hq
-# MTOIB5145K8bFOoKHO4LkTCCBc8wggS3oAMCAQICE1gAAAH5oOvjAv3166MAAQAA
-# AfkwDQYJKoZIhvcNAQELBQAwPTETMBEGCgmSJomT8ixkARkWA0xBQjEUMBIGCgmS
-# JomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EwHhcNMTcwOTIwMjE0MTIy
-# WhcNMTkwOTIwMjExMzU4WjBpMQswCQYDVQQGEwJVUzELMAkGA1UECBMCUEExFTAT
-# BgNVBAcTDFBoaWxhZGVscGhpYTEVMBMGA1UEChMMRGlNYWdnaW8gSW5jMQswCQYD
-# VQQLEwJJVDESMBAGA1UEAxMJWmVyb0NvZGUyMIIBIjANBgkqhkiG9w0BAQEFAAOC
-# AQ8AMIIBCgKCAQEAxX0+4yas6xfiaNVVVZJB2aRK+gS3iEMLx8wMF3kLJYLJyR+l
-# rcGF/x3gMxcvkKJQouLuChjh2+i7Ra1aO37ch3X3KDMZIoWrSzbbvqdBlwax7Gsm
-# BdLH9HZimSMCVgux0IfkClvnOlrc7Wpv1jqgvseRku5YKnNm1JD+91JDp/hBWRxR
-# 3Qg2OR667FJd1Q/5FWwAdrzoQbFUuvAyeVl7TNW0n1XUHRgq9+ZYawb+fxl1ruTj
-# 3MoktaLVzFKWqeHPKvgUTTnXvEbLh9RzX1eApZfTJmnUjBcl1tCQbSzLYkfJlJO6
-# eRUHZwojUK+TkidfklU2SpgvyJm2DhCtssFWiQIDAQABo4ICmjCCApYwDgYDVR0P
-# AQH/BAQDAgeAMBMGA1UdJQQMMAoGCCsGAQUFBwMDMB0GA1UdDgQWBBS5d2bhatXq
-# eUDFo9KltQWHthbPKzAfBgNVHSMEGDAWgBSJwtfivYIqfRl/k1i63yftuTKF/jCB
-# 6QYDVR0fBIHhMIHeMIHboIHYoIHVhoGubGRhcDovLy9DTj1aZXJvU0NBKDEpLENO
-# PVplcm9TQ0EsQ049Q0RQLENOPVB1YmxpYyUyMEtleSUyMFNlcnZpY2VzLENOPVNl
-# cnZpY2VzLENOPUNvbmZpZ3VyYXRpb24sREM9emVybyxEQz1sYWI/Y2VydGlmaWNh
-# dGVSZXZvY2F0aW9uTGlzdD9iYXNlP29iamVjdENsYXNzPWNSTERpc3RyaWJ1dGlv
-# blBvaW50hiJodHRwOi8vcGtpL2NlcnRkYXRhL1plcm9TQ0EoMSkuY3JsMIHmBggr
-# BgEFBQcBAQSB2TCB1jCBowYIKwYBBQUHMAKGgZZsZGFwOi8vL0NOPVplcm9TQ0Es
-# Q049QUlBLENOPVB1YmxpYyUyMEtleSUyMFNlcnZpY2VzLENOPVNlcnZpY2VzLENO
-# PUNvbmZpZ3VyYXRpb24sREM9emVybyxEQz1sYWI/Y0FDZXJ0aWZpY2F0ZT9iYXNl
-# P29iamVjdENsYXNzPWNlcnRpZmljYXRpb25BdXRob3JpdHkwLgYIKwYBBQUHMAKG
-# Imh0dHA6Ly9wa2kvY2VydGRhdGEvWmVyb1NDQSgxKS5jcnQwPQYJKwYBBAGCNxUH
-# BDAwLgYmKwYBBAGCNxUIg7j0P4Sb8nmD8Y84g7C3MobRzXiBJ6HzzB+P2VUCAWQC
-# AQUwGwYJKwYBBAGCNxUKBA4wDDAKBggrBgEFBQcDAzANBgkqhkiG9w0BAQsFAAOC
-# AQEAszRRF+YTPhd9UbkJZy/pZQIqTjpXLpbhxWzs1ECTwtIbJPiI4dhAVAjrzkGj
-# DyXYWmpnNsyk19qE82AX75G9FLESfHbtesUXnrhbnsov4/D/qmXk/1KD9CE0lQHF
-# Lu2DvOsdf2mp2pjdeBgKMRuy4cZ0VCc/myO7uy7dq0CvVdXRsQC6Fqtr7yob9NbE
-# OdUYDBAGrt5ZAkw5YeL8H9E3JLGXtE7ir3ksT6Ki1mont2epJfHkO5JkmOI6XVtg
-# anuOGbo62885BOiXLu5+H2Fg+8ueTP40zFhfLh3e3Kj6Lm/NdovqqTBAsk04tFW9
-# Hp4gWfVc0gTDwok3rHOrfIY35TGCAfUwggHxAgEBMFQwPTETMBEGCgmSJomT8ixk
-# ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
-# E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
-# CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFN7BuNfXtzVdsTJ/
-# +rOXalJWTJXEMA0GCSqGSIb3DQEBAQUABIIBADTRWFE53zz2+S98KuP1LoXFwr9l
-# 16R0ZWMJd0uJ4ghoAQWkPz0qUly3hA56fNjT7OgPYlcg7KFMNG/fEi9HCi/mXHEE
-# 60GqjLvdLKPsclYQ6a7Mukk+/a1JQkoP1OVF7OGm3VNKjif//0wFPL3nfw81Pvm4
-# jU3KLwv7mwwv+74Na0vqDHv612hQTwz7S31X6ORXFTB2B2Ijh4KDUK0WHtpBlFXT
-# LnpITekZLFf/sg7+3Fmakt896NSmO9RaVEnEOuvd/YEPa0wUum6x8hdaIlL3bQ9v
-# jZNlzCL6gjAF5pOAmXhEvhy2HKPTFU5Rm2N/C//RV8WgPbrTiLzXm7NWt4M=
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUUOXAEQXUnW/71Mhn781DtmG1
+# axugggpPMIIEKTCCAxGgAwIBAgITRAAAAALGGh0rrvpIiwAAAAAAAjANBgkqhkiG
+# 9w0BAQsFADBAMRMwEQYKCZImiZPyLGQBGRYDbGFiMRUwEwYKCZImiZPyLGQBGRYF
+# YWxwaGExEjAQBgNVBAMTCUFscGhhREMwMTAeFw0xODExMDYxNTQ2MjhaFw0yMDEx
+# MDYxNTU2MjhaMEExEzARBgoJkiaJk/IsZAEZFgNsYWIxFTATBgoJkiaJk/IsZAEZ
+# FgVhbHBoYTETMBEGA1UEAxMKQWxwaGFTdWJDQTCCASIwDQYJKoZIhvcNAQEBBQAD
+# ggEPADCCAQoCggEBAJ0yJxQZZ7jXPnBuOefihL0ehpBF1zoZpcM30pWneQA/kk9w
+# ByX9ISyKWTABstiIu8b2g6lKUjZBM8AOcLPSjl1ZMQkh+qaSQbJFVNeNYllGpjd1
+# oOYvSPtr9iPpghVkAFWw9IdOgnd/4XDd4NqlddyR4Qb0g7v3+AMYrqhQCk2VzELp
+# 215LEO9sy1EMy7+B29B6P43Rp7ljA9Wc4Hnl+onviFWcIxmIhd0yGdobSxOSDgv5
+# SUBfwk+DW03Y9pmJJHCU9hXFFVsPnrfBEvicGrkYx0vA+/O+jh5otex4eR+Tt7eB
+# 5VhrfdHKbEkZnBwrJOVz3rURZIu3BsDFSfwNd70CAwEAAaOCARkwggEVMBAGCSsG
+# AQQBgjcVAQQDAgEAMB0GA1UdDgQWBBRWBfwwFO+72Ebloy7rHmHnxX3k5DAZBgkr
+# BgEEAYI3FAIEDB4KAFMAdQBiAEMAQTAOBgNVHQ8BAf8EBAMCAYYwDwYDVR0TAQH/
+# BAUwAwEB/zAfBgNVHSMEGDAWgBTq79v4G/Vf91c0y+vSJBWEI/vmDTA8BgNVHR8E
+# NTAzMDGgL6AthitodHRwOi8vcGtpLmFscGhhLmxhYi9jZXJ0ZGF0YS9BbHBoYURD
+# MDEuY3JsMEcGCCsGAQUFBwEBBDswOTA3BggrBgEFBQcwAoYraHR0cDovL3BraS5h
+# bHBoYS5sYWIvY2VydGRhdGEvQWxwaGFEQzAxLmNydDANBgkqhkiG9w0BAQsFAAOC
+# AQEAoE9hHZ0Y5M5tC15cnxVNJa/ILfwRmwCxzPyOAUrdBu4jbSHF2vRsKIJAXFs4
+# +mwXqXpLYSUbXF5tfB86OKs2f9L7soln3BXJHj3eEs27htf7RJK1JjPtO8rs3pdn
+# h7TbDO3nyjkTcywJioScFZUTdIsQj7TBm3HIQ+/ZSdIWMHlQnYV2kW13XqUZnLhv
+# PRjy1NMBG1BAxUrc4bMi1X+mVxoYb/tiB59jakd95wi7ICi2H/07dXoDpi+kAQA1
+# ki1/U+cuDhuH7Q8hegt64MlmKD01rO5HODVujuIG1+M5ZkGDeLNKksPHcSJ/DBSn
+# KjZca16Sn9No2kLq1q9gD8X/wzCCBh4wggUGoAMCAQICE3AAAAAHhXSIXehTWisA
+# AAAAAAcwDQYJKoZIhvcNAQELBQAwQTETMBEGCgmSJomT8ixkARkWA2xhYjEVMBMG
+# CgmSJomT8ixkARkWBWFscGhhMRMwEQYDVQQDEwpBbHBoYVN1YkNBMB4XDTE4MTEw
+# NzAzMTQyMFoXDTE5MTEwNzAzMTQyMFowTzETMBEGCgmSJomT8ixkARkWA2xhYjEV
+# MBMGCgmSJomT8ixkARkWBWFscGhhMQ4wDAYDVQQDEwVVc2VyczERMA8GA1UEAxMI
+# YWxwaGFkZXYwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCMUGwGv3p0
+# prkDmSUQphU6UvIFQ57NxJFUOSmMZ7SY/nYNDy0iTN26eD0S5J8AQE8B/IGLHUno
+# tKFl2AUcQ31hpaSLE1YkThR3WZ4SFUaBMUgKKLc/RQKqE0iNbAfh53N/nnGs6jyu
+# 47kyuFRwWE2tZee6b5hh0dbT7YZnahLO7cLWErU4ikWWjEA98TcMK1gaNa5ThBn1
+# +4bo9wuxjRKIGpkUJBP/1gq8qeSJnfNelZ34lD0EEirj7/YTzL5YkHMSXTuFMozw
+# Av4lXUW/qZ1pAT9rKBalQETxBv9SuC31hU/2EiB4EYYqVFLHglFRogLd7nFZhqa/
+# 2O+WdW2LsW9lAgMBAAGjggL/MIIC+zAOBgNVHQ8BAf8EBAMCB4AwHQYDVR0OBBYE
+# FMy71rz8tJOXdsGvBt6SIVSKUlrkMB8GA1UdIwQYMBaAFFYF/DAU77vYRuWjLuse
+# YefFfeTkMIH3BgNVHR8Ege8wgewwgemggeaggeOGgbJsZGFwOi8vL0NOPUFscGhh
+# U3ViQ0EsQ049QWxwaGFTdWJDQSxDTj1DRFAsQ049UHVibGljJTIwS2V5JTIwU2Vy
+# dmljZXMsQ049U2VydmljZXMsQ049Q29uZmlndXJhdGlvbixEQz1hbHBoYSxEQz1s
+# YWI/Y2VydGlmaWNhdGVSZXZvY2F0aW9uTGlzdD9iYXNlP29iamVjdENsYXNzPWNS
+# TERpc3RyaWJ1dGlvblBvaW50hixodHRwOi8vcGtpLmFscGhhLmxhYi9jZXJ0ZGF0
+# YS9BbHBoYVN1YkNBLmNybDCB9AYIKwYBBQUHAQEEgecwgeQwgacGCCsGAQUFBzAC
+# hoGabGRhcDovLy9DTj1BbHBoYVN1YkNBLENOPUFJQSxDTj1QdWJsaWMlMjBLZXkl
+# MjBTZXJ2aWNlcyxDTj1TZXJ2aWNlcyxDTj1Db25maWd1cmF0aW9uLERDPWFscGhh
+# LERDPWxhYj9jQUNlcnRpZmljYXRlP2Jhc2U/b2JqZWN0Q2xhc3M9Y2VydGlmaWNh
+# dGlvbkF1dGhvcml0eTA4BggrBgEFBQcwAoYsaHR0cDovL3BraS5hbHBoYS5sYWIv
+# Y2VydGRhdGEvQWxwaGFTdWJDQS5jcnQwPQYJKwYBBAGCNxUHBDAwLgYmKwYBBAGC
+# NxUIhLycPIHG3hyBiYk0hLvpfobokGRgg9+kPoHDslgCAWQCAQIwHwYDVR0lBBgw
+# FgYKKwYBBAGCNwoDDAYIKwYBBQUHAwMwKQYJKwYBBAGCNxUKBBwwGjAMBgorBgEE
+# AYI3CgMMMAoGCCsGAQUFBwMDMC0GA1UdEQQmMCSgIgYKKwYBBAGCNxQCA6AUDBJh
+# bHBoYWRldkBhbHBoYS5sYWIwDQYJKoZIhvcNAQELBQADggEBAIhV0GPEvq5KwIs+
+# DTqLsqHcojMyJhJwrZkEim2XAJfNQFkiDrZzism7lOyXYJol6Bjz1txhos7P194+
+# VyBdEZ/Q+r94hrq6SFgC2gCAReDZiy50Au/hTv958QNX/O0OFdIGBxavLqBrWbwu
+# yH+RtE9E4LICSPPd0dM/5XE0xtqDMjZcl3pVkqgHpv3O3zgtsTW+FWr4b9lq3rCO
+# HxsBGU1w7Eh0LLK8MLqioecr/4B1rPTJkcASXWMU5bllQgQvUmlKW0GIfhC9aM4J
+# 04MeJOU1mHLjDcxwWpDD670AFmGRg/mMPxMywvY0HLUszWikcXNYxF1ph+LhlLI9
+# f9R1qqkxggH5MIIB9QIBATBYMEExEzARBgoJkiaJk/IsZAEZFgNsYWIxFTATBgoJ
+# kiaJk/IsZAEZFgVhbHBoYTETMBEGA1UEAxMKQWxwaGFTdWJDQQITcAAAAAeFdIhd
+# 6FNaKwAAAAAABzAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKA
+# ADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYK
+# KwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUzUb8zMOWJkPkIPpMsF7ECFAooFsw
+# DQYJKoZIhvcNAQEBBQAEggEASFiUFQOrlvjT247gA+WzugEtXk8wiQaXddDigJj+
+# OIzCaripNxC4nkl6b/KBGD47Fo2y+vjKJrxbFsV6j/8NT58/hreHJVMbW6bnuF93
+# XGdW7n/MOcLsGzhlvr/svmOAHrYzkSfM+ImURScjRJXJX51HJVQptDN7PjZWsdez
+# dZQZc/gUfTv3QnUlls/5CrNWNB6iFwnNbZLdKs+bRL3knS1Ge+XzpRHg2xLSk9xv
+# yfmc60I85D7c2tiCtrj/LL3rtDK9h8bbRhc9AzY2iQxlRTuosrZZ+ERX9eq4DtYa
+# Sis8MrPdFQmnpqSLSpZq3LVpm4Ags+5MOAj+zDnr6Md64g==
 # SIG # End signature block

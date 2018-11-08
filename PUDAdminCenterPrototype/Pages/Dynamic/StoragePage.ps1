@@ -75,7 +75,7 @@ $StoragePageContent = {
         }
 
         try {
-            $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+            $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
         }
         catch {
             $ConnectionStatus = "Disconnected"
@@ -100,16 +100,24 @@ $StoragePageContent = {
                         
                         $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
 
-                        $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
-                        $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
+                        #$WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
+                        #$WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
 
-                        if ($WSMan5985Available -or $WSMan5986Available) {
+                        $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+
+                        if ($ConnectionStatus -eq "Connected") {
                             $TableData = @{
                                 RemoteHost      = $RemoteHost.ToUpper()
                                 Status          = "Connected"
                             }
                         }
                         else {
+                            <#
+                            $TableData = @{
+                                RemoteHost      = $RemoteHost.ToUpper()
+                                Status          = "Disconnected"
+                            }
+                            #>
                             Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
                         }
 
@@ -143,7 +151,7 @@ $StoragePageContent = {
         $GetStorageFileShareFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-StorageFileShare" -and $_ -notmatch "function Get-PUDAdminCenter"}
         $GetStorageVolumeFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-StorageVolume" -and $_ -notmatch "function Get-PUDAdminCenter"}
         $FunctionsToLoad = @($GetStorageDiskFunc,$GetStorageFileShareFunc,$GetStorageVolumeFunc)
-        $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+        $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
             $using:FunctionsToLoad | foreach {Invoke-Expression $_}
             
             $DiskSummary = Get-StorageDisk
@@ -224,7 +232,7 @@ $StoragePageContent = {
                     Get-Runspace | Where-Object {
                         $_.RunspaceIsRemote -and
                         $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".Storage.LiveDataRSInfo.ThisRunspace.Id -and
-                        $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
+                        $_.OriginalConnectionInfo.ComputerName -eq $RemoteHost
                     }
                 )
                 if ($PSSessionRunspacePrep.Count -gt 0) {
@@ -243,7 +251,7 @@ $StoragePageContent = {
             New-Runspace -RunspaceName "Storage$RemoteHost`LiveData" -ScriptBlock {
                 $PUDRSSyncHT = $global:PUDRSSyncHT
             
-                $LiveDataPSSession = New-PSSession -Name "Storage$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
+                $LiveDataPSSession = New-PSSession -Name "Storage$RemoteHost`LiveData" -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
 
                 # Load needed functions in the PSSession
                 Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
@@ -391,7 +399,7 @@ $StoragePageContent = {
             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
 
             $GetStorageDiskFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-StorageDisk" -and $_ -notmatch "function Get-PUDAdminCenter"}
-            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+            $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                 Invoke-Expression $using:GetStorageDiskFunc
                 
                 $DiskSummary = Get-StorageDisk
@@ -438,7 +446,7 @@ $StoragePageContent = {
             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
 
             $GetStorageVolumeFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-StorageVolume" -and $_ -notmatch "function Get-PUDAdminCenter"}
-            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+            $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                 Invoke-Expression $using:GetStorageVolumeFunc
                 
                 $VolumeSummary = Get-StorageVolume
@@ -497,7 +505,7 @@ $StoragePageContent = {
             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
 
             $GetStorageFileShareFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-StorageFileShare" -and $_ -notmatch "function Get-PUDAdminCenter"}
-            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+            $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                 Invoke-Expression $using:GetStorageFileShareFunc
                 
                 $FileShareSummary = Get-StorageFileShare

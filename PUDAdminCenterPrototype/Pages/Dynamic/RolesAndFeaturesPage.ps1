@@ -75,7 +75,7 @@ $RolesAndFeaturesPageContent = {
         }
 
         try {
-            $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+            $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
         }
         catch {
             $ConnectionStatus = "Disconnected"
@@ -100,16 +100,24 @@ $RolesAndFeaturesPageContent = {
                         
                         $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
 
-                        $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
-                        $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
+                        #$WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
+                        #$WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
 
-                        if ($WSMan5985Available -or $WSMan5986Available) {
+                        $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+
+                        if ($ConnectionStatus -eq "Connected") {
                             $TableData = @{
                                 RemoteHost      = $RemoteHost.ToUpper()
                                 Status          = "Connected"
                             }
                         }
                         else {
+                            <#
+                            $TableData = @{
+                                RemoteHost      = $RemoteHost.ToUpper()
+                                Status          = "Disconnected"
+                            }
+                            #>
                             Invoke-UDRedirect -Url "/Disconnected/$RemoteHost"
                         }
 
@@ -139,7 +147,7 @@ $RolesAndFeaturesPageContent = {
 
         #region >> Gather Some Initial Info From $RemoteHost
 
-        $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+        $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
             $OSInfo = Get-CimInstance Win32_OperatingSystem
             if ($OSInfo.Caption -match "Server") {
                 Import-Module ServerManager
@@ -224,7 +232,7 @@ $RolesAndFeaturesPageContent = {
                     Get-Runspace | Where-Object {
                         $_.RunspaceIsRemote -and
                         $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".RolesAndFeatures.LiveDataRSInfo.ThisRunspace.Id -and
-                        $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
+                        $_.OriginalConnectionInfo.ComputerName -eq $RemoteHost
                     }
                 )
                 if ($PSSessionRunspacePrep.Count -gt 0) {
@@ -243,7 +251,7 @@ $RolesAndFeaturesPageContent = {
             New-Runspace -RunspaceName "RolesAndFeatures$RemoteHost`LiveData" -ScriptBlock {
                 $PUDRSSyncHT = $global:PUDRSSyncHT
             
-                $LiveDataPSSession = New-PSSession -Name "RolesAndFeatures$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
+                $LiveDataPSSession = New-PSSession -Name "RolesAndFeatures$RemoteHost`LiveData" -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
 
                 # Load needed functions in the PSSession
                 Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
@@ -343,7 +351,7 @@ $RolesAndFeaturesPageContent = {
 
             $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
 
-            $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+            $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                 $OSInfo = Get-CimInstance Win32_OperatingSystem
 
                 if ($OSInfo.Caption -match "Server") {

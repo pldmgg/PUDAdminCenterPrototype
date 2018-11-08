@@ -85,7 +85,7 @@ $OverviewPageContent = {
         }
 
         try {
-            $ConnectionStatus = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+            $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
         }
         catch {
             $ConnectionStatus = "Disconnected"
@@ -110,10 +110,12 @@ $OverviewPageContent = {
                         
                         $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
 
-                        $WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
-                        $WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
+                        #$WSMan5985Available = $(TestPort -HostName $RHostIP -Port 5985).Open
+                        #$WSMan5986Available = $(TestPort -HostName $RHostIP -Port 5986).Open
 
-                        if ($WSMan5985Available -or $WSMan5986Available) {
+                        $ConnectionStatus = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {"Connected"}
+
+                        if ($ConnectionStatus -eq "Connected") {
                             $TableData = @{
                                 RemoteHost      = $RemoteHost.ToUpper()
                                 Status          = "Connected"
@@ -178,7 +180,7 @@ $OverviewPageContent = {
 
         $GetServerInventoryFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-ServerInventory" -and $_ -notmatch "function Get-PUDAdminCenter"}
         #$GetEnvVarsFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-EnvironmentVariables" -and $_ -notmatch "function Get-PUDAdminCenter"}
-        $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+        $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
             Invoke-Expression $using:GetServerInventoryFunc
             #Invoke-Expression $using:GetEnvVarsFunc
             
@@ -270,7 +272,7 @@ $OverviewPageContent = {
             if (!$Session:ServerInventoryStatic) {
                 # Gather Basic Info From $RemoteHost
                 $GetServerInventoryFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-ServerInventory" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                $StaticInfoA = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                $StaticInfoA = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                     Invoke-Expression $using:GetServerInventoryFunc
 
                     $SrvInv = Get-ServerInventory
@@ -295,7 +297,7 @@ $OverviewPageContent = {
                     Get-Runspace | Where-Object {
                         $_.RunspaceIsRemote -and
                         $_.Id -gt $PUDRSSyncHT."$RemoteHost`Info".Overview.LiveDataRSInfo.ThisRunspace.Id -and
-                        $_.OriginalConnectionInfo.ComputerName -eq $RHostIP
+                        $_.OriginalConnectionInfo.ComputerName -eq $RemoteHost
                     }
                 )
                 if ($PSSessionRunspacePrep.Count -gt 0) {
@@ -314,7 +316,7 @@ $OverviewPageContent = {
             New-Runspace -RunspaceName "Overview$RemoteHost`LiveData" -ScriptBlock {
                 $PUDRSSyncHT = $global:PUDRSSyncHT
             
-                $LiveDataPSSession = New-PSSession -Name "Overview$RemoteHost`LiveData" -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
+                $LiveDataPSSession = New-PSSession -Name "Overview$RemoteHost`LiveData" -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds
 
                 # Load needed functions in the PSSession
                 Invoke-Command -Session $LiveDataPSSession -ScriptBlock {
@@ -449,7 +451,7 @@ $OverviewPageContent = {
                             $Session:RestartingRemoteHost = $True
                             Sync-UDElement -Id "RestartComputerMsg"
 
-                            Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                            Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                 Restart-Computer -Force
                             }
 
@@ -473,7 +475,7 @@ $OverviewPageContent = {
 
                             #region >> Main
                             
-                            Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                            Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                 Restart-Computer -Force
                             }
 
@@ -502,7 +504,7 @@ $OverviewPageContent = {
                             $Session:ShutdownRemoteHost = $True
                             Sync-UDElement -Id "ShutdownComputerMsg"
 
-                            Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                            Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                 Stop-Computer -Force
                             }
                         }
@@ -522,7 +524,7 @@ $OverviewPageContent = {
 
                             #region >> Main
 
-                            Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                            Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                 Stop-Computer -Force
                             }
 
@@ -559,7 +561,7 @@ $OverviewPageContent = {
                                     # TODO: Figure out a way to check if the disk performance counters are actually enabled or disabled.
                                     # Can't get consistent results using the below method
                                     <#
-                                    $DiskPerfState = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                    $DiskPerfState = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                         try {
                                             $null = Get-Counter "\physicaldisk(0 c:)\disk writes/sec" -ErrorAction Stop
                                             $DiskPerfStatus = "Enabled"
@@ -586,7 +588,7 @@ $OverviewPageContent = {
                                     Sync-UDElement -Id "EnableDiskPerfMsg"
 
                                     $StartDiskPerfFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Start-DiskPerf" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                    $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                    $null = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                         Invoke-Expression $using:StartDiskPerfFunc
                                         $null = Start-DiskPerf
                                     }
@@ -605,7 +607,7 @@ $OverviewPageContent = {
                                     Sync-UDElement -Id "DisableDiskPerfMsg"
 
                                     $StopDiskPerfFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Stop-DiskPerf" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                    $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                    $null = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                         Invoke-Expression $using:StopDiskPerfFunc
                                         Stop-DiskPerf
                                     }
@@ -689,7 +691,7 @@ $OverviewPageContent = {
                                     if ($CredSSPStatus -ne "Disabled") {
                                         $Session:DisableCredSSP = $True
 
-                                        $CredSSPChanges = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                        $CredSSPChanges = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                             $Output = @{}
                                             $GetCredSSPStatus = Get-WSManCredSSP
                                             if ($GetCredSSPStatus -match "The machine is configured to allow delegating fresh credentials.") {
@@ -758,7 +760,7 @@ $OverviewPageContent = {
 
                                     #region >> Main
 
-                                    $CredSSPChanges = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                    $CredSSPChanges = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                         $Output = @{}
                                         $GetCredSSPStatus = Get-WSManCredSSP
                                         if ($GetCredSSPStatus -match "The machine is configured to allow delegating fresh credentials.") {
@@ -833,7 +835,7 @@ $OverviewPageContent = {
                                 }
                                 New-UDElement -Id "RDState" -Tag div -EndPoint {
                                     $GetRDFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RemoteDesktop" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                    $RemoteDesktopSettings = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                    $RemoteDesktopSettings = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                         Invoke-Expression $using:GetRDFunc
                                         Get-RemoteDesktop
                                     } -HideComputerName
@@ -855,7 +857,7 @@ $OverviewPageContent = {
                                         AllowRemoteDesktopWithNLA = $True
                                     }
                                     $SetRDFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Set-RemoteDesktop" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                    $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                    $null = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                         Invoke-Expression $using:SetRDFunc
 
                                         $SplatParams = $args[0]
@@ -880,7 +882,7 @@ $OverviewPageContent = {
                                         AllowRemoteDesktopWithNLA = $False
                                     }
                                     $SetRDFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Set-RemoteDesktop" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                    $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                    $null = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                         Invoke-Expression $using:SetRDFunc
 
                                         $SplatParams = $args[0]
@@ -896,7 +898,7 @@ $OverviewPageContent = {
                                 <#
                                 New-UDInput -SubmitText "Submit" -Id "RemoteDesktopForm" -Content {
                                     $GetRDFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-RemoteDesktop" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                    $RemoteDesktopSettings = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                    $RemoteDesktopSettings = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                         Invoke-Expression $using:GetRDFunc
                                         Get-RemoteDesktop
                                     } -HideComputerName
@@ -933,7 +935,7 @@ $OverviewPageContent = {
                                     }
 
                                     try {
-                                        $SetRemoteDesktopResult = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                        $SetRemoteDesktopResult = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                             Set-ItemProperty -Path "HKLM:\SYSTEM\Currentcontrolset\control\Terminal Server" -Name TSServerDrainMode -Value 1
                                         } -ArgumentList $SetRemoteDesktopSplatParams
 
@@ -980,7 +982,7 @@ $OverviewPageContent = {
                                     }
                                 }
                                 New-UDElement -Id "SSHState" -Tag div -EndPoint {
-                                    $SSHStatusInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                    $SSHStatusInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                         $SSHState = if ($(Get-Command ssh -ErrorAction SilentlyContinue) -or $(Test-Path "$env:ProgramFiles\OpenSSH-Win64\ssh.exe")) {"Enabled"} else {"Disabled"}
                                         $SSHDState = if ($(Get-Service sshd -ErrorAction SilentlyContinue).Status -eq "Running") {"Enabled"} else {"Disabled"}
 
@@ -1002,7 +1004,7 @@ $OverviewPageContent = {
                                     $Session:EnableSSH = $True
                                     Sync-UDElement -Id "EnableSSHMsg"
 
-                                    $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                    $null = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                         if ($(Get-Module -ListAvailable).Name -notcontains "WinSSH") {Install-Module WinSSH}
                                         if ($(Get-Module).Name -notcontains "WinSSH") {Import-Module WinSSH}
 
@@ -1022,7 +1024,7 @@ $OverviewPageContent = {
                                     $Session:DisableSSH = $True
                                     Sync-UDElement -Id "DisableSSHMsg"
 
-                                    $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                    $null = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                         if ($(Get-Module -ListAvailable).Name -notcontains "WinSSH") {Install-Module WinSSH}
                                         if ($(Get-Module).Name -notcontains "WinSSH") {Import-Module WinSSH}
 
@@ -1123,7 +1125,7 @@ $OverviewPageContent = {
                                 $SetComputerIdSplatParams.Add("UserName",$AuthorizationUName)
                                 $SetComputerIdSplatParams.Add("Password",$AuthorizationPwd)
 
-                                Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                     Invoke-Expression $using:SetComputerIdFunc
 
                                     $SplatParams = $args[0]
@@ -1250,7 +1252,7 @@ $OverviewPageContent = {
                                     $SetComputerIdSplatParams.Add("Password",$NewDomain_Password)
                                 }
 
-                                Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                     Invoke-Expression $using:SetComputerIdFunc
 
                                     $SplatParams = $args[0]
@@ -1317,7 +1319,7 @@ $OverviewPageContent = {
                                     $SetComputerIdSplatParams.Add("Password",$Session:CredentialHT.$RemoteHost.DomainCreds.GetNetworkCredential().Password)
                                 }
 
-                                Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                     Invoke-Expression $using:SetComputerIdFunc
 
                                     $SplatParams = $args[0]
@@ -1406,7 +1408,7 @@ $OverviewPageContent = {
                                 $SetComputerIdSplatParams.Add("UserName",$AuthorizationUName)
                                 $SetComputerIdSplatParams.Add("Password",$AuthorizationPwd)
 
-                                Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                     Invoke-Expression $using:SetComputerIdFunc
 
                                     $SplatParams = $args[0]
@@ -1486,7 +1488,7 @@ $OverviewPageContent = {
                                 $SetComputerIdSplatParams.Add("UserName",$AuthorizationUName)
                                 $SetComputerIdSplatParams.Add("Password",$AuthorizationPwd)
 
-                                Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                     Invoke-Expression $using:SetComputerIdFunc
 
                                     $SplatParams = $args[0]
@@ -1546,7 +1548,7 @@ $OverviewPageContent = {
                                     $RHostIP = $($PUDRSSyncHT.RemoteHostList | Where-Object {$_.HostName -eq $RemoteHost}).IPAddressList[0]
 
                                     $GetEnvVarsFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Get-EnvironmentVariables" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                    $StaticInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                    $StaticInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                         Invoke-Expression $using:GetEnvVarsFunc
                                         
                                         $EnvVars = Get-EnvironmentVariables
@@ -1602,7 +1604,7 @@ $OverviewPageContent = {
                                     #>
 
                                     $NewEnvVarFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function New-EnvironmentVariable" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                    $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                    $null = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                         Invoke-Expression $using:NewEnvVarFunc
                                         New-EnvironmentVariable -name $using:EnvVarName -value $using:EnvVarValue -type $using:EnvVarType
                                     }
@@ -1650,7 +1652,7 @@ $OverviewPageContent = {
                                     }
 
                                     # NOTE: Set-EnvironmentVariable outputs @{Status = "Succcess"} otherwise, Error
-                                    $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                    $null = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                         Invoke-Expression $using:SetEnvVarFunc
                                         $SplatParams = $args[0]
                                         Set-EnvironmentVariable @SplatParams
@@ -1678,7 +1680,7 @@ $OverviewPageContent = {
                                     } | Where-Object {$_.attributes.selected.isPresent}).attributes.value
 
                                     $RemoveEnvVarFunc = $Cache:ThisModuleFunctionsStringArray | Where-Object {$_ -match "function Remove-EnvironmentVariable" -and $_ -notmatch "function Get-PUDAdminCenter"}
-                                    $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                    $null = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                         Invoke-Expression $using:RemoveEnvVarFunc
                                         Remove-EnvironmentVariable -name $using:EnvVarName -type $using:EnvVarType
                                     }
@@ -1717,7 +1719,7 @@ $OverviewPageContent = {
 
                                     try {
                                         # NOTE: New-EnvironmentVariable does not output anything
-                                        $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                        $null = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                             $using:NewEnvVarFunc
 
                                             New-EnvironmentVariable -name $using:Name -value $using:Value -type $using:Type
@@ -1763,7 +1765,7 @@ $OverviewPageContent = {
 
                                     try {
                                         # NOTE: Remove-EnvironmentVariable does not output anything
-                                        $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                        $null = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                             Invoke-Expression $using:RemoveEnvVarFunc
 
                                             Remove-EnvironmentVariable -name $using:Name -type $using:Type
@@ -1825,7 +1827,7 @@ $OverviewPageContent = {
 
                                     try {
                                         # NOTE: Set-EnvironmentVariable outputs @{Status = "Succcess"} otherwise, Error
-                                        $null = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                                        $null = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                                             Invoke-Expression $using:SetEnvVarFunc
 
                                             $SplatParams = $args[0]
@@ -1899,7 +1901,7 @@ $OverviewPageContent = {
                 # Summary B
                 $SummaryInfoBGridProperties = @("C_DiskSpace_FreeVsTotal","Processors","Manufacturer","Model","Logical_Processors")
                 
-                $SummaryBInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                $SummaryBInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                     $CimDiskResult = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='C:'"
                     $CimDiskOutput = [Math]::Round($CimDiskResult.FreeSpace / 1GB).ToString() + "GB" +
                     ' / ' + [Math]::Round($CimDiskResult.Size / 1GB).ToString() + "GB"
@@ -1940,7 +1942,7 @@ $OverviewPageContent = {
                 New-UdTable @SummaryInfoBUdGridSplatParams
 
                 # Summary C
-                $SummaryCInfo = Invoke-Command -ComputerName $RHostIP -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
+                $SummaryCInfo = Invoke-Command -ComputerName $RemoteHost -Credential $Session:CredentialHT.$RemoteHost.PSRemotingCreds -ScriptBlock {
                     $using:ThisModuleFunctionsStringArray | Where-Object {$_ -ne $null} | foreach {Invoke-Expression $_ -ErrorAction SilentlyContinue}
                     
                     $DefenderInfo = Get-MpComputerStatus

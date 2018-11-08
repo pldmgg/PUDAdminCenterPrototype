@@ -1,70 +1,86 @@
-[System.Collections.ArrayList]$script:FunctionsForSBUse = @(
-    ${Function:AddWinRMTrustedHost}.Ast.Extent.Text
-    ${Function:AddWinRMTrustLocalHost}.Ast.Extent.Text
-    ${Function:EnableWinRMViaRPC}.Ast.Extent.Text
-    ${Function:GetComputerObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetDomainController}.Ast.Extent.Text
-    ${Function:GetDomainName}.Ast.Extent.Text
-    ${Function:GetElevation}.Ast.Extent.Text
-    ${Function:GetGroupObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetLDAPGroupAndUsers}.Ast.Extent.Text
-    ${Function:GetLDAPUserAndGroups}.Ast.Extent.Text
-    ${Function:GetModuleDependencies}.Ast.Extent.Text
-    ${Function:GetNativePath}.Ast.Extent.Text
-    ${Function:GetUserObjectsInLDAP}.Ast.Extent.Text
-    ${Function:GetWorkingCredentials}.Ast.Extent.Text
-    ${Function:InstallFeatureDism}.Ast.Extent.Text
-    ${Function:InvokeModuleDependencies}.Ast.Extent.Text
-    ${Function:InvokePSCompatibility}.Ast.Extent.Text
-    ${Function:ManualPSGalleryModuleInstall}.Ast.Extent.Text
-    ${Function:NewUniqueString}.Ast.Extent.Text
-    ${Function:ResolveHost}.Ast.Extent.Text
-    ${Function:TestIsValidIPAddress}.Ast.Extent.Text
-    ${Function:TestLDAP}.Ast.Extent.Text
-    ${Function:TestPort}.Ast.Extent.Text
-    ${Function:TestSSH}.Ast.Extent.Text
-    ${Function:UnzipFile}.Ast.Extent.Text
-    ${Function:Get-CertificateOverview}.Ast.Extent.Text
-    ${Function:Get-Certificates}.Ast.Extent.Text
-    ${Function:Get-CimPnpEntity}.Ast.Extent.Text
-    ${Function:Get-EnvironmentVariables}.Ast.Extent.Text
-    ${Function:Get-EventLogSummary}.Ast.Extent.Text
-    ${Function:Get-FirewallProfile}.Ast.Extent.Text
-    ${Function:Get-FirewallRules}.Ast.Extent.Text
-    ${Function:Get-IPRange}.Ast.Extent.Text
-    ${Function:Get-LocalGroups}.Ast.Extent.Text
-    ${Function:Get-LocalGroupUsers}.Ast.Extent.Text
-    ${Function:Get-LocalUserBelongGroups}.Ast.Extent.Text
-    ${Function:Get-LocalUsers}.Ast.Extent.Text
-    ${Function:Get-Networks}.Ast.Extent.Text
-    ${Function:Get-PendingUpdates}.Ast.Extent.Text
-    ${Function:Get-Processes}.Ast.Extent.Text
-    ${Function:Get-PUDAdminCenter}.Ast.Extent.Text
-    ${Function:Get-RegistrySubKeys}.Ast.Extent.Text
-    ${Function:Get-RegistryValues}.Ast.Extent.Text
-    ${Function:Get-RemoteDesktop}.Ast.Extent.Text
-    ${Function:Get-ScheduledTasks}.Ast.Extent.Text
-    ${Function:Get-ServerInventory}.Ast.Extent.Text
-    ${Function:Get-StorageDisk}.Ast.Extent.Text
-    ${Function:Get-StorageFileShare}.Ast.Extent.Text
-    ${Function:Get-StorageVolume}.Ast.Extent.Text
-    ${Function:Get-WUAHistory}.Ast.Extent.Text
-    ${Function:Install-DotNet472}.Ast.Extent.Text
-    ${Function:New-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:New-Runspace}.Ast.Extent.Text
-    ${Function:Remove-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:Set-ComputerIdentification}.Ast.Extent.Text
-    ${Function:Set-EnvironmentVariable}.Ast.Extent.Text
-    ${Function:Set-RemoteDesktop}.Ast.Extent.Text
-    ${Function:Start-DiskPerf}.Ast.Extent.Text
-    ${Function:Stop-DiskPerf}.Ast.Extent.Text
-)
+function GetDomainName {
+    [CmdletBinding()]
+    Param()
+
+    if (!$PSVersionTable.Platform -or $PSVersionTable.Platform -eq "Win32NT") {
+        $Domain = $(Get-CimInstance Win32_ComputerSystem).Domain
+    }
+    if ($PSVersionTable.Platform -eq "Unix") {
+        $Domain = domainname
+        if (!$Domain -or $Domain -eq "(none)") {
+            $ThisHostNamePrep = hostname
+            if ($ThisHostNamePrep -match "\.") {
+                $HostNameArray = $ThisHostNamePrep -split "\."
+                $ThisHostName = $HostNameArray[0]
+                $Domain = $HostNameArray[1..$HostNameArray.Count] -join '.'
+            }
+        }
+            
+        if (!$Domain) {
+            $EtcHostsContent = Get-Content "/etc/hosts"
+            $EtcHostsContentsArray = $(foreach ($HostLine in $EtcHostsContent) {
+                $HostLine -split "[\s]" | foreach {$_.Trim()}
+            }) | Where-Object {![System.String]::IsNullOrWhiteSpace($_)}
+            $PotentialStringsWithDomainName = $EtcHostsContentsArray | Where-Object {
+                $_ -notmatch "localhost" -and
+                $_ -notmatch "localdomain" -and
+                $_ -match "\." -and
+                $_ -match "[a-zA-Z]"
+            } | Sort-Object | Get-Unique
+
+            if ($PotentialStringsWithDomainName.Count -eq 0) {
+                Write-Error "Unable to determine domain for $(hostname)! Please use the -DomainName parameter and try again. Halting!"
+                $global:FunctionResult = "1"
+                return
+            }
+            
+            [System.Collections.ArrayList]$PotentialDomainsPrep = @()
+            foreach ($Line in $PotentialStringsWithDomainName) {
+                if ($Line -match "^\.") {
+                    $null = $PotentialDomainsPrep.Add($Line.Substring(1,$($Line.Length-1)))
+                }
+                else {
+                    $null = $PotentialDomainsPrep.Add($Line)
+                }
+            }
+            [System.Collections.ArrayList]$PotentialDomains = @()
+            foreach ($PotentialDomain in $PotentialDomainsPrep) {
+                $RegexDomainPattern = "^([a-zA-Z0-9][a-zA-Z0-9-_]*\.)*[a-zA-Z0-9]*[a-zA-Z0-9-_]*[[a-zA-Z0-9]+$"
+                if ($PotentialDomain -match $RegexDomainPattern) {
+                    $FinalPotentialDomain = $PotentialDomain -replace $ThisHostName,""
+                    if ($FinalPotentialDomain -match "^\.") {
+                        $null = $PotentialDomains.Add($FinalPotentialDomain.Substring(1,$($FinalPotentialDomain.Length-1)))
+                    }
+                    else {
+                        $null = $PotentialDomains.Add($FinalPotentialDomain)
+                    }
+                }
+            }
+
+            if ($PotentialDomains.Count -eq 1) {
+                $Domain = $PotentialDomains
+            }
+            else {
+                $Domain = $PotentialDomains[0]
+            }
+        }
+    }
+
+    if ($Domain) {
+        $Domain
+    }
+    else {
+        Write-Error "Unable to determine Domain Name! Halting!"
+        $global:FunctionResult = "1"
+        return
+    }
+}
 
 # SIG # Begin signature block
 # MIIM3gYJKoZIhvcNAQcCoIIMzzCCDMsCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUbD3bCgC+Zus47yeI0kuaA4PH
-# kdCgggpPMIIEKTCCAxGgAwIBAgITRAAAAALGGh0rrvpIiwAAAAAAAjANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUeqfJM3K8A6InvC/wFroQypby
+# GAegggpPMIIEKTCCAxGgAwIBAgITRAAAAALGGh0rrvpIiwAAAAAAAjANBgkqhkiG
 # 9w0BAQsFADBAMRMwEQYKCZImiZPyLGQBGRYDbGFiMRUwEwYKCZImiZPyLGQBGRYF
 # YWxwaGExEjAQBgNVBAMTCUFscGhhREMwMTAeFw0xODExMDYxNTQ2MjhaFw0yMDEx
 # MDYxNTU2MjhaMEExEzARBgoJkiaJk/IsZAEZFgNsYWIxFTATBgoJkiaJk/IsZAEZ
@@ -123,11 +139,11 @@
 # kiaJk/IsZAEZFgVhbHBoYTETMBEGA1UEAxMKQWxwaGFTdWJDQQITcAAAAAeFdIhd
 # 6FNaKwAAAAAABzAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKA
 # ADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYK
-# KwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQU187CvwYg2B/VnApOIQnzUcciOrEw
-# DQYJKoZIhvcNAQEBBQAEggEASPM2V+nU+Unx3u6vBFIcicmy/hKAnsUuQzOgI4yq
-# RpZEq0RYUgGXWgtzqMC9MfClkH+UuVdRITcgdj60mE26e1mn7/26j2RocKb0iAeX
-# TCni9D7WeqSJzM+m1ZMlNwKS58IfhwppFcKXGBqyJHn7+vEI0Ko3tYiJzpn6Oo/N
-# VvVlKH+5RWWvponEEMpMNoNV2PvDh8NsvYr8flALuMcQZHDNCTqpIx94DCAKHLeK
-# 49j+44qPc+r5n76nNI3PME9k8MfX29bWEBoEqJ6WVDkZ533IWxllWkIscMBb6NxD
-# MFcQ2RnGvdwQNqW1x1ee+/IFe2MZTWLo5f+Rifb7higKXw==
+# KwYBBAGCNwIBFTAjBgkqhkiG9w0BCQQxFgQUHeu4SH+Zgy1QTG2JGI1Lwr8uLmYw
+# DQYJKoZIhvcNAQEBBQAEggEAgPcrCrkk8WEmVEA1NGnmkTVwCTtCl+K0JnGdP4C5
+# KYr9rd00jgH/E4FvJg+y6lUFcSD7hLOSFtPPEbW0vu7vtWf1L03hkeplhMmGNcDv
+# 2Od2Gyd2AdeH8rrppIjtw2sOB1ZU750a68Fjj/2f5uhVK/139+NWIGVgZVTo9Ny5
+# v5hPrl55DK+JRkC6f+MoJj6Lnz1ZH5kI5TMBqQcZNLf9J7K1lc0FHSnn7gGTSn4G
+# 89WX6uIgw+F1UH1WwMofQXSwaVIuM7oS1+Cd0AVzV4USmssTkv3j537fHwEYCPy2
+# 7nU5+QkndQrvD/y9O4ajQNL8qgPKGKpZjvDp0Pybz2mQKw==
 # SIG # End signature block
