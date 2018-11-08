@@ -1,5 +1,10 @@
 # Change log
 
+## 0.2.0 (November 8, 2018)
+
+- Updated LDAP private functions
+- Changed PSRemoting via IP to PSRemoting via HostName
+
 ## 0.1.3 (September 21, 2018)
 
 - Updated GetComputerObjectsInLDAP Private function
