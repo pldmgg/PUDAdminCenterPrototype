@@ -261,9 +261,6 @@ Task Test -Depends Compile  {
 
     [System.Collections.ArrayList][array]$FilesToSign = Get-ChildItem $env:BHProjectPath -Recurse -File | Where-Object {
         $_.Extension -match '\.ps1|\.psm1|\.psd1|\.ps1xml' -and
-        $_.Name -notmatch "^$env:BHProjectName\.ps[d|m]1$" -and
-        $_.Name -notmatch "^module\.requirements\.psd1" -and
-        $_.Name -notmatch "^build\.requirements\.psd1" -and
         $_.Name -notmatch "^build\.ps1$" -and
         $_.Name -notmatch $($HelperFilesToSignNameRegex -join '|') -and
         $_.Name -notmatch $RemoveSignatureFilePathRegex -and
@@ -331,8 +328,8 @@ Task Deploy -Depends Build {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUONeRvVNz3TyzllJECBcZl2vs
-# fa6gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQU3+ZoVbgC/y0FP/aNsOP88rNE
+# bYagggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -389,11 +386,11 @@ Task Deploy -Depends Build {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFFxta5fhBSqNrqnI
-# Xkn3Ay5Zv0OKMA0GCSqGSIb3DQEBAQUABIIBADKg6qFK9JRtVg7yEwWxVkDqD0Td
-# 8DIhb5KzhKBXcS/sRKGn8k6rsu6bqBT+wRUrw/gpXkRi1amXajCJ8igDyyIJda0g
-# rxVr+wC72BtrV7d1xL3uihY6xfKqwr40YuGKrq54AvKJ61sMhHLpnfbcm281cuOh
-# m3eUpmihHpARmCKrqZ+ZkWs67WmIjK9pCycf9NBa5GQ0EosqpTk3AoJ4YOQ0bk6K
-# D4Xf/4wAENiv4bO2gkppJ1+n6QrZFBWmYlxWwEGiuNVdZWkdFHLYWVlyS/DEq5+P
-# XR0W5yAYCDttMeZFmZfpFqD8bVP6T0WXtbAJVSJ7lr1DIJMy24stWXzgSOM=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFBK6Ymy4iaXFvFy3
+# yrEhrwyQQ7LYMA0GCSqGSIb3DQEBAQUABIIBAAweP8P0Pl9uyD0EXXdg10DHv8/2
+# ggVyhQ707JYthUJL+4ryJsAoOQfsH+HnbsUpq9kRSevWuCFMSo4mfunSFaP0i00C
+# IihzxF15ZRcVQ9ZEO/GZJ/3Txf6h5jrbZorxPn/TZhZC5yEOQ9IBUbi4o3V07hL6
+# dHfdvOVakKrp96sBzbKph9KiOy0TjsB5A6Fr2ZjI751R3S6hofUBbVTWmi9rBWKi
+# 9OL3bDPtFahsKUlX2WtdyCRW6+nUR8LZmsn6PfX/Eu6pLxB9KamU5cn36IAEvPI9
+# OXfcsXDpmkLooEvgqWU17QqfHS1/VHyV069zpnmQDSIPnScYFk0uW2+pGHI=
 # SIG # End signature block
