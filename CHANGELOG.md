@@ -1,5 +1,9 @@
 # Change log
 
+## 0.2.3 (November 14, 2018)
+
+- Fix Authenticode Signature Attempt 3
+
 ## 0.2.2 (November 14, 2018)
 
 - Fix Authenticode Signature Attempt 2

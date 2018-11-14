@@ -203,7 +203,8 @@ if (![bool]$(Get-Module UniversalDashboard.Community)) {
     if ($Cert) {
         # At this point the .psm1 is finalized, so let's sign it
         try {
-            $SetAuthenticodeResult = Set-AuthenticodeSignature -FilePath "$env:BHModulePath\$env:BHProjectName.psm1" -cert $Cert
+            Write-Host "Signing $env:BHModulePath\$env:BHProjectName.psm1"
+            $SetAuthenticodeResult = Set-AuthenticodeSignature -FilePath "$env:BHModulePath\$env:BHProjectName.psm1" -Cert $Cert
             if (!$SetAuthenticodeResult -or $SetAuthenticodeResult.Status -eq "HashMisMatch") {throw}
         }
         catch {
@@ -236,6 +237,46 @@ Task Test -Depends Compile  {
 
     # Gather test results. Store them in a variable and file
     $TestResults = Invoke-Pester @PesterSplatParams
+
+    # Make sure Authenticode Signature has been removed
+    $RemoveSignatureFilePath = $(Resolve-Path "$PSScriptRoot\*Help*\Remove-Signature.ps1").Path
+    $RemoveSignatureFilePathRegex = [regex]::Escape($RemoveSignatureFilePath)
+    . $RemoveSignatureFilePath
+    if (![bool]$(Get-Item Function:\Remove-Signature)) {
+        Write-Error "Problem dot sourcing the Remove-Signature function! Halting!"
+        $global:FunctionResult = "1"
+        return
+    }
+    [System.Collections.ArrayList][array]$HelperFilestoSign = Get-ChildItem $(Resolve-Path "$PSScriptRoot\*Help*\").Path -Recurse -File | Where-Object {
+        $_.Extension -match '\.ps1|\.psm1|\.psd1|\.ps1xml' -and $_.Name -ne "Remove-Signature.ps1"
+    }
+    foreach ($FileItem in $HelperFilestoSign) {
+        if ($(Get-AuthenticodeSignature -FilePath $FileItem.FullName) -ne "NotSigned") {
+            Write-Host "Removing signature from $($FileItem.FullName)..."
+            Remove-Signature -FilePath $FileItem.FullName
+        }
+    }
+
+    $HelperFilesToSignNameRegex = $HelperFilestoSign.Name | foreach {[regex]::Escape($_)}
+
+    [System.Collections.ArrayList][array]$FilesToSign = Get-ChildItem $env:BHProjectPath -Recurse -File | Where-Object {
+        $_.Extension -match '\.ps1|\.psm1|\.psd1|\.ps1xml' -and
+        $_.Name -notmatch "^$env:BHProjectName\.ps[d|m]1$" -and
+        $_.Name -notmatch "^module\.requirements\.psd1" -and
+        $_.Name -notmatch "^build\.requirements\.psd1" -and
+        $_.Name -notmatch "^build\.ps1$" -and
+        $_.Name -notmatch $($HelperFilesToSignNameRegex -join '|') -and
+        $_.Name -notmatch $RemoveSignatureFilePathRegex -and
+        $_.FullName -notmatch "\\Pages\\Dynamic|\\Pages\\Static" -and
+        $_.Name -notmatch "psake\.ps1" -and
+        $_.Name -notmatch "Tests\.ps1"
+    }
+    foreach ($FileItem in $FilestoSign) {
+        if ($(Get-AuthenticodeSignature -FilePath $FileItem.FullName) -ne "NotSigned") {
+            Write-Host "Removing signature from $($FileItem.FullName)..."
+            Remove-Signature -FilePath $FileItem.FullName
+        }
+    }
 
     # In Appveyor?  Upload our tests! #Abstract this into a function?
     if ($env:BHBuildSystem -eq 'AppVeyor') {
@@ -290,8 +331,8 @@ Task Deploy -Depends Build {
 # SIG # Begin signature block
 # MIIMiAYJKoZIhvcNAQcCoIIMeTCCDHUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUyjrMzCHtMzyDOPcnP9TPka7q
-# IPmgggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUONeRvVNz3TyzllJECBcZl2vs
+# fa6gggn9MIIEJjCCAw6gAwIBAgITawAAAB/Nnq77QGja+wAAAAAAHzANBgkqhkiG
 # 9w0BAQsFADAwMQwwCgYDVQQGEwNMQUIxDTALBgNVBAoTBFpFUk8xETAPBgNVBAMT
 # CFplcm9EQzAxMB4XDTE3MDkyMDIxMDM1OFoXDTE5MDkyMDIxMTM1OFowPTETMBEG
 # CgmSJomT8ixkARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMT
@@ -348,11 +389,11 @@ Task Deploy -Depends Build {
 # ARkWA0xBQjEUMBIGCgmSJomT8ixkARkWBFpFUk8xEDAOBgNVBAMTB1plcm9TQ0EC
 # E1gAAAH5oOvjAv3166MAAQAAAfkwCQYFKw4DAhoFAKB4MBgGCisGAQQBgjcCAQwx
 # CjAIoAKAAKECgAAwGQYJKoZIhvcNAQkDMQwGCisGAQQBgjcCAQQwHAYKKwYBBAGC
-# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFGo4nn39zW4tpUL9
-# mWXgOIPK9fduMA0GCSqGSIb3DQEBAQUABIIBABsrM2qj9g3n/eJes19MIVXevMYn
-# 6GYqw1xjYqZWxTLI8GOc5+WCM+bPO5xc6v8W4lVAU/7KOZqAvzmPeQb74YSLLRDb
-# Da6FbGSmCinklGKfyja8OdWphSngegmTAgQc8UuJGNpBq5f17ksv/iit8o9ALRjE
-# tlA3oV75792duvdMn1Pvz9jdaY9jsb1Z78JNpm/c0d10ZCngG7/kXS2PcqpThXH/
-# WOiHVV3WP+9RdVVWvNnXqITh0UNOaKaaAdfL2F8+GjfDoW3BhDyc19HB4aC5lOWY
-# YNwA2DT5UGD9QYt4IdHEINauxpJOJz2kmR/Fwe8ReoXSQ4+D4kMlEe77Rvw=
+# NwIBCzEOMAwGCisGAQQBgjcCARUwIwYJKoZIhvcNAQkEMRYEFFxta5fhBSqNrqnI
+# Xkn3Ay5Zv0OKMA0GCSqGSIb3DQEBAQUABIIBADKg6qFK9JRtVg7yEwWxVkDqD0Td
+# 8DIhb5KzhKBXcS/sRKGn8k6rsu6bqBT+wRUrw/gpXkRi1amXajCJ8igDyyIJda0g
+# rxVr+wC72BtrV7d1xL3uihY6xfKqwr40YuGKrq54AvKJ61sMhHLpnfbcm281cuOh
+# m3eUpmihHpARmCKrqZ+ZkWs67WmIjK9pCycf9NBa5GQ0EosqpTk3AoJ4YOQ0bk6K
+# D4Xf/4wAENiv4bO2gkppJ1+n6QrZFBWmYlxWwEGiuNVdZWkdFHLYWVlyS/DEq5+P
+# XR0W5yAYCDttMeZFmZfpFqD8bVP6T0WXtbAJVSJ7lr1DIJMy24stWXzgSOM=
 # SIG # End signature block
